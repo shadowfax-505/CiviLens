@@ -1,0 +1,123 @@
+<x-layouts.app :title="'Tender Detail - CivicLens'">
+    <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Tender Detail</p>
+            <h1 class="text-3xl font-bold">{{ $tender->title }}</h1>
+            <p class="mt-2 text-slate-600 dark:text-slate-300">{{ $tender->tender_number }} | {{ $tender->project?->name }} | {{ $tender->agency?->name }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('admin.procurement.tenders.edit', $tender) }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Edit</a>
+            <form method="POST" action="{{ route('admin.procurement.tenders.publish', $tender) }}">@csrf @method('PATCH')<button class="rounded bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Publish</button></form>
+            <form method="POST" action="{{ route('admin.procurement.tenders.close', $tender) }}">@csrf @method('PATCH')<button class="rounded bg-slate-700 px-4 py-2 text-sm font-semibold text-white">Close</button></form>
+            @if ($tender->archived_at)
+                <form method="POST" action="{{ route('admin.procurement.tenders.restore', $tender) }}">@csrf @method('PATCH')<button class="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Restore</button></form>
+            @else
+                <form method="POST" action="{{ route('admin.procurement.tenders.archive', $tender) }}" onsubmit="return confirm('Archive this tender?')">@csrf @method('PATCH')<button class="rounded bg-amber-700 px-4 py-2 text-sm font-semibold text-white">Archive</button></form>
+            @endif
+        </div>
+    </div>
+
+    <section class="mt-8 grid gap-4 md:grid-cols-4">
+        <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Status</p><p class="text-xl font-bold">{{ $tender->status?->name }}</p></div>
+        <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Method</p><p class="text-xl font-bold">{{ $tender->method?->name }}</p></div>
+        <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Budget Reference</p><p class="text-xl font-bold">{{ number_format((float) $tender->budget?->current_allocation, 2) }}</p></div>
+        <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Bids</p><p class="text-xl font-bold">{{ $tender->bidSubmissions->count() }}</p></div>
+    </section>
+
+    <section class="mt-8 grid gap-6 lg:grid-cols-2">
+        <div class="rounded-xl border bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <h2 class="text-xl font-semibold">Bid Submission Management</h2>
+            <form method="POST" action="{{ route('admin.procurement.tenders.bids.store', $tender) }}" class="mt-4 grid gap-3">
+                @csrf
+                <select name="bidder_organization_id" class="rounded border px-3 py-2 text-slate-950">@foreach ($bidders as $bidder)<option value="{{ $bidder->id }}">{{ $bidder->name }}</option>@endforeach</select>
+                <input name="reference_number" placeholder="Bid reference" class="rounded border px-3 py-2 text-slate-950">
+                <input name="submitted_at" placeholder="Submitted at" class="rounded border px-3 py-2 text-slate-950">
+                <input name="technical_score" type="number" min="0" max="100" step="0.01" placeholder="Technical score" class="rounded border px-3 py-2 text-slate-950">
+                <input name="financial_score" type="number" min="0" max="100" step="0.01" placeholder="Financial score" class="rounded border px-3 py-2 text-slate-950">
+                <input name="status" value="submitted" class="rounded border px-3 py-2 text-slate-950">
+                <textarea name="notes" placeholder="Notes" class="rounded border px-3 py-2 text-slate-950"></textarea>
+                <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Record bid</button>
+            </form>
+            <ol class="mt-5 space-y-2">
+                @forelse ($tender->bidSubmissions as $bid)
+                    <li class="rounded border px-3 py-2 text-sm dark:border-slate-800">{{ $bid->reference_number }} - {{ $bid->bidderOrganization?->name }} - {{ $bid->status }}</li>
+                @empty
+                    <li class="text-sm text-slate-500">No bids recorded.</li>
+                @endforelse
+            </ol>
+        </div>
+
+        <div class="rounded-xl border bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <h2 class="text-xl font-semibold">Evaluation Workspace</h2>
+            <form method="POST" action="{{ route('admin.procurement.tenders.criteria.store', $tender) }}" class="mt-4 grid gap-3">
+                @csrf
+                <input name="name" placeholder="Criterion name" class="rounded border px-3 py-2 text-slate-950">
+                <input name="max_score" type="number" min="1" step="0.01" value="100" class="rounded border px-3 py-2 text-slate-950">
+                <input name="weight" type="number" min="0" max="100" step="0.01" placeholder="Weight" class="rounded border px-3 py-2 text-slate-950">
+                <textarea name="description" placeholder="Description" class="rounded border px-3 py-2 text-slate-950"></textarea>
+                <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Add criterion</button>
+            </form>
+            @foreach ($tender->bidSubmissions as $bid)
+                <form method="POST" action="{{ route('admin.procurement.bid-submissions.scores.store', $bid) }}" class="mt-4 grid gap-2 rounded border p-3 dark:border-slate-800">
+                    @csrf
+                    <p class="text-sm font-semibold">Score {{ $bid->reference_number }}</p>
+                    <select name="evaluation_criterion_id" class="rounded border px-3 py-2 text-slate-950">@foreach ($tender->evaluationCriteria as $criterion)<option value="{{ $criterion->id }}">{{ $criterion->name }}</option>@endforeach</select>
+                    <input name="score" type="number" min="0" step="0.01" placeholder="Score" class="rounded border px-3 py-2 text-slate-950">
+                    <textarea name="comments" placeholder="Comments" class="rounded border px-3 py-2 text-slate-950"></textarea>
+                    <button class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Record score</button>
+                </form>
+            @endforeach
+        </div>
+
+        <div class="rounded-xl border bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <h2 class="text-xl font-semibold">Award Management</h2>
+            <form method="POST" action="{{ route('admin.procurement.tenders.awards.store', $tender) }}" class="mt-4 grid gap-3">
+                @csrf
+                <select name="bid_submission_id" class="rounded border px-3 py-2 text-slate-950">@foreach ($tender->bidSubmissions as $bid)<option value="{{ $bid->id }}">{{ $bid->reference_number }} - {{ $bid->bidderOrganization?->name }}</option>@endforeach</select>
+                <input name="awarded_at" type="date" class="rounded border px-3 py-2 text-slate-950">
+                <input name="status" value="pending" class="rounded border px-3 py-2 text-slate-950">
+                <textarea name="notes" placeholder="Notes" class="rounded border px-3 py-2 text-slate-950"></textarea>
+                <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Record award</button>
+            </form>
+            <ol class="mt-5 space-y-2">
+                @forelse ($tender->awards as $award)
+                    <li class="rounded border px-3 py-2 text-sm dark:border-slate-800">{{ $award->bidSubmission?->bidderOrganization?->name }} - {{ $award->status }}</li>
+                @empty
+                    <li class="text-sm text-slate-500">No awards recorded.</li>
+                @endforelse
+            </ol>
+        </div>
+
+        <div class="rounded-xl border bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <h2 class="text-xl font-semibold">Contract Management</h2>
+            @foreach ($tender->awards as $award)
+                <form method="POST" action="{{ route('admin.procurement.awards.contracts.store', $award) }}" class="mt-4 grid gap-3 rounded border p-3 dark:border-slate-800">
+                    @csrf
+                    <p class="text-sm font-semibold">Contract for {{ $award->bidSubmission?->bidderOrganization?->name }}</p>
+                    <input name="contract_number" placeholder="Contract number" class="rounded border px-3 py-2 text-slate-950">
+                    <input name="title" placeholder="Title" class="rounded border px-3 py-2 text-slate-950">
+                    <input name="status" value="draft" class="rounded border px-3 py-2 text-slate-950">
+                    <input name="signed_at" type="date" class="rounded border px-3 py-2 text-slate-950">
+                    <input name="start_date" type="date" class="rounded border px-3 py-2 text-slate-950">
+                    <input name="end_date" type="date" class="rounded border px-3 py-2 text-slate-950">
+                    <textarea name="notes" placeholder="Notes" class="rounded border px-3 py-2 text-slate-950"></textarea>
+                    <button class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Create contract</button>
+                </form>
+                @if ($award->contract)
+                    <a class="mt-2 block text-sm font-semibold text-blue-700 dark:text-blue-300" href="{{ route('admin.procurement.contracts.show', $award->contract) }}">{{ $award->contract->contract_number }}</a>
+                @endif
+            @endforeach
+        </div>
+    </section>
+
+    <section class="mt-8 rounded-xl border bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <h2 class="text-xl font-semibold">Procurement Timeline</h2>
+        <ol class="mt-5 space-y-3">
+            @forelse ($tender->activities as $activity)
+                <li class="rounded border px-3 py-2 text-sm dark:border-slate-800"><span class="font-semibold">{{ $activity->event }}</span> - {{ $activity->description }} <span class="text-slate-500">{{ $activity->created_at?->format('Y-m-d H:i') }}</span></li>
+            @empty
+                <li class="text-sm text-slate-500">No procurement activity recorded.</li>
+            @endforelse
+        </ol>
+    </section>
+</x-layouts.app>

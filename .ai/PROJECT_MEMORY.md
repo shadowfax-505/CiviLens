@@ -2,7 +2,7 @@
 
 ## Current State
 
-CivicLens has a Laravel 13 foundation with the Enterprise v1.0 documentation skeleton, local environment defaults, role/permission schema, protected dashboard route, and Sprint 01 web Identity & Access Management.
+CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 documentation skeleton, identity, geography, agencies, projects, finance, procurement, and the Sprint 05.5 developer platform hardening layer.
 
 ## Completed
 
@@ -23,7 +23,9 @@ CivicLens has a Laravel 13 foundation with the Enterprise v1.0 documentation ske
 - Sprint 02 agency registry: agency types, hierarchical agencies, contact fields, geography assignment, user assignment, admin CRUD, search/filter/sort/pagination, policies, validation, factories, seed data, and tests.
 - Sprint 03 project lifecycle management: normalized project lookup tables, projects, project activity audit trail, admin dashboard/search/detail/create/edit/archive/restore/delete workflows, policies, validation, factories, seed data, and tests.
 - Sprint 04 financial management: Budget Engine with configurable budget categories/types/statuses/transaction types, budgets, revisions, immutable transactions, dashboard, archive/restore, search/filter/sort/pagination, policies, validation, factories, seed data, and tests.
+- Sprint 05 procurement management: procurement methods, tender categories/statuses, tenders, bidder organizations, bid submissions, evaluation criteria/scores, awards, contracts, contract lifecycle tables, immutable procurement activities, dashboard/search/workspace UI, policies, validation, factories, seed data, and tests.
+- Sprint 05.5 engineering hardening: GitHub Actions CI, Larastan/PHPStan level 8, Rector dry-run, Playwright browser test scaffolding, complexity metrics, event/listener logging, queued job scaffolds, observability helpers, Makefile, and synchronized developer documentation.
 
 ## Next Milestone
 
-Install Sanctum when package access is available, then implement token API auth or continue to Sprint 05 procurement planning.
+Resolve deferred environment/tooling items, then plan Sprint 06 without starting it automatically.

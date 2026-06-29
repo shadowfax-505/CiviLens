@@ -15,6 +15,7 @@ class GeographyListingService
      * @param  array<string, string>  $filters
      * @param  array<int, string>  $allowedSorts
      * @param  array<int, string>  $with
+     * @return LengthAwarePaginator<int, Model>
      */
     public function paginate(Request $request, string $model, array $searchColumns, array $filters = [], array $allowedSorts = ['name', 'created_at'], array $with = []): LengthAwarePaginator
     {
@@ -28,8 +29,13 @@ class GeographyListingService
             $search = $request->string('search')->toString();
             $query->where(function (Builder $query) use ($search, $searchColumns): void {
                 foreach ($searchColumns as $index => $column) {
-                    $method = $index === 0 ? 'where' : 'orWhere';
-                    $query->{$method}($column, 'like', "%{$search}%");
+                    if ($index === 0) {
+                        $query->where($column, 'like', "%{$search}%");
+
+                        continue;
+                    }
+
+                    $query->orWhere($column, 'like', "%{$search}%");
                 }
             });
         });

@@ -10,6 +10,11 @@ use App\Http\Controllers\Admin\Geography\DivisionController;
 use App\Http\Controllers\Admin\Geography\UnionController;
 use App\Http\Controllers\Admin\Geography\UpazilaController;
 use App\Http\Controllers\Admin\Geography\WardController;
+use App\Http\Controllers\Admin\Procurement\AwardController;
+use App\Http\Controllers\Admin\Procurement\BidSubmissionController;
+use App\Http\Controllers\Admin\Procurement\ContractController;
+use App\Http\Controllers\Admin\Procurement\EvaluationController;
+use App\Http\Controllers\Admin\Procurement\TenderController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserRoleController;
@@ -85,6 +90,21 @@ Route::middleware(['auth', 'active'])->group(function (): void {
             Route::post('/budgets/{budget}/transactions', [BudgetTransactionController::class, 'store'])->name('budgets.transactions.store');
             Route::delete('/budget-transactions/{budgetTransaction}', [BudgetTransactionController::class, 'destroy'])->name('budget-transactions.destroy');
             Route::resource('budgets', BudgetController::class)->except('destroy');
+        });
+
+        Route::prefix('procurement')->name('procurement.')->group(function (): void {
+            Route::get('/tenders/archived', [TenderController::class, 'archived'])->name('tenders.archived');
+            Route::patch('/tenders/{tender}/publish', [TenderController::class, 'publish'])->name('tenders.publish');
+            Route::patch('/tenders/{tender}/close', [TenderController::class, 'close'])->name('tenders.close');
+            Route::patch('/tenders/{tender}/archive', [TenderController::class, 'archive'])->name('tenders.archive');
+            Route::patch('/tenders/{tender}/restore', [TenderController::class, 'restore'])->name('tenders.restore');
+            Route::post('/tenders/{tender}/bids', [BidSubmissionController::class, 'store'])->name('tenders.bids.store');
+            Route::post('/tenders/{tender}/criteria', [EvaluationController::class, 'storeCriterion'])->name('tenders.criteria.store');
+            Route::post('/bid-submissions/{bidSubmission}/scores', [EvaluationController::class, 'storeScore'])->name('bid-submissions.scores.store');
+            Route::post('/tenders/{tender}/awards', [AwardController::class, 'store'])->name('tenders.awards.store');
+            Route::post('/awards/{award}/contracts', [ContractController::class, 'store'])->name('awards.contracts.store');
+            Route::get('/contracts/{contract}', [ContractController::class, 'show'])->name('contracts.show');
+            Route::resource('tenders', TenderController::class)->except('destroy');
         });
 
         Route::prefix('geography')->name('geography.')->group(function (): void {

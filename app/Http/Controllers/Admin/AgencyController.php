@@ -17,7 +17,7 @@ class AgencyController extends Controller
 {
     public function index(Request $request, AgencyListingService $service): View
     {
-        abort_unless($request->user()?->can('viewAny', Agency::class), 403);
+        abort_unless($request->user()?->can('viewAny', Agency::class) === true, 403);
 
         return view('admin.agencies.index', [
             'agencies' => $service->paginate($request),
@@ -28,7 +28,7 @@ class AgencyController extends Controller
 
     public function create(Request $request): View
     {
-        abort_unless($request->user()?->can('create', Agency::class), 403);
+        abort_unless($request->user()?->can('create', Agency::class) === true, 403);
 
         return view('admin.agencies.form', $this->formData(new Agency));
     }
@@ -43,7 +43,7 @@ class AgencyController extends Controller
 
     public function edit(Request $request, Agency $agency): View
     {
-        abort_unless($request->user()?->can('update', $agency), 403);
+        abort_unless($request->user()?->can('update', $agency) === true, 403);
 
         return view('admin.agencies.form', $this->formData($agency));
     }
@@ -58,7 +58,7 @@ class AgencyController extends Controller
 
     public function destroy(Request $request, Agency $agency): RedirectResponse
     {
-        abort_unless($request->user()?->can('delete', $agency), 403);
+        abort_unless($request->user()?->can('delete', $agency) === true, 403);
 
         $agency->delete();
 

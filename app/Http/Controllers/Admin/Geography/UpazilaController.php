@@ -16,7 +16,7 @@ class UpazilaController extends Controller
 {
     public function index(Request $request, GeographyListingService $service): View
     {
-        abort_unless($request->user()?->can('viewAny', Upazila::class), 403);
+        abort_unless($request->user()?->can('viewAny', Upazila::class) === true, 403);
 
         return view('admin.geography.index', [
             'title' => 'Upazilas / Counties',
@@ -29,7 +29,7 @@ class UpazilaController extends Controller
 
     public function create(Request $request): View
     {
-        abort_unless($request->user()?->can('create', Upazila::class), 403);
+        abort_unless($request->user()?->can('create', Upazila::class) === true, 403);
 
         return view('admin.geography.upazila-form', ['upazila' => new Upazila, 'districts' => District::query()->with('division')->orderBy('name')->get()]);
     }
@@ -43,7 +43,7 @@ class UpazilaController extends Controller
 
     public function edit(Request $request, Upazila $upazila): View
     {
-        abort_unless($request->user()?->can('update', $upazila), 403);
+        abort_unless($request->user()?->can('update', $upazila) === true, 403);
 
         return view('admin.geography.upazila-form', ['upazila' => $upazila, 'districts' => District::query()->with('division')->orderBy('name')->get()]);
     }
@@ -57,7 +57,7 @@ class UpazilaController extends Controller
 
     public function destroy(Request $request, Upazila $upazila): RedirectResponse
     {
-        abort_unless($request->user()?->can('delete', $upazila), 403);
+        abort_unless($request->user()?->can('delete', $upazila) === true, 403);
         $upazila->delete();
 
         return back()->with('status', 'upazila-deleted');

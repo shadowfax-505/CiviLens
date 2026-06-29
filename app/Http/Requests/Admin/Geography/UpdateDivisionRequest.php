@@ -12,6 +12,9 @@ class UpdateDivisionRequest extends FormRequest
         return $this->user()?->can('update', $this->route('division')) ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $division = $this->route('division');

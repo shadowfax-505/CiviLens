@@ -14,11 +14,15 @@ use App\Models\FiscalYear;
 use App\Models\FundingSource;
 use App\Models\Permission;
 use App\Models\PermissionGroup;
+use App\Models\ProcurementMethod;
 use App\Models\Project;
 use App\Models\ProjectCategory;
 use App\Models\ProjectPriority;
 use App\Models\ProjectStatus;
 use App\Models\Role;
+use App\Models\Tender;
+use App\Models\TenderCategory;
+use App\Models\TenderStatus;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -52,6 +56,7 @@ class DatabaseSeeder extends Seeder
             ['permission_group_id' => $registryGroup->id, 'name' => 'Manage Agencies', 'slug' => config('civiclens.permissions.agencies_manage'), 'description' => 'Manage government agency records and assignments.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Projects', 'slug' => config('civiclens.permissions.projects_manage'), 'description' => 'Create and update civic project records.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Budgets', 'slug' => config('civiclens.permissions.budgets_manage'), 'description' => 'Manage project budgets, revisions, and financial transactions.'],
+            ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Procurement', 'slug' => config('civiclens.permissions.procurements_manage'), 'description' => 'Manage tenders, bids, awards, contracts, and procurement timelines.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'View Analytics', 'slug' => config('civiclens.permissions.analytics_view'), 'description' => 'View platform analytics dashboards.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Submit Reports', 'slug' => config('civiclens.permissions.reports_submit'), 'description' => 'Submit civic reports and field updates.'],
         ])->map(fn (array $permission) => Permission::query()->firstOrCreate(
@@ -78,6 +83,7 @@ class DatabaseSeeder extends Seeder
             config('civiclens.permissions.locations_manage'),
             config('civiclens.permissions.projects_manage'),
             config('civiclens.permissions.budgets_manage'),
+            config('civiclens.permissions.procurements_manage'),
             config('civiclens.permissions.analytics_view'),
         ])->pluck('id'));
         $citizen->permissions()->sync($permissions->where('slug', config('civiclens.permissions.reports_submit'))->pluck('id'));
@@ -260,7 +266,7 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        Budget::query()->firstOrCreate(
+        $baselineBudget = Budget::query()->firstOrCreate(
             ['project_id' => $baselineProject->id, 'fiscal_year_id' => $fiscalYear->id],
             [
                 'budget_type_id' => $developmentBudget->id,
@@ -274,6 +280,67 @@ class DatabaseSeeder extends Seeder
                 'actual_expenditure' => 0,
                 'currency' => 'BDT',
                 'notes' => 'Baseline budget for CivicLens project finance.',
+                'is_active' => true,
+            ],
+        );
+
+        $openTendering = ProcurementMethod::query()->firstOrCreate(
+            ['slug' => 'open-tendering'],
+            ['name' => 'Open Tendering', 'description' => 'Competitive open tendering process.', 'is_active' => true],
+        );
+        ProcurementMethod::query()->firstOrCreate(
+            ['slug' => 'limited-tendering'],
+            ['name' => 'Limited Tendering', 'description' => 'Limited competitive procurement process.', 'is_active' => true],
+        );
+        ProcurementMethod::query()->firstOrCreate(
+            ['slug' => 'direct-procurement'],
+            ['name' => 'Direct Procurement', 'description' => 'Direct procurement under approved rules.', 'is_active' => true],
+        );
+
+        $works = TenderCategory::query()->firstOrCreate(
+            ['slug' => 'works'],
+            ['name' => 'Works', 'description' => 'Civil works and construction procurement.', 'is_active' => true],
+        );
+        TenderCategory::query()->firstOrCreate(
+            ['slug' => 'goods'],
+            ['name' => 'Goods', 'description' => 'Goods and equipment procurement.', 'is_active' => true],
+        );
+        TenderCategory::query()->firstOrCreate(
+            ['slug' => 'services'],
+            ['name' => 'Services', 'description' => 'Consulting and non-consulting services.', 'is_active' => true],
+        );
+
+        $draftTender = TenderStatus::query()->firstOrCreate(
+            ['slug' => 'draft'],
+            ['name' => 'Draft', 'description' => 'Tender is being prepared.', 'sort_order' => 1, 'is_active' => true],
+        );
+        TenderStatus::query()->firstOrCreate(
+            ['slug' => 'published'],
+            ['name' => 'Published', 'description' => 'Tender is open for bidder participation.', 'sort_order' => 10, 'is_active' => true],
+        );
+        TenderStatus::query()->firstOrCreate(
+            ['slug' => 'closed'],
+            ['name' => 'Closed', 'description' => 'Tender submission window has closed.', 'sort_order' => 20, 'is_active' => true],
+        );
+        TenderStatus::query()->firstOrCreate(
+            ['slug' => 'awarded'],
+            ['name' => 'Awarded', 'description' => 'Tender has an award decision.', 'sort_order' => 30, 'is_active' => true],
+        );
+
+        Tender::query()->firstOrCreate(
+            ['tender_number' => 'CVL-TDR-2026-001'],
+            [
+                'project_id' => $baselineProject->id,
+                'budget_id' => $baselineBudget->id,
+                'agency_id' => $baselineAgency->id,
+                'procurement_method_id' => $openTendering->id,
+                'tender_category_id' => $works->id,
+                'tender_status_id' => $draftTender->id,
+                'title' => 'Baseline Road Improvement Works Tender',
+                'slug' => 'baseline-road-improvement-works-tender',
+                'description' => 'Baseline procurement tender for CivicLens development and demonstrations.',
+                'closing_at' => '2026-09-30 17:00:00',
+                'is_public' => true,
                 'is_active' => true,
             ],
         );

@@ -10,3 +10,4 @@
 | Implement agencies as hierarchical typed organizations assigned to geography and users | Accepted | Documented in `docs/modules/agencies/README.md` |
 | Implement projects as normalized lifecycle records with lookup tables and activity audit log | Accepted | Documented in `docs/modules/projects/README.md` |
 | Make budgets the single source of truth for project financial values | Accepted | Documented in `docs/modules/finance/README.md` |
+| Implement procurement as a normalized tender-to-contract lifecycle with immutable activities and budget references | Accepted | Documented in `docs/modules/procurement/README.md` |

@@ -12,6 +12,9 @@ class UpdateWardRequest extends FormRequest
         return $this->user()?->can('update', $this->route('ward')) ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $ward = $this->route('ward');

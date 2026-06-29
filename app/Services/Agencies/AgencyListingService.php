@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 
 class AgencyListingService
 {
+    /**
+     * @return LengthAwarePaginator<int, Agency>
+     */
     public function paginate(Request $request): LengthAwarePaginator
     {
         $sort = in_array($request->query('sort'), ['name', 'short_name', 'status', 'created_at'], true)

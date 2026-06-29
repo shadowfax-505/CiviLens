@@ -17,12 +17,16 @@ class AgencyRequest extends FormRequest
             : ($this->user()?->can('create', Agency::class) ?? false);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $agency = $this->route('agency');
+        $agencyId = $agency instanceof Agency ? $agency->id : null;
 
         return [
-            'parent_id' => ['nullable', 'integer', Rule::exists('agencies', 'id')->whereNull('deleted_at'), Rule::notIn([$agency?->id])],
+            'parent_id' => ['nullable', 'integer', Rule::exists('agencies', 'id')->whereNull('deleted_at'), Rule::notIn([$agencyId])],
             'agency_type_id' => ['required', 'integer', 'exists:agency_types,id'],
             'country_id' => ['nullable', 'integer', 'exists:countries,id'],
             'division_id' => ['nullable', 'integer', 'exists:divisions,id'],

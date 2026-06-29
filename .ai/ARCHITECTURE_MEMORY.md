@@ -28,6 +28,14 @@ Projects are implemented as the core CivicLens business aggregate. They referenc
 
 Budgets are the single source of truth for project financial values. Projects no longer own allocation or expenditure amounts. Financial history is preserved through budget revisions and immutable budget transactions.
 
+## Sprint 05 Foundation
+
+Procurement is implemented as a normalized tender-to-contract lifecycle. Tenders attach to projects, budgets, agencies, configurable procurement methods, categories, and statuses. Awards connect winning bids to contracts. Contracts reference the same project and budget as the tender and do not duplicate finance-owned allocation or expenditure totals. Procurement history is preserved through append-only `procurement_activities`.
+
+## Sprint 05.5 Engineering Foundation
+
+The developer platform uses GitHub Actions, PHPStan/Larastan, Pint, Pest, Rector dry-runs, Playwright, and local complexity metrics as the quality spine. Domain events and queued job scaffolds are available for future notifications, reporting, exports, OCR, AI processing, and search indexing without changing current synchronous business workflows.
+
 ## V2 Guardrail
 
 Do not merge OCR, semantic search, or anomaly models into v1 without ADR approval.

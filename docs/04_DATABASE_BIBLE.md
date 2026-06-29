@@ -111,6 +111,37 @@ Financial calculations:
 
 Indexes support project/fiscal year lookup, budget type/status filters, funding/category filters, amount ranges, active/archive state, and transaction/revision timelines.
 
+## Implemented in Sprint 05
+
+Procurement & Tender Management adds the procurement core and preserves a full tender-to-contract history:
+
+- `procurement_methods`
+- `tender_categories`
+- `tender_statuses`
+- `bidder_organizations`
+- `tenders`
+- `tender_lots`
+- `bid_submissions`
+- `bid_documents`
+- `evaluation_committees`
+- `committee_members`
+- `evaluation_criteria`
+- `evaluation_scores`
+- `awards`
+- `contracts`
+- `contract_milestones`
+- `variation_orders`
+- `contract_extensions`
+- `liquidated_damages`
+- `completion_certificates`
+- `procurement_activities`
+
+`tenders` reference `projects`, `budgets`, `agencies`, procurement methods, categories, and statuses. `contracts` reference awards, winning bids, projects, and budgets. Contract records intentionally do not duplicate budget allocations or expenditure totals; finance remains the source of truth.
+
+Timeline integrity is provided by `procurement_activities`. Activity records are append-only and model deletion is blocked. Significant events include tender create/update/publish/close/archive/restore, bid submission, evaluation scoring, award creation, and contract creation.
+
+Indexes support tender number lookup, project/budget joins, agency/status filters, method/category filters, published/closing date ranges, active/archive state, bidder lookup, contract status summaries, and activity timelines.
+
 ## Identity Columns Added in Sprint 01
 
 The `users` table now includes:

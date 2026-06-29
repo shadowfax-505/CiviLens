@@ -12,6 +12,9 @@ class UpdateDistrictRequest extends FormRequest
         return $this->user()?->can('update', $this->route('district')) ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $district = $this->route('district');

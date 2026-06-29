@@ -97,6 +97,21 @@ The Laravel app currently implements web identity routes for:
 - `POST /admin/finance/budgets/{budget}/revisions`
 - `POST /admin/finance/budgets/{budget}/transactions`
 - `DELETE /admin/finance/budget-transactions/{budgetTransaction}` returns 405 because financial transactions are immutable.
+- `GET /admin/procurement/tenders`
+- `GET /admin/procurement/tenders/archived`
+- `POST /admin/procurement/tenders`
+- `GET /admin/procurement/tenders/{tender}`
+- `PUT /admin/procurement/tenders/{tender}`
+- `PATCH /admin/procurement/tenders/{tender}/publish`
+- `PATCH /admin/procurement/tenders/{tender}/close`
+- `PATCH /admin/procurement/tenders/{tender}/archive`
+- `PATCH /admin/procurement/tenders/{tender}/restore`
+- `POST /admin/procurement/tenders/{tender}/bids`
+- `POST /admin/procurement/tenders/{tender}/criteria`
+- `POST /admin/procurement/bid-submissions/{bidSubmission}/scores`
+- `POST /admin/procurement/tenders/{tender}/awards`
+- `POST /admin/procurement/awards/{award}/contracts`
+- `GET /admin/procurement/contracts/{contract}`
 
 JSON API authentication endpoints are still planned and should be implemented with Sanctum when package installation is available.
 

@@ -16,7 +16,7 @@ class DivisionController extends Controller
 {
     public function index(Request $request, GeographyListingService $service): View
     {
-        abort_unless($request->user()?->can('viewAny', Division::class), 403);
+        abort_unless($request->user()?->can('viewAny', Division::class) === true, 403);
 
         return view('admin.geography.index', [
             'title' => 'Divisions / States',
@@ -29,7 +29,7 @@ class DivisionController extends Controller
 
     public function create(Request $request): View
     {
-        abort_unless($request->user()?->can('create', Division::class), 403);
+        abort_unless($request->user()?->can('create', Division::class) === true, 403);
 
         return view('admin.geography.division-form', ['division' => new Division, 'countries' => Country::query()->orderBy('name')->get()]);
     }
@@ -43,7 +43,7 @@ class DivisionController extends Controller
 
     public function edit(Request $request, Division $division): View
     {
-        abort_unless($request->user()?->can('update', $division), 403);
+        abort_unless($request->user()?->can('update', $division) === true, 403);
 
         return view('admin.geography.division-form', ['division' => $division, 'countries' => Country::query()->orderBy('name')->get()]);
     }
@@ -57,7 +57,7 @@ class DivisionController extends Controller
 
     public function destroy(Request $request, Division $division): RedirectResponse
     {
-        abort_unless($request->user()?->can('delete', $division), 403);
+        abort_unless($request->user()?->can('delete', $division) === true, 403);
         $division->delete();
 
         return back()->with('status', 'division-deleted');

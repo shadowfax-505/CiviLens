@@ -85,6 +85,16 @@ class Budget extends Model
         return $this->hasMany(BudgetTransaction::class)->latest('transaction_date');
     }
 
+    public function tenders(): HasMany
+    {
+        return $this->hasMany(Tender::class);
+    }
+
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class);
+    }
+
     public function getRemainingBalanceAttribute(): float
     {
         return (float) $this->current_allocation

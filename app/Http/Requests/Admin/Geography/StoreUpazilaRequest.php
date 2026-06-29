@@ -13,6 +13,9 @@ class StoreUpazilaRequest extends FormRequest
         return $this->user()?->can('create', Upazila::class) ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

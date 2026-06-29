@@ -51,5 +51,6 @@ This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read t
 - [Geography Module](modules/geography/README.md) - normalized country-to-ward administrative hierarchy.
 - [Agencies Module](modules/agencies/README.md) - government agency registry, hierarchy, location assignment, and user assignment.
 - [Finance Module](modules/finance/README.md) - budget engine, revisions, transactions, and financial dashboard.
+- [Procurement Module](modules/procurement/README.md) - tenders, bids, evaluation, awards, contracts, and immutable procurement timeline.
 - [Sprints](sprints/Sprint-01-Foundation.md) - delivery plans.
 - [V2 Upgrade Path](v2/V2_UPGRADE_PATH.md) - controlled evolution after v1.

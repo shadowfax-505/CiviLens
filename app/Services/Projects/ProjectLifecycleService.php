@@ -2,6 +2,7 @@
 
 namespace App\Services\Projects;
 
+use App\Events\ProjectCreated;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class ProjectLifecycleService
         ]));
 
         $this->log($project, 'created', $actor, $request, null, $project->only(['project_code', 'name']));
+        ProjectCreated::dispatch($project, $actor);
 
         return $project;
     }

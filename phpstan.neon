@@ -1,0 +1,28 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 8
+
+    paths:
+        - app/Events
+        - app/Http
+        - app/Jobs
+        - app/Listeners
+        - app/Policies
+        - app/Providers
+        - app/Services
+        - app/Support
+        - config
+        - routes
+
+    tmpDir: storage/framework/cache/phpstan
+
+    excludePaths:
+        analyse:
+            - bootstrap/cache
+            - storage
+            - vendor
+
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: true

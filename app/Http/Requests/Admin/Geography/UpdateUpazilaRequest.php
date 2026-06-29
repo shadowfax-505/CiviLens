@@ -12,6 +12,9 @@ class UpdateUpazilaRequest extends FormRequest
         return $this->user()?->can('update', $this->route('upazila')) ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $upazila = $this->route('upazila');
