@@ -1,5 +1,12 @@
 <?php
 
+use App\Http\Controllers\Admin\AgencyController;
+use App\Http\Controllers\Admin\Geography\CountryController;
+use App\Http\Controllers\Admin\Geography\DistrictController;
+use App\Http\Controllers\Admin\Geography\DivisionController;
+use App\Http\Controllers\Admin\Geography\UnionController;
+use App\Http\Controllers\Admin\Geography\UpazilaController;
+use App\Http\Controllers\Admin\Geography\WardController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -59,5 +66,16 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::patch('/users/{user}/lock', [UserController::class, 'updateLock'])->name('users.lock');
         Route::put('/users/{user}/roles', [UserRoleController::class, 'update'])->name('users.roles');
         Route::put('/users/{user}/password', [UserController::class, 'resetPassword'])->name('users.password');
+
+        Route::resource('agencies', AgencyController::class)->except('show');
+
+        Route::prefix('geography')->name('geography.')->group(function (): void {
+            Route::resource('countries', CountryController::class)->except('show');
+            Route::resource('divisions', DivisionController::class)->except('show');
+            Route::resource('districts', DistrictController::class)->except('show');
+            Route::resource('upazilas', UpazilaController::class)->except('show');
+            Route::resource('unions', UnionController::class)->except('show')->parameters(['unions' => 'union']);
+            Route::resource('wards', WardController::class)->except('show');
+        });
     });
 });

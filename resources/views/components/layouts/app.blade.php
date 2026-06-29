@@ -17,6 +17,12 @@
                     @can('viewAny', App\Models\User::class)
                         <a href="{{ route('admin.users.index') }}">Users</a>
                     @endcan
+                    @can('viewAny', App\Models\Agency::class)
+                        <a href="{{ route('admin.agencies.index') }}">Agencies</a>
+                    @endcan
+                    @can('viewAny', App\Models\Country::class)
+                        <a href="{{ route('admin.geography.countries.index') }}">Geography</a>
+                    @endcan
                 @else
                     <a href="{{ route('login') }}">Login</a>
                     <a href="{{ route('register') }}">Register</a>
@@ -36,4 +42,3 @@
     </main>
 </body>
 </html>
-

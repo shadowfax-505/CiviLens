@@ -45,6 +45,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(Role::class)->withTimestamps();
     }
 
+    /**
+     * @return BelongsToMany<Agency, $this>
+     */
+    public function agencies(): BelongsToMany
+    {
+        return $this->belongsToMany(Agency::class)->withPivot('relationship')->withTimestamps();
+    }
+
     public function hasRole(string $slug): bool
     {
         return $this->roles()->where('slug', $slug)->exists();

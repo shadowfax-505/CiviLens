@@ -12,3 +12,4 @@ All notable changes to CivicLens are tracked here.
 - Added protected dashboard route and placeholder login route.
 - Added Sprint 01 web Identity & Access Management: registration, login, logout, password reset, email verification, password confirmation, profile management, avatar upload, notification preferences, account activity, admin user management, role assignment, and account locks.
 - Added Pest and migrated verification to Pest-compatible tests.
+- Added Sprint 02 Geographic Foundation and Organization Registry: normalized country-to-ward hierarchy, agency types, hierarchical agencies, agency-user assignments, admin CRUD screens, policies, validation, factories, seed data, tests, and documentation.

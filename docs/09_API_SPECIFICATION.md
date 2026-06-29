@@ -51,6 +51,34 @@ The Laravel app currently implements web identity routes for:
 - `PATCH /admin/users/{user}/lock`
 - `PUT /admin/users/{user}/roles`
 - `PUT /admin/users/{user}/password`
+- `GET /admin/geography/countries`
+- `POST /admin/geography/countries`
+- `PUT /admin/geography/countries/{country}`
+- `DELETE /admin/geography/countries/{country}`
+- `GET /admin/geography/divisions`
+- `POST /admin/geography/divisions`
+- `PUT /admin/geography/divisions/{division}`
+- `DELETE /admin/geography/divisions/{division}`
+- `GET /admin/geography/districts`
+- `POST /admin/geography/districts`
+- `PUT /admin/geography/districts/{district}`
+- `DELETE /admin/geography/districts/{district}`
+- `GET /admin/geography/upazilas`
+- `POST /admin/geography/upazilas`
+- `PUT /admin/geography/upazilas/{upazila}`
+- `DELETE /admin/geography/upazilas/{upazila}`
+- `GET /admin/geography/unions`
+- `POST /admin/geography/unions`
+- `PUT /admin/geography/unions/{union}`
+- `DELETE /admin/geography/unions/{union}`
+- `GET /admin/geography/wards`
+- `POST /admin/geography/wards`
+- `PUT /admin/geography/wards/{ward}`
+- `DELETE /admin/geography/wards/{ward}`
+- `GET /admin/agencies`
+- `POST /admin/agencies`
+- `PUT /admin/agencies/{agency}`
+- `DELETE /admin/agencies/{agency}`
 
 JSON API authentication endpoints are still planned and should be implemented with Sanctum when package installation is available.
 

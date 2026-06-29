@@ -10,6 +10,8 @@ return [
     'permissions' => [
         'users_manage' => 'users.manage',
         'roles_manage' => 'roles.manage',
+        'locations_manage' => 'locations.manage',
+        'agencies_manage' => 'agencies.manage',
         'projects_manage' => 'projects.manage',
         'analytics_view' => 'analytics.view',
         'reports_submit' => 'reports.submit',
