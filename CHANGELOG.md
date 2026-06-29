@@ -15,3 +15,5 @@ All notable changes to CivicLens are tracked here.
 - Added Sprint 02 Geographic Foundation and Organization Registry: normalized country-to-ward hierarchy, agency types, hierarchical agencies, agency-user assignments, admin CRUD screens, policies, validation, factories, seed data, tests, and documentation.
 - Added Sprint 03 Project Lifecycle Management: normalized project lookup tables, projects, lifecycle activity logging, admin dashboard/search/detail/forms, archive/restore/delete workflows, policies, validation, factories, seed data, tests, and documentation.
 - Fixed identity account activity logging to write `user_agent`, matching the existing migration.
+- Added Sprint 04 Financial Management & Budget Engine: normalized budget lookups, budgets, revisions, immutable transactions, financial dashboard, budget search, archive/restore, policies, validation, factories, seed data, tests, and documentation.
+- Moved project financial amount ownership to budgets by removing active project allocation/expenditure fields from Project code paths.

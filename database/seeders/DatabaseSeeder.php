@@ -4,6 +4,11 @@ namespace Database\Seeders;
 
 use App\Models\Agency;
 use App\Models\AgencyType;
+use App\Models\Budget;
+use App\Models\BudgetCategory;
+use App\Models\BudgetStatus;
+use App\Models\BudgetTransactionType;
+use App\Models\BudgetType;
 use App\Models\Country;
 use App\Models\FiscalYear;
 use App\Models\FundingSource;
@@ -46,6 +51,7 @@ class DatabaseSeeder extends Seeder
             ['permission_group_id' => $registryGroup->id, 'name' => 'Manage Locations', 'slug' => config('civiclens.permissions.locations_manage'), 'description' => 'Manage normalized geographic reference data.'],
             ['permission_group_id' => $registryGroup->id, 'name' => 'Manage Agencies', 'slug' => config('civiclens.permissions.agencies_manage'), 'description' => 'Manage government agency records and assignments.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Projects', 'slug' => config('civiclens.permissions.projects_manage'), 'description' => 'Create and update civic project records.'],
+            ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Budgets', 'slug' => config('civiclens.permissions.budgets_manage'), 'description' => 'Manage project budgets, revisions, and financial transactions.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'View Analytics', 'slug' => config('civiclens.permissions.analytics_view'), 'description' => 'View platform analytics dashboards.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Submit Reports', 'slug' => config('civiclens.permissions.reports_submit'), 'description' => 'Submit civic reports and field updates.'],
         ])->map(fn (array $permission) => Permission::query()->firstOrCreate(
@@ -71,6 +77,7 @@ class DatabaseSeeder extends Seeder
             config('civiclens.permissions.agencies_manage'),
             config('civiclens.permissions.locations_manage'),
             config('civiclens.permissions.projects_manage'),
+            config('civiclens.permissions.budgets_manage'),
             config('civiclens.permissions.analytics_view'),
         ])->pluck('id'));
         $citizen->permissions()->sync($permissions->where('slug', config('civiclens.permissions.reports_submit'))->pluck('id'));
@@ -185,7 +192,7 @@ class DatabaseSeeder extends Seeder
             ['starts_on' => '2025-07-01', 'ends_on' => '2026-06-30', 'is_active' => true],
         );
 
-        Project::query()->firstOrCreate(
+        $baselineProject = Project::query()->firstOrCreate(
             ['project_code' => 'CVL-2026-001'],
             [
                 'name' => 'CivicLens Baseline Road Improvement',
@@ -199,9 +206,6 @@ class DatabaseSeeder extends Seeder
                 'funding_source_id' => $publicFunds->id,
                 'fiscal_year_id' => $fiscalYear->id,
                 'country_id' => $bangladesh->id,
-                'estimated_budget' => 1000000,
-                'approved_budget' => 900000,
-                'spent_amount' => 0,
                 'progress_percentage' => 0,
                 'planned_start_date' => '2026-01-01',
                 'planned_end_date' => '2026-12-31',
@@ -209,6 +213,68 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
                 'created_by' => $baselineAdmin->id,
                 'updated_by' => $baselineAdmin->id,
+            ],
+        );
+
+        $capitalWorks = BudgetCategory::query()->firstOrCreate(
+            ['slug' => 'capital-works'],
+            ['name' => 'Capital Works', 'description' => 'Capital construction and infrastructure works.', 'is_active' => true],
+        );
+        BudgetCategory::query()->firstOrCreate(
+            ['slug' => 'operations'],
+            ['name' => 'Operations', 'description' => 'Operational and maintenance spending.', 'is_active' => true],
+        );
+
+        $developmentBudget = BudgetType::query()->firstOrCreate(
+            ['slug' => 'development'],
+            ['name' => 'Development', 'description' => 'Development project allocation.', 'is_active' => true],
+        );
+        BudgetType::query()->firstOrCreate(
+            ['slug' => 'operational'],
+            ['name' => 'Operational', 'description' => 'Operational budget allocation.', 'is_active' => true],
+        );
+
+        $approvedBudget = BudgetStatus::query()->firstOrCreate(
+            ['slug' => 'approved'],
+            ['name' => 'Approved', 'description' => 'Budget allocation is approved.', 'sort_order' => 10, 'is_active' => true],
+        );
+        BudgetStatus::query()->firstOrCreate(
+            ['slug' => 'draft'],
+            ['name' => 'Draft', 'description' => 'Budget is being prepared.', 'sort_order' => 1, 'is_active' => true],
+        );
+        BudgetStatus::query()->firstOrCreate(
+            ['slug' => 'closed'],
+            ['name' => 'Closed', 'description' => 'Budget is closed for activity.', 'sort_order' => 99, 'is_active' => true],
+        );
+
+        foreach ([
+            ['Allocation', 'allocation', 'increase'],
+            ['Adjustment', 'adjustment', 'decrease'],
+            ['Expenditure', 'expenditure', 'decrease'],
+            ['Refund', 'refund', 'increase'],
+            ['Transfer', 'transfer', 'decrease'],
+        ] as [$name, $slug, $direction]) {
+            BudgetTransactionType::query()->firstOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'direction' => $direction, 'description' => "{$name} transaction.", 'is_active' => true],
+            );
+        }
+
+        Budget::query()->firstOrCreate(
+            ['project_id' => $baselineProject->id, 'fiscal_year_id' => $fiscalYear->id],
+            [
+                'budget_type_id' => $developmentBudget->id,
+                'funding_source_id' => $publicFunds->id,
+                'budget_category_id' => $capitalWorks->id,
+                'budget_status_id' => $approvedBudget->id,
+                'original_allocation' => 900000,
+                'current_allocation' => 900000,
+                'reserved_amount' => 0,
+                'committed_amount' => 0,
+                'actual_expenditure' => 0,
+                'currency' => 'BDT',
+                'notes' => 'Baseline budget for CivicLens project finance.',
+                'is_active' => true,
             ],
         );
     }

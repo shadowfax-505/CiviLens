@@ -31,4 +31,9 @@ class FiscalYear extends Model
     {
         return $this->hasMany(Project::class);
     }
+
+    public function budgets(): HasMany
+    {
+        return $this->hasMany(Budget::class);
+    }
 }

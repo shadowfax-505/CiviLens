@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\AdministrativeUnion;
 use App\Models\Agency;
 use App\Models\AgencyType;
+use App\Models\Budget;
 use App\Models\Country;
 use App\Models\District;
 use App\Models\Division;
@@ -13,6 +14,7 @@ use App\Models\Upazila;
 use App\Models\User;
 use App\Models\Ward;
 use App\Policies\AgencyPolicy;
+use App\Policies\BudgetPolicy;
 use App\Policies\ManageReferenceDataPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\UserPolicy;
@@ -44,5 +46,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(AgencyType::class, ManageReferenceDataPolicy::class);
         Gate::policy(Agency::class, AgencyPolicy::class);
         Gate::policy(Project::class, ProjectPolicy::class);
+        Gate::policy(Budget::class, BudgetPolicy::class);
     }
 }

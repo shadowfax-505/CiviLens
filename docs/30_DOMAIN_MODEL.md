@@ -61,3 +61,20 @@ Lifecycle state is represented through normalized lookup tables and project fiel
 - `funding_sources` stores funding classifications.
 - `fiscal_years` stores fiscal date boundaries.
 - `project_activities` records audit events for project creation, updates, status changes, progress changes, archive, restore, and delete actions.
+
+## Financial Management
+
+Sprint 04 implements the Budget Engine as the source of truth for project financial data. Projects do not duplicate allocation or expenditure amounts; they reference financial records through budgets.
+
+A Budget belongs to:
+
+- Project
+- Fiscal Year
+- Funding Source
+- Budget Category
+- Budget Type
+- Budget Status
+
+A Budget has many revisions and transactions. Budget revisions track approved allocation changes. Budget transactions track allocations, adjustments, expenditures, refunds, and transfers. Transactions are immutable and must never be deleted.
+
+Future procurement, contracts, reports, and analytics should read financial totals from budgets, revisions, and transactions rather than project columns.

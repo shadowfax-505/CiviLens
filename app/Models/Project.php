@@ -29,9 +29,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'upazila_id',
     'union_id',
     'ward_id',
-    'estimated_budget',
-    'approved_budget',
-    'spent_amount',
     'progress_percentage',
     'planned_start_date',
     'actual_start_date',
@@ -55,9 +52,6 @@ class Project extends Model
     protected function casts(): array
     {
         return [
-            'estimated_budget' => 'decimal:2',
-            'approved_budget' => 'decimal:2',
-            'spent_amount' => 'decimal:2',
             'planned_start_date' => 'date',
             'actual_start_date' => 'date',
             'planned_end_date' => 'date',
@@ -160,6 +154,11 @@ class Project extends Model
     public function activities(): HasMany
     {
         return $this->hasMany(ProjectActivity::class)->latest();
+    }
+
+    public function budgets(): HasMany
+    {
+        return $this->hasMany(Budget::class);
     }
 
     public function isArchived(): bool

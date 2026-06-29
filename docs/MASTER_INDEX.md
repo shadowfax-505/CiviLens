@@ -50,5 +50,6 @@ This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read t
 - [Identity Module](modules/identity/README.md) - authentication, profile, admin user management, roles, permissions, and account activity.
 - [Geography Module](modules/geography/README.md) - normalized country-to-ward administrative hierarchy.
 - [Agencies Module](modules/agencies/README.md) - government agency registry, hierarchy, location assignment, and user assignment.
+- [Finance Module](modules/finance/README.md) - budget engine, revisions, transactions, and financial dashboard.
 - [Sprints](sprints/Sprint-01-Foundation.md) - delivery plans.
 - [V2 Upgrade Path](v2/V2_UPGRADE_PATH.md) - controlled evolution after v1.

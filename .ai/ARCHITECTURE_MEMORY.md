@@ -24,6 +24,10 @@ Locations are implemented as a normalized country -> division -> district -> upa
 
 Projects are implemented as the core CivicLens business aggregate. They reference agencies, geography, lookup tables, creator/updater users, and project activity audit records. Future budgets, procurement, contractors, documents, and reports should attach to `projects.id`.
 
+## Sprint 04 Foundation
+
+Budgets are the single source of truth for project financial values. Projects no longer own allocation or expenditure amounts. Financial history is preserved through budget revisions and immutable budget transactions.
+
 ## V2 Guardrail
 
 Do not merge OCR, semantic search, or anomaly models into v1 without ADR approval.

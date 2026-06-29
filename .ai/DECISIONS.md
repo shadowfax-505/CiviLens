@@ -9,3 +9,4 @@
 | Implement locations as explicit normalized administrative tables through ward level | Accepted | Documented in `docs/modules/geography/README.md` |
 | Implement agencies as hierarchical typed organizations assigned to geography and users | Accepted | Documented in `docs/modules/agencies/README.md` |
 | Implement projects as normalized lifecycle records with lookup tables and activity audit log | Accepted | Documented in `docs/modules/projects/README.md` |
+| Make budgets the single source of truth for project financial values | Accepted | Documented in `docs/modules/finance/README.md` |

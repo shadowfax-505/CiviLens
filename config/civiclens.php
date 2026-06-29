@@ -13,6 +13,7 @@ return [
         'locations_manage' => 'locations.manage',
         'agencies_manage' => 'agencies.manage',
         'projects_manage' => 'projects.manage',
+        'budgets_manage' => 'budgets.manage',
         'analytics_view' => 'analytics.view',
         'reports_submit' => 'reports.submit',
     ],

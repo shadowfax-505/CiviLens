@@ -47,9 +47,6 @@ function projectPayload(array $overrides = []): array
         'funding_source_id' => $fundingSource->id,
         'fiscal_year_id' => $fiscalYear->id,
         'country_id' => $country->id,
-        'estimated_budget' => '1000000.00',
-        'approved_budget' => '900000.00',
-        'spent_amount' => '125000.00',
         'progress_percentage' => 15,
         'planned_start_date' => '2026-01-01',
         'planned_end_date' => '2026-12-31',
@@ -120,11 +117,10 @@ it('supports advanced project search filters sorting and pagination', function (
         'funding_source_id' => $payload['funding_source_id'],
         'fiscal_year_id' => $payload['fiscal_year_id'],
         'country_id' => $payload['country_id'],
-        'approved_budget' => 750000,
         'progress_percentage' => 30,
         'planned_start_date' => '2026-02-01',
     ]);
-    Project::factory()->create(['project_code' => 'WATER-001', 'name' => 'Water Treatment Plant', 'approved_budget' => 5000000, 'progress_percentage' => 80]);
+    Project::factory()->create(['project_code' => 'WATER-001', 'name' => 'Water Treatment Plant', 'progress_percentage' => 80]);
 
     $query = http_build_query([
         'search' => 'Bridge',
@@ -136,8 +132,6 @@ it('supports advanced project search filters sorting and pagination', function (
         'funding_source_id' => $payload['funding_source_id'],
         'fiscal_year_id' => $payload['fiscal_year_id'],
         'country_id' => $payload['country_id'],
-        'budget_min' => 100000,
-        'budget_max' => 1000000,
         'progress_min' => 10,
         'progress_max' => 40,
         'planned_start_from' => '2026-01-01',

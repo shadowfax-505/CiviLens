@@ -78,12 +78,6 @@
                     @endforeach
                 </select>
             </label>
-            <label class="text-sm">Budget min
-                <input name="budget_min" value="{{ request('budget_min') }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950" type="number" min="0">
-            </label>
-            <label class="text-sm">Budget max
-                <input name="budget_max" value="{{ request('budget_max') }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950" type="number" min="0">
-            </label>
             <label class="text-sm">Progress range
                 <div class="mt-1 flex gap-2">
                     <input name="progress_min" value="{{ request('progress_min') }}" class="w-full rounded border px-3 py-2 text-slate-950" type="number" min="0" max="100" placeholder="Min">
@@ -101,7 +95,6 @@
                     <option value="created_at" @selected(request('sort') === 'created_at')>Created</option>
                     <option value="project_code" @selected(request('sort') === 'project_code')>Project code</option>
                     <option value="name" @selected(request('sort') === 'name')>Name</option>
-                    <option value="approved_budget" @selected(request('sort') === 'approved_budget')>Approved budget</option>
                     <option value="progress_percentage" @selected(request('sort') === 'progress_percentage')>Progress</option>
                     <option value="planned_start_date" @selected(request('sort') === 'planned_start_date')>Planned start</option>
                 </select>
@@ -126,7 +119,6 @@
                     <th class="px-4 py-3">Project</th>
                     <th class="px-4 py-3">Agency</th>
                     <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3">Budget</th>
                     <th class="px-4 py-3">Progress</th>
                     <th class="px-4 py-3">Dates</th>
                 </tr>
@@ -140,13 +132,12 @@
                         </td>
                         <td class="px-4 py-3">{{ $project->agency?->name }}</td>
                         <td class="px-4 py-3">{{ $project->status?->name }}</td>
-                        <td class="px-4 py-3">{{ number_format((float) $project->approved_budget, 2) }}</td>
                         <td class="px-4 py-3">{{ $project->progress_percentage }}%</td>
                         <td class="px-4 py-3">{{ $project->planned_start_date?->format('Y-m-d') }} -> {{ $project->planned_end_date?->format('Y-m-d') }}</td>
                     </tr>
                 @empty
                     <tr class="border-t dark:border-slate-800">
-                        <td class="px-4 py-8 text-slate-500" colspan="6">No projects match the current filters.</td>
+                        <td class="px-4 py-8 text-slate-500" colspan="5">No projects match the current filters.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -155,4 +146,3 @@
 
     <div class="mt-6">{{ $projects->links() }}</div>
 </x-layouts.app>
-
