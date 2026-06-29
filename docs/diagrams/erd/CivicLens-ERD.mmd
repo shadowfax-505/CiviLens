@@ -1,0 +1,14 @@
+erDiagram
+    USERS ||--o{ REPORT_CARDS : authors
+    USERS ||--o{ ACTIVITY_LOGS : performs
+    AGENCIES ||--o{ PROJECTS : manages
+    LOCATIONS ||--o{ PROJECTS : contains
+    PROJECTS ||--o{ BUDGETS : has
+    BUDGETS ||--o{ BUDGET_ITEMS : contains
+    PROJECTS ||--o{ PROCUREMENTS : initiates
+    PROCUREMENTS ||--o{ PROCUREMENT_ITEMS : contains
+    SUPPLIERS ||--o{ CONTRACTS : signs
+    PROJECTS ||--o{ CONTRACTS : awards
+    PROJECTS ||--o{ DOCUMENTS : attaches
+    PROJECTS ||--o{ REPORT_CARDS : receives
+
