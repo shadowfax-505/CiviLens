@@ -38,12 +38,8 @@
             <p class="mt-1 text-lg font-semibold">{{ $project->progress_percentage }}%</p>
         </div>
         <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <p class="text-sm text-slate-500">Approved Budget</p>
-            <p class="mt-1 text-lg font-semibold">{{ number_format((float) $project->approved_budget, 2) }}</p>
-        </div>
-        <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <p class="text-sm text-slate-500">Spent</p>
-            <p class="mt-1 text-lg font-semibold">{{ number_format((float) $project->spent_amount, 2) }}</p>
+            <p class="text-sm text-slate-500">Budgets</p>
+            <p class="mt-1 text-lg font-semibold">{{ $project->budgets()->count() }}</p>
         </div>
     </section>
 
@@ -75,4 +71,3 @@
         </div>
     </section>
 </x-layouts.app>
-

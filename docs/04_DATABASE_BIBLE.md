@@ -72,7 +72,7 @@ Project Lifecycle Management adds normalized lookup tables and the core `project
 - `projects`
 - `project_activities`
 
-`projects` references canonical Sprint 02 agency and geography tables instead of duplicating agency or location names. Project location assignment supports country, division, district, upazila, union, and ward foreign keys for future map and spatial-query work. Budget and progress fields are stored on the project record for v1 lifecycle search and dashboards; future budget modules should attach detailed budget line items to `projects.id`.
+`projects` references canonical Sprint 02 agency and geography tables instead of duplicating agency or location names. Project location assignment supports country, division, district, upazila, union, and ward foreign keys for future map and spatial-query work. Sprint 04 moves financial amount ownership into the Budget Engine; projects no longer author budget allocation or expenditure values.
 
 Project lifecycle events are stored in `project_activities` with actor, event, old/new values, IP address, and user agent. Significant events currently include create, update, status change, progress update, archive, restore, and delete.
 
@@ -85,6 +85,31 @@ Project indexes support common filters:
 - public/active/archive state
 - planned date ranges
 - approved budget and progress ranges
+
+Sprint 04 removes project-owned financial amount usage. Budget amount filtering belongs to the Finance module.
+
+## Implemented in Sprint 04
+
+Financial Management adds the Budget Engine as the single source of truth for project finances:
+
+- `budget_categories`
+- `budget_types`
+- `budget_statuses`
+- `budget_transaction_types`
+- `budgets`
+- `budget_revisions`
+- `budget_transactions`
+
+`budgets` references `projects`, `fiscal_years`, `funding_sources`, configurable budget categories, budget types, and statuses. Current financial state is stored on budgets, while historical changes are append-only through revisions and transactions.
+
+Financial calculations:
+
+- Remaining balance = current allocation - reserved amount - committed amount - actual expenditure.
+- Utilization % = actual expenditure / current allocation.
+- Revisions preserve previous allocation, new allocation, difference, reason, approval date, and approver.
+- Transactions are immutable; HTTP delete attempts return 405 and model deletion is blocked.
+
+Indexes support project/fiscal year lookup, budget type/status filters, funding/category filters, amount ranges, active/archive state, and transaction/revision timelines.
 
 ## Identity Columns Added in Sprint 01
 

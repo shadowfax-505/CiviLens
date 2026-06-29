@@ -83,15 +83,6 @@
                 @endforeach
             </select>
         </label>
-        <label class="text-sm">Estimated budget
-            <input name="estimated_budget" value="{{ old('estimated_budget', $project->estimated_budget) }}" type="number" min="0" step="0.01" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
-        </label>
-        <label class="text-sm">Approved budget
-            <input name="approved_budget" value="{{ old('approved_budget', $project->approved_budget) }}" type="number" min="0" step="0.01" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
-        </label>
-        <label class="text-sm">Spent amount
-            <input name="spent_amount" value="{{ old('spent_amount', $project->spent_amount) }}" type="number" min="0" step="0.01" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
-        </label>
         <label class="text-sm">Progress percentage
             <input name="progress_percentage" value="{{ old('progress_percentage', $project->progress_percentage ?? 0) }}" type="number" min="0" max="100" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
         </label>
@@ -126,4 +117,3 @@
         <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save project</button>
     </form>
 </x-layouts.app>
-

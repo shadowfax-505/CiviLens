@@ -8,3 +8,4 @@ Each module doc describes purpose, responsibilities, database tables, APIs, auth
 - Geography
 - Agencies
 - Projects
+- Finance

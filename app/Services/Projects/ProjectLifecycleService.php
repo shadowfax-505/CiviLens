@@ -32,7 +32,7 @@ class ProjectLifecycleService
     {
         $oldStatus = $project->project_status_id;
         $oldProgress = $project->progress_percentage;
-        $original = $project->only(['name', 'project_status_id', 'progress_percentage', 'approved_budget', 'spent_amount']);
+        $original = $project->only(['name', 'project_status_id', 'progress_percentage']);
 
         $project->update(array_merge($data, [
             'updated_by' => $actor->id,

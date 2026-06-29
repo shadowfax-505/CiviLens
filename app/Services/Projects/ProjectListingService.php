@@ -11,7 +11,7 @@ class ProjectListingService
 {
     public function paginate(Request $request, bool $archived = false): LengthAwarePaginator
     {
-        $sort = in_array($request->query('sort'), ['project_code', 'name', 'approved_budget', 'progress_percentage', 'planned_start_date', 'created_at'], true)
+        $sort = in_array($request->query('sort'), ['project_code', 'name', 'progress_percentage', 'planned_start_date', 'created_at'], true)
             ? $request->query('sort')
             : 'created_at';
         $direction = $request->query('direction') === 'asc' ? 'asc' : 'desc';
@@ -46,8 +46,6 @@ class ProjectListingService
             ->when($request->filled('planned_start_to'), fn (Builder $query) => $query->whereDate('planned_start_date', '<=', $request->query('planned_start_to')))
             ->when($request->filled('planned_end_from'), fn (Builder $query) => $query->whereDate('planned_end_date', '>=', $request->query('planned_end_from')))
             ->when($request->filled('planned_end_to'), fn (Builder $query) => $query->whereDate('planned_end_date', '<=', $request->query('planned_end_to')))
-            ->when($request->filled('budget_min'), fn (Builder $query) => $query->where('approved_budget', '>=', $request->query('budget_min')))
-            ->when($request->filled('budget_max'), fn (Builder $query) => $query->where('approved_budget', '<=', $request->query('budget_max')))
             ->when($request->filled('progress_min'), fn (Builder $query) => $query->where('progress_percentage', '>=', $request->query('progress_min')))
             ->when($request->filled('progress_max'), fn (Builder $query) => $query->where('progress_percentage', '<=', $request->query('progress_max')))
             ->orderBy($sort, $direction)

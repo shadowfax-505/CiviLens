@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\AgencyController;
+use App\Http\Controllers\Admin\Finance\BudgetController;
+use App\Http\Controllers\Admin\Finance\BudgetRevisionController;
+use App\Http\Controllers\Admin\Finance\BudgetTransactionController;
 use App\Http\Controllers\Admin\Geography\CountryController;
 use App\Http\Controllers\Admin\Geography\DistrictController;
 use App\Http\Controllers\Admin\Geography\DivisionController;
@@ -73,6 +76,16 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::patch('/projects/{project}/archive', [ProjectController::class, 'archive'])->name('projects.archive');
         Route::patch('/projects/{project}/restore', [ProjectController::class, 'restore'])->name('projects.restore');
         Route::resource('projects', ProjectController::class);
+
+        Route::prefix('finance')->name('finance.')->group(function (): void {
+            Route::get('/budgets/archived', [BudgetController::class, 'archived'])->name('budgets.archived');
+            Route::patch('/budgets/{budget}/archive', [BudgetController::class, 'archive'])->name('budgets.archive');
+            Route::patch('/budgets/{budget}/restore', [BudgetController::class, 'restore'])->name('budgets.restore');
+            Route::post('/budgets/{budget}/revisions', [BudgetRevisionController::class, 'store'])->name('budgets.revisions.store');
+            Route::post('/budgets/{budget}/transactions', [BudgetTransactionController::class, 'store'])->name('budgets.transactions.store');
+            Route::delete('/budget-transactions/{budgetTransaction}', [BudgetTransactionController::class, 'destroy'])->name('budget-transactions.destroy');
+            Route::resource('budgets', BudgetController::class)->except('destroy');
+        });
 
         Route::prefix('geography')->name('geography.')->group(function (): void {
             Route::resource('countries', CountryController::class)->except('show');
