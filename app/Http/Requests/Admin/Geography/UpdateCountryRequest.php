@@ -12,6 +12,9 @@ class UpdateCountryRequest extends FormRequest
         return $this->user()?->can('update', $this->route('country')) ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $country = $this->route('country');

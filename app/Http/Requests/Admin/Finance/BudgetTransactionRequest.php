@@ -11,6 +11,9 @@ class BudgetTransactionRequest extends FormRequest
         return $this->user()?->can('update', $this->route('budget')) ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

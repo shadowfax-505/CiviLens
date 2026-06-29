@@ -16,7 +16,7 @@ class DistrictController extends Controller
 {
     public function index(Request $request, GeographyListingService $service): View
     {
-        abort_unless($request->user()?->can('viewAny', District::class), 403);
+        abort_unless($request->user()?->can('viewAny', District::class) === true, 403);
 
         return view('admin.geography.index', [
             'title' => 'Districts',
@@ -29,7 +29,7 @@ class DistrictController extends Controller
 
     public function create(Request $request): View
     {
-        abort_unless($request->user()?->can('create', District::class), 403);
+        abort_unless($request->user()?->can('create', District::class) === true, 403);
 
         return view('admin.geography.district-form', ['district' => new District, 'divisions' => Division::query()->with('country')->orderBy('name')->get()]);
     }
@@ -43,7 +43,7 @@ class DistrictController extends Controller
 
     public function edit(Request $request, District $district): View
     {
-        abort_unless($request->user()?->can('update', $district), 403);
+        abort_unless($request->user()?->can('update', $district) === true, 403);
 
         return view('admin.geography.district-form', ['district' => $district, 'divisions' => Division::query()->with('country')->orderBy('name')->get()]);
     }
@@ -57,7 +57,7 @@ class DistrictController extends Controller
 
     public function destroy(Request $request, District $district): RedirectResponse
     {
-        abort_unless($request->user()?->can('delete', $district), 403);
+        abort_unless($request->user()?->can('delete', $district) === true, 403);
         $district->delete();
 
         return back()->with('status', 'district-deleted');

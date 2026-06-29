@@ -12,6 +12,9 @@ class UpdateUnionRequest extends FormRequest
         return $this->user()?->can('update', $this->route('union')) ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $union = $this->route('union');

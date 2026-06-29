@@ -12,7 +12,7 @@ class FiscalYearFactory extends Factory
 {
     public function definition(): array
     {
-        $year = fake()->unique()->numberBetween(2020, 2040);
+        $year = fake()->unique()->numberBetween(2200, 2399);
 
         return [
             'name' => 'FY '.$year,

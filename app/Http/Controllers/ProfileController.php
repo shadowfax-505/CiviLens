@@ -7,6 +7,7 @@ use App\Http\Requests\Profile\UpdateNotificationPreferencesRequest;
 use App\Http\Requests\Profile\UpdatePasswordRequest;
 use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Services\Identity\AccountActivityLogger;
+use App\Support\Http\AuthenticatedUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -17,18 +18,19 @@ class ProfileController extends Controller
 {
     public function show(Request $request): View
     {
-        $activities = $request->user()
+        $user = AuthenticatedUser::from($request);
+        $activities = $user
             ->accountActivities()
             ->latest()
             ->limit(20)
             ->get();
 
-        return view('profile.show', ['user' => $request->user(), 'activities' => $activities]);
+        return view('profile.show', ['user' => $user, 'activities' => $activities]);
     }
 
     public function update(UpdateProfileRequest $request, AccountActivityLogger $activityLogger): RedirectResponse
     {
-        $user = $request->user();
+        $user = AuthenticatedUser::from($request);
         $user->fill($request->safe()->only(['name', 'email']))->save();
 
         $activityLogger->log($user, 'profile.updated', $request, $user);
@@ -38,7 +40,7 @@ class ProfileController extends Controller
 
     public function updateAvatar(UpdateAvatarRequest $request, AccountActivityLogger $activityLogger): RedirectResponse
     {
-        $user = $request->user();
+        $user = AuthenticatedUser::from($request);
 
         if ($user->avatar_path !== null) {
             Storage::disk('public')->delete($user->avatar_path);
@@ -54,7 +56,7 @@ class ProfileController extends Controller
 
     public function updateNotifications(UpdateNotificationPreferencesRequest $request, AccountActivityLogger $activityLogger): RedirectResponse
     {
-        $user = $request->user();
+        $user = AuthenticatedUser::from($request);
         $user->forceFill([
             'notification_preferences' => [
                 'email_reports' => $request->boolean('email_reports'),
@@ -69,7 +71,7 @@ class ProfileController extends Controller
 
     public function updatePassword(UpdatePasswordRequest $request, AccountActivityLogger $activityLogger): RedirectResponse
     {
-        $user = $request->user();
+        $user = AuthenticatedUser::from($request);
         $user->forceFill([
             'password' => Hash::make($request->string('password')),
             'password_changed_at' => now(),

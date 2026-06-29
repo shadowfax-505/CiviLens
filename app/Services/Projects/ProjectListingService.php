@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 
 class ProjectListingService
 {
+    /**
+     * @return LengthAwarePaginator<int, Project>
+     */
     public function paginate(Request $request, bool $archived = false): LengthAwarePaginator
     {
         $sort = in_array($request->query('sort'), ['project_code', 'name', 'progress_percentage', 'planned_start_date', 'created_at'], true)

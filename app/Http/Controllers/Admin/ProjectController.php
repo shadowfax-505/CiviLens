@@ -14,6 +14,7 @@ use App\Models\ProjectPriority;
 use App\Models\ProjectStatus;
 use App\Services\Projects\ProjectLifecycleService;
 use App\Services\Projects\ProjectListingService;
+use App\Support\Http\AuthenticatedUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -22,7 +23,7 @@ class ProjectController extends Controller
 {
     public function index(Request $request, ProjectListingService $listing): View
     {
-        abort_unless($request->user()?->can('viewAny', Project::class), 403);
+        abort_unless($request->user()?->can('viewAny', Project::class) === true, 403);
 
         return view('admin.projects.index', array_merge($this->lookupData(), [
             'projects' => $listing->paginate($request),
@@ -32,7 +33,7 @@ class ProjectController extends Controller
 
     public function archived(Request $request, ProjectListingService $listing): View
     {
-        abort_unless($request->user()?->can('viewAny', Project::class), 403);
+        abort_unless($request->user()?->can('viewAny', Project::class) === true, 403);
 
         return view('admin.projects.index', array_merge($this->lookupData(), [
             'projects' => $listing->paginate($request, archived: true),
@@ -42,7 +43,7 @@ class ProjectController extends Controller
 
     public function create(Request $request): View
     {
-        abort_unless($request->user()?->can('create', Project::class), 403);
+        abort_unless($request->user()?->can('create', Project::class) === true, 403);
 
         return view('admin.projects.form', array_merge($this->lookupData(), [
             'project' => new Project,
@@ -52,14 +53,14 @@ class ProjectController extends Controller
 
     public function store(ProjectRequest $request, ProjectLifecycleService $service): RedirectResponse
     {
-        $project = $service->create($request->validated(), $request->user(), $request);
+        $project = $service->create($request->validated(), AuthenticatedUser::from($request), $request);
 
         return redirect()->route('admin.projects.show', $project)->with('status', 'project-created');
     }
 
     public function show(Request $request, Project $project): View
     {
-        abort_unless($request->user()?->can('view', $project), 403);
+        abort_unless($request->user()?->can('view', $project) === true, 403);
 
         return view('admin.projects.show', [
             'project' => $project->load(['agency', 'category', 'status', 'priority', 'fundingSource', 'fiscalYear', 'country', 'division', 'district', 'upazila', 'union', 'ward', 'creator', 'activities.actor']),
@@ -68,7 +69,7 @@ class ProjectController extends Controller
 
     public function edit(Request $request, Project $project): View
     {
-        abort_unless($request->user()?->can('update', $project), 403);
+        abort_unless($request->user()?->can('update', $project) === true, 403);
 
         return view('admin.projects.form', array_merge($this->lookupData(), [
             'project' => $project,
@@ -78,34 +79,34 @@ class ProjectController extends Controller
 
     public function update(ProjectRequest $request, Project $project, ProjectLifecycleService $service): RedirectResponse
     {
-        $service->update($project, $request->validated(), $request->user(), $request);
+        $service->update($project, $request->validated(), AuthenticatedUser::from($request), $request);
 
         return redirect()->route('admin.projects.show', $project)->with('status', 'project-updated');
     }
 
     public function archive(Request $request, Project $project, ProjectLifecycleService $service): RedirectResponse
     {
-        abort_unless($request->user()?->can('archive', $project), 403);
+        abort_unless($request->user()?->can('archive', $project) === true, 403);
 
-        $service->archive($project, $request->user(), $request);
+        $service->archive($project, AuthenticatedUser::from($request), $request);
 
         return back()->with('status', 'project-archived');
     }
 
     public function restore(Request $request, Project $project, ProjectLifecycleService $service): RedirectResponse
     {
-        abort_unless($request->user()?->can('restore', $project), 403);
+        abort_unless($request->user()?->can('restore', $project) === true, 403);
 
-        $service->restore($project, $request->user(), $request);
+        $service->restore($project, AuthenticatedUser::from($request), $request);
 
         return back()->with('status', 'project-restored');
     }
 
     public function destroy(Request $request, Project $project, ProjectLifecycleService $service): RedirectResponse
     {
-        abort_unless($request->user()?->can('delete', $project), 403);
+        abort_unless($request->user()?->can('delete', $project) === true, 403);
 
-        $service->delete($project, $request->user(), $request);
+        $service->delete($project, AuthenticatedUser::from($request), $request);
 
         return redirect()->route('admin.projects.index')->with('status', 'project-deleted');
     }

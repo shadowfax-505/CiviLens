@@ -16,6 +16,9 @@ class BudgetRequest extends FormRequest
             : ($this->user()?->can('create', Budget::class) ?? false);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

@@ -23,7 +23,7 @@ class BudgetController extends Controller
 {
     public function index(Request $request, BudgetListingService $listing, BudgetCalculationService $calculations): View
     {
-        abort_unless($request->user()?->can('viewAny', Budget::class), 403);
+        abort_unless($request->user()?->can('viewAny', Budget::class) === true, 403);
 
         return view('admin.finance.budgets.index', array_merge($this->lookupData(), [
             'budgets' => $listing->paginate($request),
@@ -34,7 +34,7 @@ class BudgetController extends Controller
 
     public function archived(Request $request, BudgetListingService $listing, BudgetCalculationService $calculations): View
     {
-        abort_unless($request->user()?->can('viewAny', Budget::class), 403);
+        abort_unless($request->user()?->can('viewAny', Budget::class) === true, 403);
 
         return view('admin.finance.budgets.index', array_merge($this->lookupData(), [
             'budgets' => $listing->paginate($request, archived: true),
@@ -45,7 +45,7 @@ class BudgetController extends Controller
 
     public function create(Request $request): View
     {
-        abort_unless($request->user()?->can('create', Budget::class), 403);
+        abort_unless($request->user()?->can('create', Budget::class) === true, 403);
 
         return view('admin.finance.budgets.form', array_merge($this->lookupData(), [
             'budget' => new Budget,
@@ -61,7 +61,7 @@ class BudgetController extends Controller
 
     public function show(Request $request, Budget $budget): View
     {
-        abort_unless($request->user()?->can('view', $budget), 403);
+        abort_unless($request->user()?->can('view', $budget) === true, 403);
 
         return view('admin.finance.budgets.show', [
             'budget' => $budget->load(['project.agency', 'fiscalYear', 'fundingSource', 'category', 'type', 'status', 'revisions.approver', 'transactions.type', 'transactions.user']),
@@ -70,7 +70,7 @@ class BudgetController extends Controller
 
     public function edit(Request $request, Budget $budget): View
     {
-        abort_unless($request->user()?->can('update', $budget), 403);
+        abort_unless($request->user()?->can('update', $budget) === true, 403);
 
         return view('admin.finance.budgets.form', array_merge($this->lookupData(), [
             'budget' => $budget,
@@ -86,7 +86,7 @@ class BudgetController extends Controller
 
     public function archive(Request $request, Budget $budget, BudgetLifecycleService $service): RedirectResponse
     {
-        abort_unless($request->user()?->can('archive', $budget), 403);
+        abort_unless($request->user()?->can('archive', $budget) === true, 403);
         $service->archive($budget);
 
         return back()->with('status', 'budget-archived');
@@ -94,7 +94,7 @@ class BudgetController extends Controller
 
     public function restore(Request $request, Budget $budget, BudgetLifecycleService $service): RedirectResponse
     {
-        abort_unless($request->user()?->can('restore', $budget), 403);
+        abort_unless($request->user()?->can('restore', $budget) === true, 403);
         $service->restore($budget);
 
         return back()->with('status', 'budget-restored');

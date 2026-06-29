@@ -15,7 +15,7 @@ class CountryController extends Controller
 {
     public function index(Request $request, GeographyListingService $service): View
     {
-        abort_unless($request->user()?->can('viewAny', Country::class), 403);
+        abort_unless($request->user()?->can('viewAny', Country::class) === true, 403);
 
         return view('admin.geography.index', [
             'title' => 'Countries',
@@ -28,7 +28,7 @@ class CountryController extends Controller
 
     public function create(Request $request): View
     {
-        abort_unless($request->user()?->can('create', Country::class), 403);
+        abort_unless($request->user()?->can('create', Country::class) === true, 403);
 
         return view('admin.geography.country-form', ['country' => new Country]);
     }
@@ -42,7 +42,7 @@ class CountryController extends Controller
 
     public function edit(Request $request, Country $country): View
     {
-        abort_unless($request->user()?->can('update', $country), 403);
+        abort_unless($request->user()?->can('update', $country) === true, 403);
 
         return view('admin.geography.country-form', ['country' => $country]);
     }
@@ -56,7 +56,7 @@ class CountryController extends Controller
 
     public function destroy(Request $request, Country $country): RedirectResponse
     {
-        abort_unless($request->user()?->can('delete', $country), 403);
+        abort_unless($request->user()?->can('delete', $country) === true, 403);
 
         $country->delete();
 

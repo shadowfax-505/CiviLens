@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 
 class BudgetListingService
 {
+    /**
+     * @return LengthAwarePaginator<int, Budget>
+     */
     public function paginate(Request $request, bool $archived = false): LengthAwarePaginator
     {
         $sort = in_array($request->query('sort'), ['current_allocation', 'actual_expenditure', 'currency', 'created_at'], true)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\Http\AuthenticatedUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -19,8 +20,9 @@ class ConfirmablePasswordController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate(['password' => ['required', 'string']]);
+        $user = AuthenticatedUser::from($request);
 
-        if (! Hash::check($request->string('password'), $request->user()?->password)) {
+        if (! Hash::check($request->string('password'), $user->password)) {
             throw ValidationException::withMessages([
                 'password' => __('auth.password'),
             ]);

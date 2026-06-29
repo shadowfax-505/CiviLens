@@ -16,7 +16,7 @@ class WardController extends Controller
 {
     public function index(Request $request, GeographyListingService $service): View
     {
-        abort_unless($request->user()?->can('viewAny', Ward::class), 403);
+        abort_unless($request->user()?->can('viewAny', Ward::class) === true, 403);
 
         return view('admin.geography.index', [
             'title' => 'Wards',
@@ -29,7 +29,7 @@ class WardController extends Controller
 
     public function create(Request $request): View
     {
-        abort_unless($request->user()?->can('create', Ward::class), 403);
+        abort_unless($request->user()?->can('create', Ward::class) === true, 403);
 
         return view('admin.geography.ward-form', ['ward' => new Ward, 'unions' => AdministrativeUnion::query()->with('upazila')->orderBy('name')->get()]);
     }
@@ -43,7 +43,7 @@ class WardController extends Controller
 
     public function edit(Request $request, Ward $ward): View
     {
-        abort_unless($request->user()?->can('update', $ward), 403);
+        abort_unless($request->user()?->can('update', $ward) === true, 403);
 
         return view('admin.geography.ward-form', ['ward' => $ward, 'unions' => AdministrativeUnion::query()->with('upazila')->orderBy('name')->get()]);
     }
@@ -57,7 +57,7 @@ class WardController extends Controller
 
     public function destroy(Request $request, Ward $ward): RedirectResponse
     {
-        abort_unless($request->user()?->can('delete', $ward), 403);
+        abort_unless($request->user()?->can('delete', $ward) === true, 403);
         $ward->delete();
 
         return back()->with('status', 'ward-deleted');

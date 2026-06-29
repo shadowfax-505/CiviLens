@@ -161,6 +161,16 @@ class Project extends Model
         return $this->hasMany(Budget::class);
     }
 
+    public function tenders(): HasMany
+    {
+        return $this->hasMany(Tender::class);
+    }
+
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class);
+    }
+
     public function isArchived(): bool
     {
         return $this->archived_at !== null;

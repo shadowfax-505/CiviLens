@@ -78,3 +78,22 @@ A Budget belongs to:
 A Budget has many revisions and transactions. Budget revisions track approved allocation changes. Budget transactions track allocations, adjustments, expenditures, refunds, and transfers. Transactions are immutable and must never be deleted.
 
 Future procurement, contracts, reports, and analytics should read financial totals from budgets, revisions, and transactions rather than project columns.
+
+## Procurement & Tender Management
+
+Sprint 05 implements procurement as the tender-to-contract lifecycle for public project delivery.
+
+A Tender belongs to:
+
+- Project
+- Budget
+- Agency
+- Procurement Method
+- Tender Category
+- Tender Status
+
+A Tender has many bid submissions, evaluation criteria, awards, and immutable procurement activities. Bid submissions belong to bidder organizations. Awards point to winning bid submissions. Contracts belong to awards and reference the same project and budget as the tender.
+
+Procurement must not duplicate finance-managed allocation or expenditure values. Budget filtering and dashboard context read through `budgets.current_allocation` and related budget records.
+
+Historical traceability is represented through `procurement_activities`, which logs workflow events without deletion support. Future document management and AI review features should attach supporting files and analysis to tenders, bids, contracts, and activities rather than replacing source procurement records.

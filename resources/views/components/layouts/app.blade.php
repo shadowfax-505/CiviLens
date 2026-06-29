@@ -26,6 +26,9 @@
                     @can('viewAny', App\Models\Budget::class)
                         <a href="{{ route('admin.finance.budgets.index') }}">Finance</a>
                     @endcan
+                    @can('viewAny', App\Models\Tender::class)
+                        <a href="{{ route('admin.procurement.tenders.index') }}">Procurement</a>
+                    @endcan
                     @can('viewAny', App\Models\Country::class)
                         <a href="{{ route('admin.geography.countries.index') }}">Geography</a>
                     @endcan

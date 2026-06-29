@@ -2,6 +2,7 @@
 
 namespace App\Services\Finance;
 
+use App\Events\BudgetCreated;
 use App\Models\Budget;
 use App\Models\BudgetTransactionType;
 use App\Models\User;
@@ -13,7 +14,10 @@ class BudgetLifecycleService
      */
     public function create(array $data): Budget
     {
-        return Budget::query()->create($this->normalizeAmounts($data));
+        $budget = Budget::query()->create($this->normalizeAmounts($data));
+        BudgetCreated::dispatch($budget);
+
+        return $budget;
     }
 
     /**
@@ -52,7 +56,7 @@ class BudgetLifecycleService
      */
     public function transact(Budget $budget, array $data, User $actor): void
     {
-        $type = BudgetTransactionType::query()->findOrFail($data['budget_transaction_type_id']);
+        $type = BudgetTransactionType::query()->whereKey($data['budget_transaction_type_id'])->firstOrFail();
 
         $budget->transactions()->create([
             'budget_transaction_type_id' => $type->id,

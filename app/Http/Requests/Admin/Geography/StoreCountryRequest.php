@@ -13,6 +13,9 @@ class StoreCountryRequest extends FormRequest
         return $this->user()?->can('create', Country::class) ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

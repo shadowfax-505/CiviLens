@@ -13,6 +13,9 @@ class StoreWardRequest extends FormRequest
         return $this->user()?->can('create', Ward::class) ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

@@ -17,9 +17,13 @@ class ProjectRequest extends FormRequest
             : ($this->user()?->can('create', Project::class) ?? false);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $project = $this->route('project');
+        $projectId = $project instanceof Project ? $project->id : null;
 
         return [
             'project_code' => ['required', 'string', 'max:64', Rule::unique('projects', 'project_code')->ignore($project)],
@@ -28,7 +32,7 @@ class ProjectRequest extends FormRequest
             'slug' => ['required', 'string', 'max:255', Rule::unique('projects', 'slug')->ignore($project)],
             'description' => ['nullable', 'string'],
             'agency_id' => ['required', 'integer', 'exists:agencies,id'],
-            'parent_id' => ['nullable', 'integer', Rule::exists('projects', 'id')->whereNull('deleted_at'), Rule::notIn([$project?->id])],
+            'parent_id' => ['nullable', 'integer', Rule::exists('projects', 'id')->whereNull('deleted_at'), Rule::notIn([$projectId])],
             'project_category_id' => ['required', 'integer', 'exists:project_categories,id'],
             'project_status_id' => ['required', 'integer', 'exists:project_statuses,id'],
             'project_priority_id' => ['required', 'integer', 'exists:project_priorities,id'],

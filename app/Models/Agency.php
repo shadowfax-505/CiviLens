@@ -130,4 +130,9 @@ class Agency extends Model
     {
         return $this->hasMany(Project::class);
     }
+
+    public function tenders(): HasMany
+    {
+        return $this->hasMany(Tender::class);
+    }
 }

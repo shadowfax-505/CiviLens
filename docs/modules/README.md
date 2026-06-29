@@ -9,3 +9,4 @@ Each module doc describes purpose, responsibilities, database tables, APIs, auth
 - Agencies
 - Projects
 - Finance
+- Procurement

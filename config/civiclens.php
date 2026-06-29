@@ -14,6 +14,7 @@ return [
         'agencies_manage' => 'agencies.manage',
         'projects_manage' => 'projects.manage',
         'budgets_manage' => 'budgets.manage',
+        'procurements_manage' => 'procurements.manage',
         'analytics_view' => 'analytics.view',
         'reports_submit' => 'reports.submit',
     ],

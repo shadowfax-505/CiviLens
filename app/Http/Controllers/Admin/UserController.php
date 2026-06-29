@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateUserStatusRequest;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Identity\UserAdministrationService;
+use App\Support\Http\AuthenticatedUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -17,7 +18,7 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
-        abort_unless($request->user()?->can('viewAny', User::class), 403);
+        abort_unless($request->user()?->can('viewAny', User::class) === true, 403);
 
         $sort = in_array($request->query('sort'), ['name', 'email', 'created_at'], true)
             ? $request->query('sort')
@@ -48,21 +49,21 @@ class UserController extends Controller
 
     public function updateStatus(UpdateUserStatusRequest $request, User $user, UserAdministrationService $service): RedirectResponse
     {
-        $service->updateStatus($user, $request->boolean('is_active'), $request->user(), $request);
+        $service->updateStatus($user, $request->boolean('is_active'), AuthenticatedUser::from($request), $request);
 
         return back()->with('status', 'user-status-updated');
     }
 
     public function updateLock(UpdateUserLockRequest $request, User $user, UserAdministrationService $service): RedirectResponse
     {
-        $service->updateLock($user, $request->boolean('locked'), $request->user(), $request);
+        $service->updateLock($user, $request->boolean('locked'), AuthenticatedUser::from($request), $request);
 
         return back()->with('status', 'user-lock-updated');
     }
 
     public function resetPassword(ResetUserPasswordRequest $request, User $user, UserAdministrationService $service): RedirectResponse
     {
-        $service->setTemporaryPassword($user, $request->string('password'), $request->user(), $request);
+        $service->setTemporaryPassword($user, $request->string('password'), AuthenticatedUser::from($request), $request);
 
         return back()->with('status', 'user-password-reset');
     }

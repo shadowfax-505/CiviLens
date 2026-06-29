@@ -16,7 +16,7 @@ class UnionController extends Controller
 {
     public function index(Request $request, GeographyListingService $service): View
     {
-        abort_unless($request->user()?->can('viewAny', AdministrativeUnion::class), 403);
+        abort_unless($request->user()?->can('viewAny', AdministrativeUnion::class) === true, 403);
 
         return view('admin.geography.index', [
             'title' => 'Unions / Municipalities',
@@ -29,7 +29,7 @@ class UnionController extends Controller
 
     public function create(Request $request): View
     {
-        abort_unless($request->user()?->can('create', AdministrativeUnion::class), 403);
+        abort_unless($request->user()?->can('create', AdministrativeUnion::class) === true, 403);
 
         return view('admin.geography.union-form', ['union' => new AdministrativeUnion, 'upazilas' => Upazila::query()->with('district')->orderBy('name')->get()]);
     }
@@ -43,7 +43,7 @@ class UnionController extends Controller
 
     public function edit(Request $request, AdministrativeUnion $union): View
     {
-        abort_unless($request->user()?->can('update', $union), 403);
+        abort_unless($request->user()?->can('update', $union) === true, 403);
 
         return view('admin.geography.union-form', ['union' => $union, 'upazilas' => Upazila::query()->with('district')->orderBy('name')->get()]);
     }
@@ -57,7 +57,7 @@ class UnionController extends Controller
 
     public function destroy(Request $request, AdministrativeUnion $union): RedirectResponse
     {
-        abort_unless($request->user()?->can('delete', $union), 403);
+        abort_unless($request->user()?->can('delete', $union) === true, 403);
         $union->delete();
 
         return back()->with('status', 'union-deleted');

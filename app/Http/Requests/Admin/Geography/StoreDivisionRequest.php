@@ -13,6 +13,9 @@ class StoreDivisionRequest extends FormRequest
         return $this->user()?->can('create', Division::class) ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
