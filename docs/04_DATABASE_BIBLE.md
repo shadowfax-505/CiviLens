@@ -34,6 +34,32 @@ The database is the strongest part of CivicLens. V1 should demonstrate normaliza
 - `permission_groups`
 - `account_activities`
 
+## Implemented in Sprint 02
+
+Geographic reference data is normalized into explicit administrative levels:
+
+- `countries`
+- `divisions`
+- `districts`
+- `upazilas`
+- `unions`
+- `wards`
+
+Each geography table includes timestamps, soft deletes, indexed parent foreign keys, normalized unique constraints within its parent scope, nullable latitude/longitude, and nullable `geojson` for future GIS compatibility. Mapping, spatial indexes, and interactive map features remain out of scope for v1 Sprint 02.
+
+Government agency registry tables:
+
+- `agency_types`
+- `agencies`
+- `agency_user`
+
+`agencies` supports hierarchical parent agencies, normalized agency type assignment, optional geography assignment from country through ward, contact details, status, and soft deletes. `agency_user` assigns users to agencies without replacing the existing role/permission system.
+
+Sprint 02 added permission slugs:
+
+- `locations.manage`
+- `agencies.manage`
+
 ## Identity Columns Added in Sprint 01
 
 The `users` table now includes:
@@ -57,4 +83,4 @@ The custom role foundation seeds `admin`, `staff`, and `citizen` roles. See `doc
 
 ## V2 Expansion Notes
 
-Introduce AI tables only when the ingestion and review workflow exists. Keep AI outputs separate from source facts.
+Introduce AI tables only when the ingestion and review workflow exists. Keep AI outputs separate from source facts. Future GIS work may add spatial indexes, map tiles, and GeoJSON validation around the Sprint 02 geography tables without replacing the normalized hierarchy.
