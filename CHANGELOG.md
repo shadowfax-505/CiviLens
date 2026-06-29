@@ -10,3 +10,5 @@ All notable changes to CivicLens are tracked here.
 - Scaffolded Laravel 13 application foundation.
 - Added custom role and permission schema, models, factories, seed data, and tests.
 - Added protected dashboard route and placeholder login route.
+- Added Sprint 01 web Identity & Access Management: registration, login, logout, password reset, email verification, password confirmation, profile management, avatar upload, notification preferences, account activity, admin user management, role assignment, and account locks.
+- Added Pest and migrated verification to Pest-compatible tests.
