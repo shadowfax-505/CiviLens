@@ -5,6 +5,8 @@
 
 # Laravel / PHP
 /vendor/
+/storage/app/private/*
+/storage/app/public/*
 /storage/*.key
 /storage/logs/*.log
 /storage/framework/cache/*

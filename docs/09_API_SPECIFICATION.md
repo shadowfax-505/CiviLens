@@ -112,6 +112,27 @@ The Laravel app currently implements web identity routes for:
 - `POST /admin/procurement/tenders/{tender}/awards`
 - `POST /admin/procurement/awards/{award}/contracts`
 - `GET /admin/procurement/contracts/{contract}`
+- `GET /admin/contractors/organizations`
+- `GET /admin/contractors/organizations/archived`
+- `POST /admin/contractors/organizations`
+- `GET /admin/contractors/organizations/{organization}`
+- `PUT /admin/contractors/organizations/{organization}`
+- `PATCH /admin/contractors/organizations/{organization}/archive`
+- `PATCH /admin/contractors/organizations/{organization}/restore`
+- `POST /admin/contractors/organizations/{organization}/profile`
+- `GET /admin/documents`
+- `GET /admin/documents/archived`
+- `GET /admin/documents/create`
+- `POST /admin/documents`
+- `GET /admin/documents/{document}`
+- `GET /admin/documents/{document}/edit`
+- `PUT /admin/documents/{document}`
+- `GET /admin/documents/{document}/download`
+- `GET /admin/documents/{document}/preview`
+- `POST /admin/documents/{document}/versions`
+- `PATCH /admin/documents/{document}/archive`
+- `PATCH /admin/documents/{document}/restore`
+- `POST /admin/documents/bulk`
 
 JSON API authentication endpoints are still planned and should be implemented with Sanctum when package installation is available.
 

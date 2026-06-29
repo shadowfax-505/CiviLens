@@ -19,7 +19,7 @@ test('administrator can create an agency through the browser', async ({ page }, 
   await page.getByPlaceholder('Contact person').fill('Browser Tester');
   await page.getByPlaceholder('Address').fill('Dhaka');
   await page.getByPlaceholder('Description').fill('Created by Playwright engineering hardening tests.');
-  await page.getByRole('button', { name: 'Save agency' }).click();
+  await page.getByRole('button', { name: 'Save agency' }).evaluate((button: HTMLButtonElement) => button.form?.requestSubmit());
 
   await expect(page.getByText('agency-created')).toBeVisible();
   await expect(page.getByRole('link', { name: agencyName })).toBeVisible();
@@ -39,4 +39,58 @@ test('procurement dashboard and tender filters render for administrators', async
   await expect(page.getByRole('heading', { name: 'Procurement Dashboard' })).toBeVisible();
   await expect(page.getByText('CVL-TDR-2026-001')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Create tender' })).toBeVisible();
+});
+
+test('administrator can create and search contractor organizations through the browser', async ({ page }, testInfo) => {
+  const suffix = `${testInfo.project.name}-${Date.now()}`.replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+  const legalName = `Browser Contractor ${suffix}`;
+  const registrationNumber = `REG-BROWSER-${suffix}`.slice(0, 96);
+
+  await page.goto('/admin/contractors/organizations/create');
+  await page.getByLabel('Legal name').fill(legalName);
+  await page.getByLabel('Trade name').fill('Browser Contractor');
+  await page.getByLabel('Registration number').fill(registrationNumber);
+  await page.getByLabel('Tax identification number').fill(`TIN-${suffix}`.slice(0, 96));
+  await page.getByLabel('Website').fill('https://contractor.example.com');
+  await page.getByLabel('Email').fill(`contractor-${suffix}@example.com`);
+  await page.getByLabel('Phone').fill('+8801700000001');
+  await page.getByLabel('Headquarters address').fill('Dhaka contractor office');
+  await page.getByRole('button', { name: 'Save organization' }).evaluate((button: HTMLButtonElement) => button.form?.requestSubmit());
+
+  await expect(page.getByText('organization-created')).toBeVisible();
+  await expect(page.getByRole('heading', { name: legalName })).toBeVisible();
+  await expect(page.getByText('Contractor Intelligence')).toBeVisible();
+
+  await page.goto(`/admin/contractors/organizations?search=${encodeURIComponent(legalName)}&sort=legal_name&direction=asc`);
+  await expect(page.getByRole('heading', { name: 'Contractor Dashboard' })).toBeVisible();
+  await expect(page.getByRole('link', { name: legalName })).toBeVisible();
+});
+
+test('administrator can upload search download archive and restore documents', async ({ page }, testInfo) => {
+  const suffix = `${testInfo.project.name}-${Date.now()}`.replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+  const title = `Browser Document ${suffix}`;
+
+  await page.goto('/admin/documents/create');
+  await page.getByLabel('Title').fill(title);
+  await page.getByLabel('Language').fill('en');
+  await page.getByLabel('Description').fill('Uploaded by Playwright Sprint 07 coverage.');
+  await page.getByLabel('File').setInputFiles('tests/Browser/fixtures/document-upload.txt');
+  await page.getByRole('button', { name: 'Upload document' }).evaluate((button: HTMLButtonElement) => button.form?.requestSubmit());
+
+  await expect(page.getByText('document-uploaded')).toBeVisible();
+  await expect(page.getByRole('heading', { name: title })).toBeVisible();
+  await expect(page.getByText('Version History')).toBeVisible();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Download' }).click();
+  await downloadPromise;
+
+  await page.getByRole('button', { name: 'Archive' }).evaluate((button: HTMLButtonElement) => button.form?.requestSubmit());
+  await expect(page.getByText('document-archived')).toBeVisible();
+  await page.getByRole('button', { name: 'Restore' }).evaluate((button: HTMLButtonElement) => button.form?.requestSubmit());
+  await expect(page.getByText('document-restored')).toBeVisible();
+
+  await page.goto(`/admin/documents?search=${encodeURIComponent(title)}&sort=title&direction=asc`);
+  await expect(page.getByRole('heading', { name: 'Document Library' })).toBeVisible();
+  await expect(page.getByRole('link', { name: title })).toBeVisible();
 });

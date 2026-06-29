@@ -97,3 +97,47 @@ A Tender has many bid submissions, evaluation criteria, awards, and immutable pr
 Procurement must not duplicate finance-managed allocation or expenditure values. Budget filtering and dashboard context read through `budgets.current_allocation` and related budget records.
 
 Historical traceability is represented through `procurement_activities`, which logs workflow events without deletion support. Future document management and AI review features should attach supporting files and analysis to tenders, bids, contracts, and activities rather than replacing source procurement records.
+
+## Contractor Intelligence
+
+Sprint 06 implements contractors as a permanent vendor intelligence domain.
+
+An Organization belongs to:
+
+- Company Type
+- Industry
+- Optional country, division, district, upazila, union, and ward
+- Creator and updater users
+
+An Organization has one Contractor Profile. A Contractor Profile belongs to:
+
+- Contractor Category
+- Contractor Classification
+- Registration Status
+- Risk Level
+
+Contractor profiles may have branch offices, directors, contact people, licenses, certifications, insurance policies, compliance records, legal cases, blacklist history, performance snapshots, and contractor activities.
+
+Performance snapshots connect contractors to completed delivery evidence by referencing project, contract, agency, and budget records. Snapshots are immutable and should be generated from completed contracts. Contractor scores are derived by services from compliance and performance records rather than stored as source facts.
+
+Future procurement, document, and intelligence modules should reference `contractor_profiles.id` or `organizations.id` instead of duplicating contractor names.
+
+## Document Intelligence
+
+Sprint 07 implements Documents as the durable enterprise record layer for CivicLens.
+
+A Document belongs to:
+
+- Document Type
+- Document Status
+- Document Visibility
+- Owner user
+- Uploader user
+- Optional Document Category
+- Creator and updater users
+
+A Document has many versions, activities, permissions, tags, OCR metadata, and AI metadata. Document versions preserve immutable file replacement history with storage path, checksum, uploader, reason, and version number.
+
+Documents attach to existing domains through polymorphic `documentables` records. Supported attachment targets include projects, budgets, tenders, contracts, contractor profiles, organizations, agencies, and geography records. This keeps documents reusable across modules while avoiding duplicated file metadata.
+
+Future OCR, semantic search, summarization, classification, embeddings, thumbnails, previews, and virus scanning should consume queued document processing jobs and write processing results to metadata tables without replacing source document facts.

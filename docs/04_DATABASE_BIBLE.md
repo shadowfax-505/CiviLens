@@ -142,6 +142,70 @@ Timeline integrity is provided by `procurement_activities`. Activity records are
 
 Indexes support tender number lookup, project/budget joins, agency/status filters, method/category filters, published/closing date ranges, active/archive state, bidder lookup, contract status summaries, and activity timelines.
 
+## Implemented in Sprint 06
+
+Contractor Intelligence & Vendor Management adds normalized organization, compliance, legal, credential, performance, and lifecycle records:
+
+- `organization_company_types`
+- `organization_industries`
+- `contractor_categories`
+- `contractor_classifications`
+- `contractor_registration_statuses`
+- `contractor_risk_levels`
+- `license_types`
+- `certification_types`
+- `compliance_types`
+- `compliance_statuses`
+- `contractor_activity_types`
+- `organizations`
+- `branch_offices`
+- `contractor_profiles`
+- `directors`
+- `contact_people`
+- `contractor_licenses`
+- `contractor_certifications`
+- `insurance_policies`
+- `compliance_records`
+- `legal_cases`
+- `blacklist_histories`
+- `contractor_performance_snapshots`
+- `contractor_activities`
+
+Organizations reference canonical company type, industry, geography, and creator/updater users. Contractor profiles reference normalized category, classification, registration status, and risk level. Performance snapshots reference contractor profile, project, contract, agency, and budget, preserving immutable completed-contract history for analytics and future AI review.
+
+Blacklist histories, performance snapshots, and contractor activities are append-only through model deletion guards. Derived contractor scores are calculated by services and are not persisted as source-of-truth values.
+
+Indexes support organization search, registration lookup, company/industry/geography filters, contractor risk/status filters, license/certification expiry, compliance review dates, legal case status, performance timelines, and contractor activity timelines.
+
+## Implemented in Sprint 07
+
+Enterprise Document Management adds the normalized document platform:
+
+- `document_types`
+- `document_categories`
+- `document_statuses`
+- `document_visibilities`
+- `document_permission_types`
+- `document_tags`
+- `documents`
+- `document_versions`
+- `documentables`
+- `document_tag`
+- `document_permissions`
+- `document_activities`
+- `document_ocr_metadata`
+- `document_ai_metadata`
+
+`documents` stores metadata and private Laravel Storage references only. File bytes stay behind the configured storage disk, and authorized downloads stream through application routes instead of exposing internal paths.
+
+`document_versions` preserves every replacement with version number, checksum, storage path, uploader, reason, and current-version marker. Previous versions are retained and model deletion is blocked for versions and document activities.
+
+`documentables` provides polymorphic attachments to projects, budgets, tenders, contracts, contractors, organizations, agencies, countries, divisions, districts, upazilas, unions, and wards. This avoids duplicate attachment tables while preserving normalized references to source domain records.
+
+Search indexes support title, UUID, filename, extension, MIME type, checksum, status, visibility, type, category, owner, uploader, archive state, creation date, version lookups, tag search, and document timeline queries.
+
+OCR and AI metadata tables are intentionally nullable preparation tables. Processing output remains separate from source document facts until future AI sprints implement reviewed workflows.
+
 ## Identity Columns Added in Sprint 01
 
 The `users` table now includes:

@@ -1,6 +1,11 @@
 <?php
 
 use App\Http\Controllers\Admin\AgencyController;
+use App\Http\Controllers\Admin\Contractors\ContractorProfileController;
+use App\Http\Controllers\Admin\Contractors\OrganizationController;
+use App\Http\Controllers\Admin\Documents\DocumentBulkActionController;
+use App\Http\Controllers\Admin\Documents\DocumentController;
+use App\Http\Controllers\Admin\Documents\DocumentVersionController;
 use App\Http\Controllers\Admin\Finance\BudgetController;
 use App\Http\Controllers\Admin\Finance\BudgetRevisionController;
 use App\Http\Controllers\Admin\Finance\BudgetTransactionController;
@@ -77,6 +82,26 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::put('/users/{user}/password', [UserController::class, 'resetPassword'])->name('users.password');
 
         Route::resource('agencies', AgencyController::class)->except('show');
+
+        Route::prefix('documents')->name('documents.')->group(function (): void {
+            Route::get('/archived', [DocumentController::class, 'archived'])->name('archived');
+            Route::post('/bulk', [DocumentBulkActionController::class, 'store'])->name('bulk');
+            Route::post('/{document}/versions', [DocumentVersionController::class, 'store'])->name('versions.store');
+            Route::get('/{document}/download', [DocumentController::class, 'download'])->name('download');
+            Route::get('/{document}/preview', [DocumentController::class, 'preview'])->name('preview');
+            Route::patch('/{document}/archive', [DocumentController::class, 'archive'])->name('archive');
+            Route::patch('/{document}/restore', [DocumentController::class, 'restore'])->name('restore');
+        });
+        Route::resource('documents', DocumentController::class)->except('destroy');
+
+        Route::prefix('contractors')->name('contractors.')->group(function (): void {
+            Route::get('/organizations/archived', [OrganizationController::class, 'archived'])->name('organizations.archived');
+            Route::patch('/organizations/{organization}/archive', [OrganizationController::class, 'archive'])->name('organizations.archive');
+            Route::patch('/organizations/{organization}/restore', [OrganizationController::class, 'restore'])->name('organizations.restore');
+            Route::post('/organizations/{organization}/profile', [ContractorProfileController::class, 'store'])->name('organizations.profile.store');
+            Route::resource('organizations', OrganizationController::class)->except('destroy');
+        });
+
         Route::get('/projects/archived', [ProjectController::class, 'archived'])->name('projects.archived');
         Route::patch('/projects/{project}/archive', [ProjectController::class, 'archive'])->name('projects.archive');
         Route::patch('/projects/{project}/restore', [ProjectController::class, 'restore'])->name('projects.restore');

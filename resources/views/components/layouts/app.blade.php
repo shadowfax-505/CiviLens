@@ -20,6 +20,12 @@
                     @can('viewAny', App\Models\Agency::class)
                         <a href="{{ route('admin.agencies.index') }}">Agencies</a>
                     @endcan
+                    @can('viewAny', App\Models\Document::class)
+                        <a href="{{ route('admin.documents.index') }}">Documents</a>
+                    @endcan
+                    @can('viewAny', App\Models\Organization::class)
+                        <a href="{{ route('admin.contractors.organizations.index') }}">Contractors</a>
+                    @endcan
                     @can('viewAny', App\Models\Project::class)
                         <a href="{{ route('admin.projects.index') }}">Projects</a>
                     @endcan
