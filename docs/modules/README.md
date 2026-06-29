@@ -7,3 +7,4 @@ Each module doc describes purpose, responsibilities, database tables, APIs, auth
 - Identity & Access Management
 - Geography
 - Agencies
+- Projects

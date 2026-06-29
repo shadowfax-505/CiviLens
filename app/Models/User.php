@@ -73,6 +73,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(AccountActivity::class);
     }
 
+    /**
+     * @return HasMany<Project, $this>
+     */
+    public function createdProjects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'created_by');
+    }
+
     public function isLocked(): bool
     {
         return $this->locked_at !== null;

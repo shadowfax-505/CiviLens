@@ -5,8 +5,14 @@ namespace Database\Seeders;
 use App\Models\Agency;
 use App\Models\AgencyType;
 use App\Models\Country;
+use App\Models\FiscalYear;
+use App\Models\FundingSource;
 use App\Models\Permission;
 use App\Models\PermissionGroup;
+use App\Models\Project;
+use App\Models\ProjectCategory;
+use App\Models\ProjectPriority;
+use App\Models\ProjectStatus;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -110,7 +116,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Local Office', 'description' => 'Local office serving a defined geography.'],
         );
 
-        Agency::query()->firstOrCreate(
+        $baselineAgency = Agency::query()->firstOrCreate(
             ['slug' => 'ministry-of-planning'],
             [
                 'agency_type_id' => $ministry->id,
@@ -119,6 +125,90 @@ class DatabaseSeeder extends Seeder
                 'short_name' => 'MoP',
                 'status' => 'active',
                 'description' => 'Baseline agency for CivicLens reference data.',
+            ],
+        );
+
+        $transport = ProjectCategory::query()->firstOrCreate(
+            ['slug' => 'transport'],
+            ['name' => 'Transport', 'description' => 'Road, bridge, rail, and public transport projects.'],
+        );
+        ProjectCategory::query()->firstOrCreate(
+            ['slug' => 'water-sanitation'],
+            ['name' => 'Water & Sanitation', 'description' => 'Water supply, drainage, and sanitation projects.'],
+        );
+        ProjectCategory::query()->firstOrCreate(
+            ['slug' => 'public-buildings'],
+            ['name' => 'Public Buildings', 'description' => 'Government buildings, schools, hospitals, and civic facilities.'],
+        );
+
+        $planning = ProjectStatus::query()->firstOrCreate(
+            ['slug' => 'planning'],
+            ['name' => 'Planning', 'description' => 'Project is in planning or feasibility review.', 'sort_order' => 10],
+        );
+        ProjectStatus::query()->firstOrCreate(
+            ['slug' => 'in-progress'],
+            ['name' => 'In Progress', 'description' => 'Project implementation is underway.', 'sort_order' => 20],
+        );
+        ProjectStatus::query()->firstOrCreate(
+            ['slug' => 'completed'],
+            ['name' => 'Completed', 'description' => 'Project work has been completed.', 'sort_order' => 30, 'is_terminal' => true],
+        );
+        ProjectStatus::query()->firstOrCreate(
+            ['slug' => 'suspended'],
+            ['name' => 'Suspended', 'description' => 'Project is temporarily suspended.', 'sort_order' => 40],
+        );
+
+        $high = ProjectPriority::query()->firstOrCreate(
+            ['slug' => 'high'],
+            ['name' => 'High', 'description' => 'High priority project.', 'sort_order' => 10],
+        );
+        ProjectPriority::query()->firstOrCreate(
+            ['slug' => 'medium'],
+            ['name' => 'Medium', 'description' => 'Medium priority project.', 'sort_order' => 20],
+        );
+        ProjectPriority::query()->firstOrCreate(
+            ['slug' => 'low'],
+            ['name' => 'Low', 'description' => 'Low priority project.', 'sort_order' => 30],
+        );
+
+        $publicFunds = FundingSource::query()->firstOrCreate(
+            ['slug' => 'public-funds'],
+            ['name' => 'Public Funds', 'description' => 'Government-funded project.'],
+        );
+        FundingSource::query()->firstOrCreate(
+            ['slug' => 'development-partner'],
+            ['name' => 'Development Partner', 'description' => 'Externally assisted or partner-funded project.'],
+        );
+
+        $fiscalYear = FiscalYear::query()->firstOrCreate(
+            ['name' => 'FY 2026'],
+            ['starts_on' => '2025-07-01', 'ends_on' => '2026-06-30', 'is_active' => true],
+        );
+
+        Project::query()->firstOrCreate(
+            ['project_code' => 'CVL-2026-001'],
+            [
+                'name' => 'CivicLens Baseline Road Improvement',
+                'short_name' => 'Baseline Road',
+                'slug' => 'civiclens-baseline-road-improvement',
+                'description' => 'Baseline seeded project for local development and demonstrations.',
+                'agency_id' => $baselineAgency->id,
+                'project_category_id' => $transport->id,
+                'project_status_id' => $planning->id,
+                'project_priority_id' => $high->id,
+                'funding_source_id' => $publicFunds->id,
+                'fiscal_year_id' => $fiscalYear->id,
+                'country_id' => $bangladesh->id,
+                'estimated_budget' => 1000000,
+                'approved_budget' => 900000,
+                'spent_amount' => 0,
+                'progress_percentage' => 0,
+                'planned_start_date' => '2026-01-01',
+                'planned_end_date' => '2026-12-31',
+                'is_public' => true,
+                'is_active' => true,
+                'created_by' => $baselineAdmin->id,
+                'updated_by' => $baselineAdmin->id,
             ],
         );
     }

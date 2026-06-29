@@ -20,6 +20,9 @@
                     @can('viewAny', App\Models\Agency::class)
                         <a href="{{ route('admin.agencies.index') }}">Agencies</a>
                     @endcan
+                    @can('viewAny', App\Models\Project::class)
+                        <a href="{{ route('admin.projects.index') }}">Projects</a>
+                    @endcan
                     @can('viewAny', App\Models\Country::class)
                         <a href="{{ route('admin.geography.countries.index') }}">Geography</a>
                     @endcan

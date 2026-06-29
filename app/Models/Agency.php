@@ -122,4 +122,12 @@ class Agency extends Model
     {
         return $this->belongsToMany(User::class)->withPivot('relationship')->withTimestamps();
     }
+
+    /**
+     * @return HasMany<Project, $this>
+     */
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
 }

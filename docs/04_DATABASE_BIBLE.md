@@ -60,6 +60,32 @@ Sprint 02 added permission slugs:
 - `locations.manage`
 - `agencies.manage`
 
+## Implemented in Sprint 03
+
+Project Lifecycle Management adds normalized lookup tables and the core `projects` aggregate:
+
+- `project_categories`
+- `project_statuses`
+- `project_priorities`
+- `funding_sources`
+- `fiscal_years`
+- `projects`
+- `project_activities`
+
+`projects` references canonical Sprint 02 agency and geography tables instead of duplicating agency or location names. Project location assignment supports country, division, district, upazila, union, and ward foreign keys for future map and spatial-query work. Budget and progress fields are stored on the project record for v1 lifecycle search and dashboards; future budget modules should attach detailed budget line items to `projects.id`.
+
+Project lifecycle events are stored in `project_activities` with actor, event, old/new values, IP address, and user agent. Significant events currently include create, update, status change, progress update, archive, restore, and delete.
+
+Project indexes support common filters:
+
+- `agency_id + project_status_id`
+- `project_category_id + project_priority_id`
+- `funding_source_id + fiscal_year_id`
+- geography hierarchy keys
+- public/active/archive state
+- planned date ranges
+- approved budget and progress ranges
+
 ## Identity Columns Added in Sprint 01
 
 The `users` table now includes:
