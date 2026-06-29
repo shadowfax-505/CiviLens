@@ -1,0 +1,8 @@
+flowchart TD
+    Citizen[Citizen] --> CivicLens[CivicLens]
+    Staff[Government Staff] --> CivicLens
+    Admin[Administrator] --> CivicLens
+    CivicLens --> Database[(MySQL)]
+    CivicLens --> Search[(Meilisearch)]
+    CivicLens --> Storage[(Document Storage)]
+
