@@ -10,3 +10,5 @@ Each module doc describes purpose, responsibilities, database tables, APIs, auth
 - Projects
 - Finance
 - Procurement
+- Contractors
+- Documents

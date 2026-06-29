@@ -36,6 +36,16 @@ Procurement is implemented as a normalized tender-to-contract lifecycle. Tenders
 
 The developer platform uses GitHub Actions, PHPStan/Larastan, Pint, Pest, Rector dry-runs, Playwright, and local complexity metrics as the quality spine. Domain events and queued job scaffolds are available for future notifications, reporting, exports, OCR, AI processing, and search indexing without changing current synchronous business workflows.
 
+## Sprint 06 Foundation
+
+Contractors are implemented as normalized organization and profile records with append-only blacklist history, performance snapshots, and activity timelines. Derived contractor intelligence is calculated by services from compliance and performance source records rather than persisted as authoritative scores. Future AI modules may consume contractor facts but must keep generated risk explanations separate from source data.
+
+## Sprint 07 Foundation
+
+Documents are implemented as the enterprise record layer. Document metadata is normalized through configurable type, category, status, visibility, permission type, and tag tables. File bytes are stored through Laravel Storage, while `documents` and `document_versions` retain private storage references, checksums, version numbers, and uploader history.
+
+Document attachments use polymorphic `documentables` records for projects, budgets, procurement, contracts, contractors, organizations, agencies, and geography records. OCR and AI metadata remain isolated preparation tables, and queued jobs provide hooks for future thumbnails, OCR, metadata extraction, virus scanning, indexing, and AI processing.
+
 ## V2 Guardrail
 
 Do not merge OCR, semantic search, or anomaly models into v1 without ADR approval.

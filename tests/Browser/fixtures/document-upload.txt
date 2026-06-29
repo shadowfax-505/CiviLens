@@ -1,0 +1,1 @@
+CivicLens browser upload fixture for Sprint 07 document management.

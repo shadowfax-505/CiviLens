@@ -2,7 +2,7 @@
 
 ## Current State
 
-CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 documentation skeleton, identity, geography, agencies, projects, finance, procurement, and the Sprint 05.5 developer platform hardening layer.
+CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 documentation skeleton, identity, geography, agencies, projects, finance, procurement, contractor intelligence, document management, and the Sprint 05.5 developer platform hardening layer.
 
 ## Completed
 
@@ -25,7 +25,9 @@ CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 
 - Sprint 04 financial management: Budget Engine with configurable budget categories/types/statuses/transaction types, budgets, revisions, immutable transactions, dashboard, archive/restore, search/filter/sort/pagination, policies, validation, factories, seed data, and tests.
 - Sprint 05 procurement management: procurement methods, tender categories/statuses, tenders, bidder organizations, bid submissions, evaluation criteria/scores, awards, contracts, contract lifecycle tables, immutable procurement activities, dashboard/search/workspace UI, policies, validation, factories, seed data, and tests.
 - Sprint 05.5 engineering hardening: GitHub Actions CI, Larastan/PHPStan level 8, Rector dry-run, Playwright browser test scaffolding, complexity metrics, event/listener logging, queued job scaffolds, observability helpers, Makefile, and synchronized developer documentation.
+- Sprint 06 contractor intelligence: normalized organizations, contractor profiles, branches, directors, contacts, licenses, certifications, insurance, compliance, legal cases, immutable blacklist history, immutable performance snapshots, contractor activities, scoring services, events, queue jobs, admin UI, tests, and documentation.
+- Sprint 07 document management: normalized document types/categories/statuses/visibilities/tags/permissions, document metadata, immutable versions, polymorphic relationships, activities, OCR and AI metadata preparation, secure Laravel Storage uploads/downloads, processing events/jobs, admin UI, tests, and documentation.
 
 ## Next Milestone
 
-Resolve deferred environment/tooling items, then plan Sprint 06 without starting it automatically.
+Complete local/CI verification for Sprint 07, then plan Sprint 08 without starting it automatically.

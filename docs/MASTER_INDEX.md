@@ -52,5 +52,7 @@ This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read t
 - [Agencies Module](modules/agencies/README.md) - government agency registry, hierarchy, location assignment, and user assignment.
 - [Finance Module](modules/finance/README.md) - budget engine, revisions, transactions, and financial dashboard.
 - [Procurement Module](modules/procurement/README.md) - tenders, bids, evaluation, awards, contracts, and immutable procurement timeline.
+- [Contractor Module](modules/contractors/README.md) - contractor identity, compliance, risk, performance, and vendor intelligence.
+- [Document Module](modules/documents/README.md) - enterprise document management, secure storage, versioning, metadata, permissions, and AI-ready processing hooks.
 - [Sprints](sprints/Sprint-01-Foundation.md) - delivery plans.
 - [V2 Upgrade Path](v2/V2_UPGRADE_PATH.md) - controlled evolution after v1.
