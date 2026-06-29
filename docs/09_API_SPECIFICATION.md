@@ -79,6 +79,14 @@ The Laravel app currently implements web identity routes for:
 - `POST /admin/agencies`
 - `PUT /admin/agencies/{agency}`
 - `DELETE /admin/agencies/{agency}`
+- `GET /admin/projects`
+- `GET /admin/projects/archived`
+- `POST /admin/projects`
+- `GET /admin/projects/{project}`
+- `PUT /admin/projects/{project}`
+- `PATCH /admin/projects/{project}/archive`
+- `PATCH /admin/projects/{project}/restore`
+- `DELETE /admin/projects/{project}`
 
 JSON API authentication endpoints are still planned and should be implemented with Sanctum when package installation is available.
 

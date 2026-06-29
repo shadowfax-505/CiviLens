@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\Geography\DivisionController;
 use App\Http\Controllers\Admin\Geography\UnionController;
 use App\Http\Controllers\Admin\Geography\UpazilaController;
 use App\Http\Controllers\Admin\Geography\WardController;
+use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -68,6 +69,10 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::put('/users/{user}/password', [UserController::class, 'resetPassword'])->name('users.password');
 
         Route::resource('agencies', AgencyController::class)->except('show');
+        Route::get('/projects/archived', [ProjectController::class, 'archived'])->name('projects.archived');
+        Route::patch('/projects/{project}/archive', [ProjectController::class, 'archive'])->name('projects.archive');
+        Route::patch('/projects/{project}/restore', [ProjectController::class, 'restore'])->name('projects.restore');
+        Route::resource('projects', ProjectController::class);
 
         Route::prefix('geography')->name('geography.')->group(function (): void {
             Route::resource('countries', CountryController::class)->except('show');

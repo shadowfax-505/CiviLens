@@ -4,13 +4,42 @@
 
 Manage civic project records, statuses, locations, timelines, and relationships to budgets, procurements, documents, and reports.
 
+## Implemented Features
+
+- Project dashboard/listing with global search, project code search, agency/category/status/priority/funding/fiscal year/geography filtering, date ranges, budget ranges, progress ranges, sorting, pagination, and URL-persistent filters.
+- Project create, detail view, edit, archive, restore, and policy-controlled delete.
+- Parent-child project hierarchy.
+- Normalized lookup tables for categories, statuses, priorities, funding sources, and fiscal years.
+- Agency and geography assignment using Sprint 02 canonical tables.
+- Budget, timeline, progress, public visibility, active status, latitude/longitude, GeoJSON placeholder, and featured image path fields.
+- Lifecycle audit events through `project_activities`.
+- Admin/staff project authorization through the existing custom role and permission system.
+- Pest coverage for CRUD, authorization, validation, search/filter/sort/pagination, relationships, soft deletes, factories, seeders, and policy enforcement.
+
 ## V1 Tables
 
 - `projects`
+- `project_categories`
 - `project_statuses`
-- `project_status_log`
+- `project_priorities`
+- `funding_sources`
+- `fiscal_years`
+- `project_activities`
+
+## Relationships
+
+- Project belongs to agency.
+- Project belongs to category, status, priority, funding source, and fiscal year.
+- Project may belong to country, division, district, upazila, union, and ward.
+- Project may belong to a parent project.
+- Project may have many child projects.
+- Project belongs to creator and updater users.
+- Project has many lifecycle activity records.
+
+## Search Notes
+
+Sprint 03 uses indexed database filtering as the authoritative v1 search path. `App\Services\Projects\ProjectListingService` centralizes filters so future Scout/Meilisearch indexing can reuse the same request contract with minimal controller changes.
 
 ## V2 Notes
 
 Add public status feeds, map layers, and delay indicators.
-

@@ -13,3 +13,5 @@ All notable changes to CivicLens are tracked here.
 - Added Sprint 01 web Identity & Access Management: registration, login, logout, password reset, email verification, password confirmation, profile management, avatar upload, notification preferences, account activity, admin user management, role assignment, and account locks.
 - Added Pest and migrated verification to Pest-compatible tests.
 - Added Sprint 02 Geographic Foundation and Organization Registry: normalized country-to-ward hierarchy, agency types, hierarchical agencies, agency-user assignments, admin CRUD screens, policies, validation, factories, seed data, tests, and documentation.
+- Added Sprint 03 Project Lifecycle Management: normalized project lookup tables, projects, lifecycle activity logging, admin dashboard/search/detail/forms, archive/restore/delete workflows, policies, validation, factories, seed data, tests, and documentation.
+- Fixed identity account activity logging to write `user_agent`, matching the existing migration.
