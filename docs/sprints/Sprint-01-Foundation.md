@@ -12,8 +12,10 @@
 - Laravel 13 scaffold is complete.
 - Local `.env` boots the app as CivicLens.
 - Role and permission tables, models, factories, seed data, and tests are complete.
-- `/dashboard` is protected by Laravel auth middleware.
-- `/login` exists as a placeholder route for the full auth UI.
+- Registration, login, logout, forgot password, password reset, email verification, and password confirmation are implemented.
+- Profile management, avatar upload, password changes, notification preferences, and account activity are implemented.
+- Administrator user management with search, filtering, sorting, pagination, status controls, locks, role assignment, and password reset is implemented.
+- `/dashboard` is protected by Laravel auth and active-account middleware.
 
 ## Acceptance Criteria
 
@@ -26,5 +28,5 @@
 ## Remaining
 
 - Implement full registration and login flow.
-- Add real auth views and request validation.
 - Configure MySQL/Redis/Meilisearch services for local development.
+- Install Sanctum and implement token API auth when package installation is available.

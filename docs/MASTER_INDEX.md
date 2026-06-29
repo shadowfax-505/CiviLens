@@ -47,5 +47,6 @@ This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read t
 - [Database Docs](database/SchemaOverview.md) - schema and migration details.
 - [Diagrams](diagrams/erd/CivicLens-ERD.mmd) - ERD and C4 diagrams.
 - [Modules](modules/projects/README.md) - domain modules.
+- [Identity Module](modules/identity/README.md) - authentication, profile, admin user management, roles, permissions, and account activity.
 - [Sprints](sprints/Sprint-01-Foundation.md) - delivery plans.
 - [V2 Upgrade Path](v2/V2_UPGRADE_PATH.md) - controlled evolution after v1.

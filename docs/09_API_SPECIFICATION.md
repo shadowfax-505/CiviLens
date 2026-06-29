@@ -25,7 +25,34 @@
 
 ## Current Implementation Status
 
-The Laravel app currently has web routes for `/login` and protected `/dashboard`. JSON API authentication endpoints are still planned and should be implemented with Sanctum when the API layer begins.
+The Laravel app currently implements web identity routes for:
+
+- `GET /register`
+- `POST /register`
+- `GET /login`
+- `POST /login`
+- `POST /logout`
+- `GET /forgot-password`
+- `POST /forgot-password`
+- `GET /reset-password/{token}`
+- `POST /reset-password`
+- `GET /verify-email`
+- `GET /verify-email/{id}/{hash}`
+- `POST /email/verification-notification`
+- `GET /confirm-password`
+- `POST /confirm-password`
+- `GET /profile`
+- `PUT /profile`
+- `POST /profile/avatar`
+- `PUT /profile/password`
+- `PUT /profile/notifications`
+- `GET /admin/users`
+- `PATCH /admin/users/{user}/status`
+- `PATCH /admin/users/{user}/lock`
+- `PUT /admin/users/{user}/roles`
+- `PUT /admin/users/{user}/password`
+
+JSON API authentication endpoints are still planned and should be implemented with Sanctum when package installation is available.
 
 ## V2 Expansion Notes
 

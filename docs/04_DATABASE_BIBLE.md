@@ -31,6 +31,27 @@ The database is the strongest part of CivicLens. V1 should demonstrate normaliza
 - `permissions`
 - `role_user`
 - `role_permission`
+- `permission_groups`
+- `account_activities`
+
+## Identity Columns Added in Sprint 01
+
+The `users` table now includes:
+
+- `avatar_path`
+- `is_active`
+- `locked_at`
+- `notification_preferences`
+- `last_login_at`
+- `password_changed_at`
+
+Indexes were added for account state and account activity lookup:
+
+- `users.is_active`
+- `users.locked_at`
+- `users.last_login_at`
+- `account_activities.user_id + event`
+- `account_activities.actor_id + event`
 
 The custom role foundation seeds `admin`, `staff`, and `citizen` roles. See `docs/adr/ADR-007-Custom-Role-Permission-Foundation.md`.
 

@@ -48,4 +48,3 @@ class UserRoleTest extends TestCase
         $this->assertFalse($user->hasPermission('system.configure'));
     }
 }
-
