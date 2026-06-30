@@ -46,6 +46,14 @@ Documents are implemented as the enterprise record layer. Document metadata is n
 
 Document attachments use polymorphic `documentables` records for projects, budgets, procurement, contracts, contractors, organizations, agencies, and geography records. OCR and AI metadata remain isolated preparation tables, and queued jobs provide hooks for future thumbnails, OCR, metadata extraction, virus scanning, indexing, and AI processing.
 
+## Sprint 08 Foundation
+
+Universal Search is provider-agnostic infrastructure. Searchable source models implement `App\Contracts\Search\Searchable`, and controllers use `SearchManager`, `SearchIndexingService`, or `KnowledgeGraphService` instead of provider clients.
+
+`DatabaseSearchProvider` is the current baseline provider. Future Scout, Meilisearch, OpenSearch, and semantic providers must implement `SearchProvider` and preserve permission-aware filtering, analytics, saved searches, suggestions, and result DTO behavior.
+
+The knowledge graph is exposed through services, not controllers. Search index rows reference source records and do not replace domain source-of-truth tables.
+
 ## V2 Guardrail
 
 Do not merge OCR, semantic search, or anomaly models into v1 without ADR approval.

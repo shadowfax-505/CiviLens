@@ -41,6 +41,7 @@ use App\Models\Tender;
 use App\Models\TenderCategory;
 use App\Models\TenderStatus;
 use App\Models\User;
+use App\Services\Search\SearchIndexingService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -76,6 +77,7 @@ class DatabaseSeeder extends Seeder
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Procurement', 'slug' => config('civiclens.permissions.procurements_manage'), 'description' => 'Manage tenders, bids, awards, contracts, and procurement timelines.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Contractors', 'slug' => config('civiclens.permissions.contractors_manage'), 'description' => 'Manage contractor intelligence, compliance, performance, and vendor records.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Documents', 'slug' => config('civiclens.permissions.documents_manage'), 'description' => 'Manage enterprise documents, versions, metadata, and permissions.'],
+            ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Search', 'slug' => config('civiclens.permissions.search_manage'), 'description' => 'Use universal search, saved searches, discovery, and search analytics.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'View Analytics', 'slug' => config('civiclens.permissions.analytics_view'), 'description' => 'View platform analytics dashboards.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Submit Reports', 'slug' => config('civiclens.permissions.reports_submit'), 'description' => 'Submit civic reports and field updates.'],
         ])->map(fn (array $permission) => Permission::query()->firstOrCreate(
@@ -105,6 +107,7 @@ class DatabaseSeeder extends Seeder
             config('civiclens.permissions.procurements_manage'),
             config('civiclens.permissions.contractors_manage'),
             config('civiclens.permissions.documents_manage'),
+            config('civiclens.permissions.search_manage'),
             config('civiclens.permissions.analytics_view'),
         ])->pluck('id'));
         $citizen->permissions()->sync($permissions->where('slug', config('civiclens.permissions.reports_submit'))->pluck('id'));
@@ -348,7 +351,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Awarded', 'description' => 'Tender has an award decision.', 'sort_order' => 30, 'is_active' => true],
         );
 
-        Tender::query()->firstOrCreate(
+        $baselineTender = Tender::query()->firstOrCreate(
             ['tender_number' => 'CVL-TDR-2026-001'],
             [
                 'project_id' => $baselineProject->id,
@@ -468,6 +471,12 @@ class DatabaseSeeder extends Seeder
                 ['slug' => $slug],
                 ['name' => $name, 'description' => "{$name} document tag."],
             );
+        }
+
+        $indexing = app(SearchIndexingService::class);
+
+        foreach ([$bangladesh, $baselineAgency, $baselineProject, $baselineBudget, $baselineTender] as $searchableRecord) {
+            $indexing->index($searchableRecord);
         }
     }
 }

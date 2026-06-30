@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\Search\Searchable;
 use Database\Factories\AgencyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -31,7 +32,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'address',
     'status',
 ])]
-class Agency extends Model
+class Agency extends Model implements Searchable
 {
     /** @use HasFactory<AgencyFactory> */
     use HasFactory, SoftDeletes;
@@ -134,5 +135,71 @@ class Agency extends Model
     public function tenders(): HasMany
     {
         return $this->hasMany(Tender::class);
+    }
+
+    public function searchTitle(): string
+    {
+        return $this->name;
+    }
+
+    public function searchDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function searchKeywords(): array
+    {
+        return array_values(array_filter([
+            $this->name,
+            $this->short_name,
+            $this->slug,
+            $this->type?->name,
+            $this->status,
+            $this->email,
+            $this->phone,
+            $this->country?->name,
+            $this->division?->name,
+            $this->district?->name,
+        ]));
+    }
+
+    public function searchRelations(): array
+    {
+        return [
+            'parent' => $this->parent_id ? [['type' => Agency::class, 'id' => $this->parent_id, 'title' => $this->parent?->name]] : [],
+            'projects' => $this->projects()->limit(10)->get(['id', 'name'])->map(fn (Project $project): array => ['type' => Project::class, 'id' => $project->id, 'title' => $project->name])->all(),
+            'procurement' => $this->tenders()->limit(10)->get(['id', 'title'])->map(fn (Tender $tender): array => ['type' => Tender::class, 'id' => $tender->id, 'title' => $tender->title])->all(),
+        ];
+    }
+
+    public function searchModule(): string
+    {
+        return 'agencies';
+    }
+
+    public function searchUrl(): string
+    {
+        return route('admin.agencies.index', ['search' => $this->name], false);
+    }
+
+    public function searchStatus(): ?string
+    {
+        return $this->status;
+    }
+
+    public function searchVisibility(): string
+    {
+        return 'internal';
+    }
+
+    public function searchMetadata(): array
+    {
+        return [
+            'route_module' => 'agencies',
+            'agency_type_id' => $this->agency_type_id,
+            'country_id' => $this->country_id,
+            'division_id' => $this->division_id,
+            'district_id' => $this->district_id,
+        ];
     }
 }

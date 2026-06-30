@@ -20,6 +20,9 @@
                     @can('viewAny', App\Models\Agency::class)
                         <a href="{{ route('admin.agencies.index') }}">Agencies</a>
                     @endcan
+                    @if (auth()->user()?->hasRole(config('civiclens.roles.admin')) || auth()->user()?->hasPermission(config('civiclens.permissions.search_manage')))
+                        <a href="{{ route('admin.search.index') }}">Search</a>
+                    @endif
                     @can('viewAny', App\Models\Document::class)
                         <a href="{{ route('admin.documents.index') }}">Documents</a>
                     @endcan

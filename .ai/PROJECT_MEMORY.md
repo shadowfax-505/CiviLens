@@ -2,7 +2,7 @@
 
 ## Current State
 
-CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 documentation skeleton, identity, geography, agencies, projects, finance, procurement, contractor intelligence, document management, and the Sprint 05.5 developer platform hardening layer.
+CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 documentation skeleton, identity, geography, agencies, projects, finance, procurement, contractor intelligence, document management, universal search, and the Sprint 05.5 developer platform hardening layer.
 
 ## Completed
 
@@ -27,7 +27,8 @@ CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 
 - Sprint 05.5 engineering hardening: GitHub Actions CI, Larastan/PHPStan level 8, Rector dry-run, Playwright browser test scaffolding, complexity metrics, event/listener logging, queued job scaffolds, observability helpers, Makefile, and synchronized developer documentation.
 - Sprint 06 contractor intelligence: normalized organizations, contractor profiles, branches, directors, contacts, licenses, certifications, insurance, compliance, legal cases, immutable blacklist history, immutable performance snapshots, contractor activities, scoring services, events, queue jobs, admin UI, tests, and documentation.
 - Sprint 07 document management: normalized document types/categories/statuses/visibilities/tags/permissions, document metadata, immutable versions, polymorphic relationships, activities, OCR and AI metadata preparation, secure Laravel Storage uploads/downloads, processing events/jobs, admin UI, tests, and documentation.
+- Sprint 08 universal search: provider-agnostic `Searchable` and `SearchProvider` contracts, database provider, normalized search index/history/saved-search/click/analytics tables, ranking, suggestions, cache, queue-ready indexing, knowledge graph services, admin UI, JSON endpoints, tests, browser coverage, and documentation.
 
 ## Next Milestone
 
-Complete local/CI verification for Sprint 07, then plan Sprint 08 without starting it automatically.
+Complete local/CI verification for Sprint 08, then plan Sprint 09 without starting it automatically.

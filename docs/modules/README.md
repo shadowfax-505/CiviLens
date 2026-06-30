@@ -12,3 +12,4 @@ Each module doc describes purpose, responsibilities, database tables, APIs, auth
 - Procurement
 - Contractors
 - Documents
+- Universal Search

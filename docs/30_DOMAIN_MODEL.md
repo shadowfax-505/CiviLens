@@ -141,3 +141,31 @@ A Document has many versions, activities, permissions, tags, OCR metadata, and A
 Documents attach to existing domains through polymorphic `documentables` records. Supported attachment targets include projects, budgets, tenders, contracts, contractor profiles, organizations, agencies, and geography records. This keeps documents reusable across modules while avoiding duplicated file metadata.
 
 Future OCR, semantic search, summarization, classification, embeddings, thumbnails, previews, and virus scanning should consume queued document processing jobs and write processing results to metadata tables without replacing source document facts.
+
+## Universal Search & Knowledge Graph
+
+Sprint 08 implements Universal Search as platform infrastructure across existing domains.
+
+Searchable source records implement `Searchable` and expose:
+
+- Search title
+- Search description
+- Search keywords
+- Search relationships
+- Search module
+- Search URL
+- Search status
+- Search visibility
+- Search metadata
+
+The search index references source records instead of owning source facts. Projects, budgets, tenders, contracts, contractor organizations, documents, agencies, and geography records are initially registered.
+
+Knowledge graph traversal exposes related records through `KnowledgeGraphService`:
+
+- Projects connect to agencies, budgets, procurement, and documents.
+- Budgets connect to projects, procurement, and documents.
+- Tenders connect to projects, budgets, agencies, and documents.
+- Agencies connect to projects, procurement, and documents.
+- Documents connect back to attached source records.
+
+Future AI and semantic search features should consume the search index and graph services rather than bypassing module ownership boundaries.

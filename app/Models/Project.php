@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\Search\Searchable;
 use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -44,7 +45,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'created_by',
     'updated_by',
 ])]
-class Project extends Model
+class Project extends Model implements Searchable
 {
     /** @use HasFactory<ProjectFactory> */
     use HasFactory, SoftDeletes;
@@ -174,5 +175,76 @@ class Project extends Model
     public function isArchived(): bool
     {
         return $this->archived_at !== null;
+    }
+
+    public function searchTitle(): string
+    {
+        return $this->name;
+    }
+
+    public function searchDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function searchKeywords(): array
+    {
+        return array_values(array_filter([
+            $this->project_code,
+            $this->name,
+            $this->short_name,
+            $this->slug,
+            $this->agency?->name,
+            $this->category?->name,
+            $this->status?->name,
+            $this->priority?->name,
+            $this->fundingSource?->name,
+            $this->fiscalYear?->name,
+        ]));
+    }
+
+    public function searchRelations(): array
+    {
+        return [
+            'agency' => $this->agency_id ? [['type' => Agency::class, 'id' => $this->agency_id, 'title' => $this->agency?->name]] : [],
+            'budgets' => $this->budgets()->limit(10)->get(['id'])->map(fn (Budget $budget): array => ['type' => Budget::class, 'id' => $budget->id])->all(),
+            'procurement' => $this->tenders()->limit(10)->get(['id', 'title'])->map(fn (Tender $tender): array => ['type' => Tender::class, 'id' => $tender->id, 'title' => $tender->title])->all(),
+            'geography' => array_values(array_filter([
+                $this->country_id ? ['type' => Country::class, 'id' => $this->country_id, 'title' => $this->country?->name] : null,
+                $this->division_id ? ['type' => Division::class, 'id' => $this->division_id, 'title' => $this->division?->name] : null,
+                $this->district_id ? ['type' => District::class, 'id' => $this->district_id, 'title' => $this->district?->name] : null,
+            ])),
+        ];
+    }
+
+    public function searchModule(): string
+    {
+        return 'projects';
+    }
+
+    public function searchUrl(): string
+    {
+        return route('admin.projects.show', $this, false);
+    }
+
+    public function searchStatus(): ?string
+    {
+        return $this->status?->slug;
+    }
+
+    public function searchVisibility(): string
+    {
+        return $this->is_public ? 'public' : 'internal';
+    }
+
+    public function searchMetadata(): array
+    {
+        return [
+            'route_module' => 'projects',
+            'project_code' => $this->project_code,
+            'progress_percentage' => $this->progress_percentage,
+            'agency_id' => $this->agency_id,
+            'fiscal_year_id' => $this->fiscal_year_id,
+        ];
     }
 }

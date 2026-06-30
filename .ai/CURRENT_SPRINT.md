@@ -2,18 +2,19 @@
 
 ## Sprint
 
-Sprint 07: Document Intelligence & Enterprise Document Management Platform
+Sprint 08: Universal Search, Knowledge Graph & Discovery Platform
 
 ## Goal
 
-Implement normalized, secure, versioned, searchable, and AI-ready enterprise document management without changing existing module ownership boundaries.
+Implement provider-agnostic universal search, knowledge discovery, analytics, suggestions, saved searches, and queue-ready indexing without redesigning completed modules.
 
 ## Active Tasks
 
-- Document schema, models, factories, seed data, and permission wiring. Status: implemented.
-- Secure storage abstraction, upload/download, version replacement, archive/restore, bulk actions, and audit activities. Status: implemented.
-- Document admin dashboard, library search/filter/sort/pagination, upload wizard, detail, preview, metadata, and version views. Status: implemented.
-- Document events and queued processing hooks for thumbnails, OCR, metadata extraction, virus scanning, search indexing, and AI metadata. Status: implemented.
-- Document Pest tests for CRUD, validation, authorization, storage, versioning, relationships, search, events, queues, and immutable history. Status: implemented.
-- Document browser test coverage. Status: implemented and verified locally with Playwright desktop and mobile profiles.
-- Documentation and AI memory synchronization. Status: implemented and verified.
+- Search schema, contracts, provider abstraction, and registry. Status: implemented.
+- `Searchable` integration for projects, budgets, procurement, contractors, documents, agencies, and geography. Status: implemented.
+- Database provider, ranking, indexing, suggestions, analytics, caching, events, and queue jobs. Status: implemented.
+- Knowledge graph service and relationship explorer. Status: implemented.
+- Admin search UI, advanced filters, JSON endpoints, analytics dashboard, saved/recent searches, and navigation. Status: implemented.
+- Pest tests for schema, indexing, filtering, sorting, authorization, registry, analytics, suggestions, queues, events, cache, and knowledge graph. Status: implemented.
+- Browser search workflow coverage. Status: implemented; local execution blocked by approval/usage limit during this run.
+- Documentation, ADR, and AI memory synchronization. Status: implemented.

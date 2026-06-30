@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\Search\Searchable;
 use Database\Factories\BudgetFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'is_active',
     'archived_at',
 ])]
-class Budget extends Model
+class Budget extends Model implements Searchable
 {
     /** @use HasFactory<BudgetFactory> */
     use HasFactory, SoftDeletes;
@@ -110,5 +111,70 @@ class Budget extends Model
         }
 
         return round(((float) $this->actual_expenditure / (float) $this->current_allocation) * 100, 2);
+    }
+
+    public function searchTitle(): string
+    {
+        return 'Budget for '.($this->project?->name ?? 'Project #'.$this->project_id);
+    }
+
+    public function searchDescription(): ?string
+    {
+        return $this->notes;
+    }
+
+    public function searchKeywords(): array
+    {
+        return array_values(array_filter([
+            $this->project?->name,
+            $this->project?->project_code,
+            $this->fiscalYear?->name,
+            $this->type?->name,
+            $this->fundingSource?->name,
+            $this->category?->name,
+            $this->status?->name,
+            $this->currency,
+        ]));
+    }
+
+    public function searchRelations(): array
+    {
+        return [
+            'project' => $this->project_id ? [['type' => Project::class, 'id' => $this->project_id, 'title' => $this->project?->name]] : [],
+            'procurement' => $this->tenders()->limit(10)->get(['id', 'title'])->map(fn (Tender $tender): array => ['type' => Tender::class, 'id' => $tender->id, 'title' => $tender->title])->all(),
+        ];
+    }
+
+    public function searchModule(): string
+    {
+        return 'budgets';
+    }
+
+    public function searchUrl(): string
+    {
+        return route('admin.finance.budgets.show', $this, false);
+    }
+
+    public function searchStatus(): ?string
+    {
+        return $this->status?->slug;
+    }
+
+    public function searchVisibility(): string
+    {
+        return 'internal';
+    }
+
+    public function searchMetadata(): array
+    {
+        return [
+            'route_module' => 'budgets',
+            'project_id' => $this->project_id,
+            'fiscal_year_id' => $this->fiscal_year_id,
+            'current_allocation' => (float) $this->current_allocation,
+            'actual_expenditure' => (float) $this->actual_expenditure,
+            'remaining_balance' => $this->remaining_balance,
+            'utilization_percentage' => $this->utilization_percentage,
+        ];
     }
 }

@@ -13,3 +13,4 @@
 | Implement procurement as a normalized tender-to-contract lifecycle with immutable activities and budget references | Accepted | Documented in `docs/modules/procurement/README.md` |
 | Implement contractors as normalized organization/profile intelligence records with derived service-calculated scores | Accepted | Documented in `docs/modules/contractors/README.md` |
 | Implement documents as normalized metadata records with Laravel Storage files, immutable versions, and polymorphic attachments | Accepted | Documented in `docs/modules/documents/README.md` |
+| Implement universal search as provider-agnostic infrastructure with `Searchable` and `SearchProvider` contracts | Accepted | `docs/adr/ADR-008-Provider-Agnostic-Universal-Search.md` |

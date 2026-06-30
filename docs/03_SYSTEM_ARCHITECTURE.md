@@ -22,10 +22,15 @@ flowchart TD
 - Projects own project lifecycle and status.
 - Agencies own organization metadata.
 - Procurement owns suppliers, contracts, and procurement items.
-- Search indexes public searchable records.
+- Search owns provider-agnostic indexing, discovery, suggestions, history, saved searches, analytics, and knowledge graph traversal.
 - Intelligence stays isolated until v2 features are promoted by ADR.
+
+## Sprint 08 Search Infrastructure
+
+Universal Search is implemented as platform infrastructure behind `Searchable` and `SearchProvider` contracts. Business modules expose their own search payloads and relationships; controllers call `SearchManager`, `SearchIndexingService`, or `KnowledgeGraphService` instead of provider clients.
+
+The current provider is `DatabaseSearchProvider`. Future Scout, Meilisearch, and OpenSearch providers must remain interchangeable behind `SearchProvider`.
 
 ## V2 Expansion Notes
 
 Add OCR workers, vector search, map services, and public API gateways behind clear interfaces.
-
