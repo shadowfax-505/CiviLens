@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Contracts\Search\Searchable;
+use App\Models\Concerns\SearchableGeography;
 use Database\Factories\CountryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,10 +12,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['name', 'iso2', 'iso3', 'phone_code', 'latitude', 'longitude', 'geojson'])]
-class Country extends Model
+class Country extends Model implements Searchable
 {
     /** @use HasFactory<CountryFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, SearchableGeography, SoftDeletes;
 
     protected function casts(): array
     {

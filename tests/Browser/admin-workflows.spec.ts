@@ -94,3 +94,22 @@ test('administrator can upload search download archive and restore documents', a
   await expect(page.getByRole('heading', { name: 'Document Library' })).toBeVisible();
   await expect(page.getByRole('link', { name: title })).toBeVisible();
 });
+
+test('administrator can use universal search knowledge graph analytics and suggestions', async ({ page }) => {
+  await page.goto('/admin/search?q=Baseline&module=projects');
+
+  await expect(page.getByRole('heading', { name: 'Universal Search' })).toBeVisible();
+  await expect(page.getByPlaceholder('Search projects, contractors, documents...')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'CivicLens Baseline Road Improvement' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Knowledge View' }).first().click();
+  await expect(page.getByRole('heading', { name: 'Knowledge View' })).toBeVisible();
+  await expect(page.getByText('CivicLens Baseline Road Improvement')).toBeVisible();
+
+  await page.goto('/admin/search/analytics');
+  await expect(page.getByRole('heading', { name: 'Search Analytics Dashboard' })).toBeVisible();
+  await expect(page.getByText('Total Searches')).toBeVisible();
+
+  await page.goto('/admin/search/suggestions?q=bas');
+  await expect(page.locator('body')).toContainText('baseline');
+});

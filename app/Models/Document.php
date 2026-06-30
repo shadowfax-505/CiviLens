@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\Search\Searchable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Document extends Model
+class Document extends Model implements Searchable
 {
     use HasFactory;
     use SoftDeletes;
@@ -113,5 +114,78 @@ class Document extends Model
     public function activities(): HasMany
     {
         return $this->hasMany(DocumentActivity::class)->latest();
+    }
+
+    public function searchTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function searchDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function searchKeywords(): array
+    {
+        return array_values(array_filter(array_merge([
+            $this->uuid,
+            $this->title,
+            $this->original_filename,
+            $this->file_extension,
+            $this->mime_type,
+            $this->type?->name,
+            $this->category?->name,
+            $this->status?->name,
+            $this->visibility?->name,
+            $this->language,
+        ], $this->tags()->pluck('name')->all())));
+    }
+
+    public function searchRelations(): array
+    {
+        return [
+            'attached_to' => $this->documentables()->get()->map(fn (Documentable $documentable): array => [
+                'type' => $documentable->documentable_type,
+                'id' => $documentable->documentable_id,
+                'relationship' => $documentable->relationship_type,
+            ])->all(),
+        ];
+    }
+
+    public function searchModule(): string
+    {
+        return 'documents';
+    }
+
+    public function searchUrl(): string
+    {
+        return route('admin.documents.show', $this, false);
+    }
+
+    public function searchStatus(): ?string
+    {
+        return $this->status?->slug;
+    }
+
+    public function searchVisibility(): string
+    {
+        return $this->visibility?->slug ?? 'private';
+    }
+
+    public function searchMetadata(): array
+    {
+        return [
+            'route_module' => 'documents',
+            'uuid' => $this->uuid,
+            'document_type_id' => $this->document_type_id,
+            'document_category_id' => $this->document_category_id,
+            'file_extension' => $this->file_extension,
+            'mime_type' => $this->mime_type,
+            'file_size' => $this->file_size,
+            'version_number' => $this->version_number,
+            'ocr_status' => $this->ocr_status,
+            'index_status' => $this->index_status,
+        ];
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Contracts\Search\Searchable;
+use App\Models\Concerns\SearchableGeography;
 use Database\Factories\AdministrativeUnionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,10 +13,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['upazila_id', 'name', 'type', 'code', 'latitude', 'longitude', 'geojson'])]
-class AdministrativeUnion extends Model
+class AdministrativeUnion extends Model implements Searchable
 {
     /** @use HasFactory<AdministrativeUnionFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, SearchableGeography, SoftDeletes;
 
     protected $table = 'unions';
 

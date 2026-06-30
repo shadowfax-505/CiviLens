@@ -22,4 +22,15 @@ class Documentable extends Model
     {
         return $this->morphTo();
     }
+
+    public function target(): ?Model
+    {
+        $class = $this->documentable_type;
+
+        if (! is_a($class, Model::class, true)) {
+            return null;
+        }
+
+        return $class::query()->find($this->documentable_id);
+    }
 }

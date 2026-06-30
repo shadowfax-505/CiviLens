@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Contracts\Search\SearchProvider;
+use App\Events\AnalyticsUpdated;
 use App\Events\BudgetCreated;
 use App\Events\CertificationExpiring;
 use App\Events\ComplianceFailed;
@@ -12,10 +14,16 @@ use App\Events\DocumentMetadataUpdated;
 use App\Events\DocumentUpdated;
 use App\Events\DocumentUploaded;
 use App\Events\DocumentVersionCreated;
+use App\Events\EntityIndexed;
+use App\Events\EntityReindexed;
 use App\Events\LicenseExpiring;
 use App\Events\PerformanceSnapshotCreated;
 use App\Events\ProjectCreated;
 use App\Events\RiskScoreUpdated;
+use App\Events\SavedSearchCreated;
+use App\Events\SearchExecuted;
+use App\Events\SearchFailed;
+use App\Events\SuggestionGenerated;
 use App\Events\TenderPublished;
 use App\Listeners\LogDomainEvent;
 use App\Models\AdministrativeUnion;
@@ -40,6 +48,7 @@ use App\Policies\OrganizationPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\TenderPolicy;
 use App\Policies\UserPolicy;
+use App\Services\Search\DatabaseSearchProvider;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -51,7 +60,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(SearchProvider::class, function ($app): SearchProvider {
+            return match (config('civiclens.search.provider', 'database')) {
+                'database' => $app->make(DatabaseSearchProvider::class),
+                default => $app->make(DatabaseSearchProvider::class),
+            };
+        });
     }
 
     /**
@@ -89,5 +103,12 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(ComplianceFailed::class, LogDomainEvent::class);
         Event::listen(RiskScoreUpdated::class, LogDomainEvent::class);
         Event::listen(PerformanceSnapshotCreated::class, LogDomainEvent::class);
+        Event::listen(EntityIndexed::class, LogDomainEvent::class);
+        Event::listen(EntityReindexed::class, LogDomainEvent::class);
+        Event::listen(SearchExecuted::class, LogDomainEvent::class);
+        Event::listen(SearchFailed::class, LogDomainEvent::class);
+        Event::listen(SuggestionGenerated::class, LogDomainEvent::class);
+        Event::listen(SavedSearchCreated::class, LogDomainEvent::class);
+        Event::listen(AnalyticsUpdated::class, LogDomainEvent::class);
     }
 }

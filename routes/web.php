@@ -21,6 +21,9 @@ use App\Http\Controllers\Admin\Procurement\ContractController;
 use App\Http\Controllers\Admin\Procurement\EvaluationController;
 use App\Http\Controllers\Admin\Procurement\TenderController;
 use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\SearchAnalyticsController;
+use App\Http\Controllers\Admin\SearchController;
+use App\Http\Controllers\Admin\SearchKnowledgeController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -82,6 +85,17 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::put('/users/{user}/password', [UserController::class, 'resetPassword'])->name('users.password');
 
         Route::resource('agencies', AgencyController::class)->except('show');
+
+        Route::prefix('search')->name('search.')->group(function (): void {
+            Route::get('/', [SearchController::class, 'index'])->name('index');
+            Route::get('/advanced', [SearchController::class, 'advanced'])->name('advanced');
+            Route::get('/analytics', SearchAnalyticsController::class)->name('analytics');
+            Route::get('/results', [SearchController::class, 'results'])->name('results');
+            Route::get('/suggestions', [SearchController::class, 'suggestions'])->name('suggestions');
+            Route::post('/saved', [SearchController::class, 'save'])->name('saved');
+            Route::post('/clicks', [SearchController::class, 'click'])->name('clicks');
+            Route::get('/knowledge/{module}/{id}', SearchKnowledgeController::class)->name('knowledge');
+        });
 
         Route::prefix('documents')->name('documents.')->group(function (): void {
             Route::get('/archived', [DocumentController::class, 'archived'])->name('archived');

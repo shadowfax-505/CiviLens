@@ -206,6 +206,37 @@ Search indexes support title, UUID, filename, extension, MIME type, checksum, st
 
 OCR and AI metadata tables are intentionally nullable preparation tables. Processing output remains separate from source document facts until future AI sprints implement reviewed workflows.
 
+## Implemented in Sprint 08
+
+Universal Search & Knowledge Discovery adds normalized platform search tables:
+
+- `search_indexes`
+- `search_documents`
+- `search_keywords`
+- `search_synonyms`
+- `search_popularity`
+- `search_clicks`
+- `saved_searches`
+- `search_history`
+- `search_jobs`
+
+`search_indexes` references source records with `searchable_type` and `searchable_id`. Source domain tables remain authoritative. Indexed display text, keywords, metadata, and AI-preparation fields exist only to support discovery and provider synchronization.
+
+AI-ready nullable fields include:
+
+- `embedding_reference`
+- `semantic_hash`
+- `entity_summary`
+- `search_vector`
+- `entity_keywords`
+- `last_embedding_update`
+
+Indexes support source lookup, module filtering, visibility filtering, status filtering, keyword suggestions, click analytics, saved searches, history timelines, and queued indexing operations.
+
+Sprint 08 added permission slug:
+
+- `search.manage`
+
 ## Identity Columns Added in Sprint 01
 
 The `users` table now includes:

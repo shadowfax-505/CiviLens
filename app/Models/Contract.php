@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\Search\Searchable;
 use Database\Factories\ContractFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['award_id', 'bid_submission_id', 'project_id', 'budget_id', 'contract_number', 'title', 'status', 'signed_at', 'start_date', 'end_date', 'notes', 'archived_at'])]
-class Contract extends Model
+class Contract extends Model implements Searchable
 {
     /** @use HasFactory<ContractFactory> */
     use HasFactory, SoftDeletes;
@@ -79,5 +80,68 @@ class Contract extends Model
     public function getTenderAttribute(): ?Tender
     {
         return $this->award?->tender;
+    }
+
+    public function searchTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function searchDescription(): ?string
+    {
+        return $this->notes;
+    }
+
+    public function searchKeywords(): array
+    {
+        return array_values(array_filter([
+            $this->contract_number,
+            $this->title,
+            $this->status,
+            $this->project?->name,
+            $this->budget?->project?->project_code,
+            $this->tender?->title,
+            $this->tender?->tender_number,
+        ]));
+    }
+
+    public function searchRelations(): array
+    {
+        return [
+            'project' => $this->project_id ? [['type' => Project::class, 'id' => $this->project_id, 'title' => $this->project?->name]] : [],
+            'budget' => $this->budget_id ? [['type' => Budget::class, 'id' => $this->budget_id, 'title' => $this->budget?->searchTitle()]] : [],
+            'tender' => $this->tender ? [['type' => Tender::class, 'id' => $this->tender->id, 'title' => $this->tender->title]] : [],
+        ];
+    }
+
+    public function searchModule(): string
+    {
+        return 'procurement';
+    }
+
+    public function searchUrl(): string
+    {
+        return route('admin.procurement.contracts.show', $this, false);
+    }
+
+    public function searchStatus(): ?string
+    {
+        return $this->status;
+    }
+
+    public function searchVisibility(): string
+    {
+        return 'internal';
+    }
+
+    public function searchMetadata(): array
+    {
+        return [
+            'route_module' => 'contracts',
+            'contract_number' => $this->contract_number,
+            'project_id' => $this->project_id,
+            'budget_id' => $this->budget_id,
+            'signed_at' => $this->signed_at?->toDateString(),
+        ];
     }
 }

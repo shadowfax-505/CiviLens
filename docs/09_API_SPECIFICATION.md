@@ -133,8 +133,31 @@ The Laravel app currently implements web identity routes for:
 - `PATCH /admin/documents/{document}/archive`
 - `PATCH /admin/documents/{document}/restore`
 - `POST /admin/documents/bulk`
+- `GET /admin/search`
+- `GET /admin/search/advanced`
+- `GET /admin/search/analytics`
+- `GET /admin/search/results`
+- `GET /admin/search/suggestions`
+- `POST /admin/search/saved`
+- `POST /admin/search/clicks`
+- `GET /admin/search/knowledge/{module}/{id}`
 
 JSON API authentication endpoints are still planned and should be implemented with Sanctum when package installation is available.
+
+## Search Endpoint Notes
+
+Sprint 08 search endpoints are authenticated admin web endpoints. `GET /admin/search/results` and `GET /admin/search/suggestions` return JSON using the same provider-agnostic `SearchManager` and `SearchProvider` contracts as the Blade UI.
+
+Supported query parameters include:
+
+- `q`
+- `module`
+- `status`
+- `visibility`
+- `sort`
+- `direction`
+- `page`
+- `per_page`
 
 ## V2 Expansion Notes
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\Search\Searchable;
 use Database\Factories\TenderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,7 +29,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'is_active',
     'archived_at',
 ])]
-class Tender extends Model
+class Tender extends Model implements Searchable
 {
     /** @use HasFactory<TenderFactory> */
     use HasFactory, SoftDeletes;
@@ -108,5 +109,71 @@ class Tender extends Model
     public function isArchived(): bool
     {
         return $this->archived_at !== null;
+    }
+
+    public function searchTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function searchDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function searchKeywords(): array
+    {
+        return array_values(array_filter([
+            $this->tender_number,
+            $this->title,
+            $this->slug,
+            $this->project?->name,
+            $this->budget?->project?->project_code,
+            $this->agency?->name,
+            $this->method?->name,
+            $this->category?->name,
+            $this->status?->name,
+        ]));
+    }
+
+    public function searchRelations(): array
+    {
+        return [
+            'project' => $this->project_id ? [['type' => Project::class, 'id' => $this->project_id, 'title' => $this->project?->name]] : [],
+            'budget' => $this->budget_id ? [['type' => Budget::class, 'id' => $this->budget_id, 'title' => $this->budget?->searchTitle()]] : [],
+            'agency' => $this->agency_id ? [['type' => Agency::class, 'id' => $this->agency_id, 'title' => $this->agency?->name]] : [],
+        ];
+    }
+
+    public function searchModule(): string
+    {
+        return 'procurement';
+    }
+
+    public function searchUrl(): string
+    {
+        return route('admin.procurement.tenders.show', $this, false);
+    }
+
+    public function searchStatus(): ?string
+    {
+        return $this->status?->slug;
+    }
+
+    public function searchVisibility(): string
+    {
+        return $this->is_public ? 'public' : 'internal';
+    }
+
+    public function searchMetadata(): array
+    {
+        return [
+            'route_module' => 'tenders',
+            'tender_number' => $this->tender_number,
+            'project_id' => $this->project_id,
+            'budget_id' => $this->budget_id,
+            'agency_id' => $this->agency_id,
+            'closing_at' => $this->closing_at?->toDateTimeString(),
+        ];
     }
 }
