@@ -19,3 +19,4 @@
 | Implement intelligence readiness as deterministic rules, advisory indicators, evidence, human reviews, and processing preparation without real AI execution | Accepted | Documented in `docs/modules/intelligence/README.md` |
 | Implement public transparency as curated public web views with authenticated, moderated citizen reports | Accepted | Documented in `docs/modules/public/README.md` |
 | Implement Sprint 13 part 1 production readiness and deterministic Civic Integrity Engine without OCR, LLMs, embeddings, vector search, semantic search, AI agents, or legal conclusions | Accepted | Documented in `docs/06_INTELLIGENCE_LAYER.md` and `docs/modules/intelligence/README.md` |
+| Complete Sprint 13 part 2 by hardening existing dashboards, reporting, monitoring, request correlation, and audited rule management without introducing v2 AI infrastructure | Accepted | Documented in `docs/03_SYSTEM_ARCHITECTURE.md`, `docs/14_MONITORING.md`, and module docs |

@@ -1,9 +1,24 @@
 <x-layouts.app title="Analytics Reports">
     <section class="space-y-6">
-        <div>
-            <h1 class="text-3xl font-bold tracking-tight">Analytics Reports</h1>
-            <p class="mt-2 text-slate-600 dark:text-slate-300">Generated and queued analytics reports for export-ready dashboard analysis.</p>
+        <div class="rounded-3xl bg-slate-950 p-8 text-white shadow-sm dark:bg-slate-900">
+            <p class="text-sm font-semibold uppercase tracking-[0.24em] text-blue-300">Reporting</p>
+            <h1 class="mt-3 text-4xl font-bold tracking-tight">Analytics Reports</h1>
+            <p class="mt-3 max-w-3xl text-slate-300">Generated and queued analytics reports with branding, filters, KPIs, charts, and source evidence metadata.</p>
         </div>
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Generate Executive Summary</h2>
+            <div class="mt-4 flex flex-wrap gap-3">
+                @foreach (['csv' => 'CSV', 'xlsx' => 'Excel', 'pdf' => 'PDF'] as $format => $label)
+                    <form method="POST" action="{{ route('admin.analytics.reports.store') }}">
+                        @csrf
+                        <input type="hidden" name="dashboard" value="executive">
+                        <input type="hidden" name="format" value="{{ $format }}">
+                        <button class="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950">Queue {{ $label }}</button>
+                    </form>
+                @endforeach
+            </div>
+        </section>
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
                 <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">

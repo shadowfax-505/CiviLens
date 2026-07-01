@@ -85,7 +85,10 @@ If a gate cannot run locally, record the reason clearly.
 
 - Production deployments must run with `APP_DEBUG=false`, cached configuration/routes/views, supervised queue workers, the scheduler, durable storage, and database backups.
 - `/healthz` is the public-safe health endpoint. It may report component status, but it must never expose secrets, internal paths, environment dumps, or credentials.
+- `/version` may expose only deploy-safe app metadata such as version, environment label, commit hash, and timestamp. It must never expose secrets or raw configuration.
+- `/admin/system/metrics` is administrative-only and must stay behind analytics authorization.
 - Docker, Nginx, PHP-FPM, Supervisor, Redis, MySQL, queues, and scheduler configuration must remain aligned with `docs/11_DEPLOYMENT_GUIDE.md` and `.env.production.example`.
+- Request and correlation IDs should be present in responses and structured log context for production diagnostics.
 
 ## Documentation Synchronization
 
@@ -123,7 +126,7 @@ A sprint is complete only when implementation is complete, tests pass where the 
 - Avoid N+1 queries.
 - Use eager loading for relationship-heavy screens.
 - Cache expensive aggregates only with clear invalidation rules.
-- Queue slow work such as exports, reports, search indexing, OCR, AI processing, and notifications.
+- Queue slow work such as exports, reports, search indexing, OCR, AI processing, and notifications. V1 report exports are synchronous only for lightweight generated payloads and remain queue-ready through `GenerateAnalyticsReport`.
 - Design query services so future provider swaps do not rewrite business modules.
 
 ## AI Development Rules
@@ -140,6 +143,7 @@ A sprint is complete only when implementation is complete, tests pass where the 
 - V1 intelligence may identify deterministic risk indicators, public integrity signals, statistical anomalies, procurement irregularities, budget irregularities, timeline irregularities, documentation gaps, contractor risk, and agency performance patterns.
 - Every indicator must include source evidence, rule version, thresholds, detection payload, timestamp, severity, confidence, and human review status.
 - Rule thresholds and weights must be centralized in `intelligence_rules`; engine runs must preserve threshold snapshots for reproducibility.
+- Rule management changes must flow through the admin console/service layer and write `intelligence_rule_audits`; never edit rule rows directly in production.
 - Human review remains mandatory before an indicator is treated as an accepted finding.
 
 ## Review Checklist

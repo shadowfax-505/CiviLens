@@ -42,6 +42,14 @@ Production readiness is implemented through additive deployment files: Dockerfil
 
 The Civic Integrity Engine is deterministic and built on the Sprint 10 Intelligence module. `CivicIntegrityEngineService` runs active `IntelligenceRule` records through `RuleExecutionService`, stores reproducible run metadata in `civic_intelligence_runs`, snapshots thresholds/configuration, and tags generated indicators with engine metadata. New rules detect repeat approved-award concentration and unresolved citizen-report clusters. The engine never makes corruption, fraud, guilt, or legal conclusions.
 
+## Sprint 13 Part 2 Foundation
+
+Production hardening remains additive. `ExecutiveDashboardService` composes `/dashboard` from existing source modules, search analytics, integrity runs, alerts, and `SystemMetricsService`. `SystemMetricsService` owns public-safe health, deploy-safe version metadata, and authorized system metrics. `RequestCorrelation` owns response/log request IDs.
+
+Rule management is service-owned. `RuleManagementService` updates `IntelligenceRule` configuration, records `intelligence_rule_audits`, provides dry-run counts, and stores last execution metadata. `IntelligenceDashboardService` adds timelines, distributions, rankings, and performance summaries; `ExplainabilityService` exposes triggered rule, thresholds, actual/expected values, evidence, engine version, recommendation, confidence, and human review requirement.
+
+Analytics reporting remains inside `ReportBuilder`, which renders CSV, spreadsheet-compatible, and PDF output from stored analytics payloads without creating a separate reporting data store.
+
 ## Sprint 05.5 Engineering Foundation
 
 The developer platform uses GitHub Actions, PHPStan/Larastan, Pint, Pest, Rector dry-runs, Playwright, and local complexity metrics as the quality spine. Domain events and queued job scaffolds are available for future notifications, reporting, exports, OCR, AI processing, and search indexing without changing current synchronous business workflows.
