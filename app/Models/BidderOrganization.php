@@ -6,10 +6,11 @@ use Database\Factories\BidderOrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['name', 'slug', 'registration_number', 'contact_person', 'email', 'phone', 'website', 'address', 'status'])]
+#[Fillable(['organization_id', 'name', 'slug', 'registration_number', 'contact_person', 'email', 'phone', 'website', 'address', 'status'])]
 class BidderOrganization extends Model
 {
     /** @use HasFactory<BidderOrganizationFactory> */
@@ -18,5 +19,10 @@ class BidderOrganization extends Model
     public function bidSubmissions(): HasMany
     {
         return $this->hasMany(BidSubmission::class);
+    }
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
     }
 }

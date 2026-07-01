@@ -10,6 +10,7 @@ use App\Models\Division;
 use App\Models\Document;
 use App\Models\IntelligenceIndicator;
 use App\Models\Organization;
+use App\Models\ProcurementPlan;
 use App\Models\Project;
 use App\Models\Tender;
 use App\Models\Upazila;
@@ -37,6 +38,7 @@ return [
         'analytics_manage' => 'analytics.manage',
         'intelligence_manage' => 'intelligence.manage',
         'reports_submit' => 'reports.submit',
+        'citizen_reports_manage' => 'citizen_reports.manage',
     ],
 
     'documents' => [
@@ -51,6 +53,7 @@ return [
         'registry' => [
             'projects' => Project::class,
             'budgets' => Budget::class,
+            'procurement_plans' => ProcurementPlan::class,
             'tenders' => Tender::class,
             'contracts' => Contract::class,
             'organizations' => Organization::class,

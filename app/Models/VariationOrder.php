@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['contract_id', 'title', 'description', 'approved_at', 'status'])]
+#[Fillable(['contract_id', 'title', 'description', 'approved_at', 'approved_amount', 'schedule_extension_days', 'reason', 'status'])]
 class VariationOrder extends Model
 {
     /** @use HasFactory<VariationOrderFactory> */
@@ -16,7 +16,11 @@ class VariationOrder extends Model
 
     protected function casts(): array
     {
-        return ['approved_at' => 'date'];
+        return [
+            'approved_at' => 'date',
+            'approved_amount' => 'decimal:2',
+            'schedule_extension_days' => 'integer',
+        ];
     }
 
     public function contract(): BelongsTo

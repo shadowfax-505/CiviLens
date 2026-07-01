@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['award_id', 'bid_submission_id', 'project_id', 'budget_id', 'contract_number', 'title', 'status', 'signed_at', 'start_date', 'end_date', 'notes', 'archived_at'])]
@@ -70,6 +71,21 @@ class Contract extends Model implements Searchable
     public function completionCertificates(): HasMany
     {
         return $this->hasMany(CompletionCertificate::class);
+    }
+
+    public function deliverables(): HasMany
+    {
+        return $this->hasMany(ContractDeliverable::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(ContractPayment::class);
+    }
+
+    public function closeout(): HasOne
+    {
+        return $this->hasOne(ContractCloseout::class);
     }
 
     public function activities(): HasMany

@@ -16,6 +16,7 @@ Manage civic project records, statuses, locations, timelines, and relationships 
 - Lifecycle audit events through `project_activities`.
 - Admin/staff project authorization through the existing custom role and permission system.
 - Pest coverage for CRUD, authorization, validation, search/filter/sort/pagination, relationships, soft deletes, factories, seeders, and policy enforcement.
+- Sprint 11 public project explorer and detail pages expose only active, public, unarchived projects through public-safe services.
 
 ## V1 Tables
 
