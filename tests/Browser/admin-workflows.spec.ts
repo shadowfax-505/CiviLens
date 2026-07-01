@@ -102,9 +102,11 @@ test('administrator can use universal search knowledge graph analytics and sugge
   await expect(page.getByPlaceholder('Search projects, contractors, documents...')).toBeVisible();
   await expect(page.getByRole('link', { name: 'CivicLens Baseline Road Improvement' })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Knowledge View' }).first().click();
+  const knowledgeHref = await page.getByRole('link', { name: 'Knowledge View' }).first().getAttribute('href');
+  expect(knowledgeHref).not.toBeNull();
+  await page.goto(knowledgeHref as string);
   await expect(page.getByRole('heading', { name: 'Knowledge View' })).toBeVisible();
-  await expect(page.getByText('CivicLens Baseline Road Improvement')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'CivicLens Baseline Road Improvement' })).toBeVisible();
 
   await page.goto('/admin/search/analytics');
   await expect(page.getByRole('heading', { name: 'Search Analytics Dashboard' })).toBeVisible();
@@ -112,4 +114,34 @@ test('administrator can use universal search knowledge graph analytics and sugge
 
   await page.goto('/admin/search/suggestions?q=bas');
   await expect(page.locator('body')).toContainText('baseline');
+});
+
+test('administrator can review analytics dashboards metrics alerts and report actions', async ({ page }) => {
+  await page.goto('/admin/analytics?dashboard=executive');
+
+  await expect(page.getByRole('heading', { name: 'Executive Decision Dashboard' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Budget Utilization' })).toBeVisible();
+  await expect(page.getByText('Alerts and Recommendations')).toBeVisible();
+  await expect(page.locator('[data-chart-definition]').first()).toBeVisible();
+
+  await page.goto('/admin/analytics/metrics?metric=projects.active');
+  await expect(page.locator('body')).toContainText('projects.active');
+
+  await page.goto('/admin/analytics/alerts');
+  await expect(page.getByRole('heading', { name: 'Analytics Alerts' })).toBeVisible();
+});
+
+test('administrator can review intelligence indicators and processing readiness', async ({ page }) => {
+  await page.goto('/admin/intelligence');
+
+  await expect(page.getByRole('heading', { name: 'Evidence Review & Risk Indicators' })).toBeVisible();
+  await expect(page.getByText('Rule-based, source-backed signals')).toBeVisible();
+
+  await page.goto('/admin/intelligence/indicators?severity=warning&q=risk');
+  await expect(page.getByRole('heading', { name: 'Intelligence Indicators' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible();
+
+  await page.goto('/admin/intelligence/processing-jobs');
+  await expect(page.getByRole('heading', { name: 'Intelligence Processing Jobs' })).toBeVisible();
+  await expect(page.getByText('Preparation jobs for future OCR')).toBeVisible();
 });

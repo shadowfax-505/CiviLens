@@ -13,3 +13,5 @@ Each module doc describes purpose, responsibilities, database tables, APIs, auth
 - Contractors
 - Documents
 - Universal Search
+- Business Intelligence & Analytics
+- Intelligence Readiness

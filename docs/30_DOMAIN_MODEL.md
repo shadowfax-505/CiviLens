@@ -169,3 +169,48 @@ Knowledge graph traversal exposes related records through `KnowledgeGraphService
 - Documents connect back to attached source records.
 
 Future AI and semantic search features should consume the search index and graph services rather than bypassing module ownership boundaries.
+
+## Business Intelligence & Analytics
+
+Sprint 09 implements Analytics as a cross-module decision-support layer.
+
+Analytics reads source facts from:
+
+- Projects
+- Budgets
+- Procurement
+- Contractors
+- Documents
+- Search
+- Users
+- Agencies
+- Geography
+- Platform queues and cache-ready infrastructure
+
+Analytics owns:
+
+- Metric registration
+- Metric calculation
+- Dashboard composition
+- Chart-ready definitions
+- Immutable snapshots
+- Generated report records
+- Rule-based alert definitions and triggered alerts
+- Dashboard states
+- Analytics audit events
+
+Analytics must not mutate source modules or store duplicated operational records. Snapshots and reports preserve calculated point-in-time payloads for reproducibility and performance only.
+
+## Intelligence Readiness
+
+Sprint 10 implements Intelligence as a deterministic, human-reviewed readiness layer.
+
+An Intelligence Rule belongs to an Intelligence Rule Type. Rules define module scope, category, thresholds, severity defaults, version, and active state.
+
+An Intelligence Indicator belongs to an Intelligence Rule and optionally references a source record through a polymorphic source relation. Indicators have many evidence records, reviews, and activities.
+
+Evidence records link to supporting source records through polymorphic references. Reviews preserve human decisions such as accepted, dismissed, in review, or needs more evidence.
+
+Processing jobs prepare future OCR, AI review, and search synchronization. They do not run real OCR, LLM calls, embeddings, semantic search, or automated legal conclusions in v1.
+
+Intelligence indicators are registered with Universal Search and exposed through the Knowledge Graph by linking back to their source and evidence records.

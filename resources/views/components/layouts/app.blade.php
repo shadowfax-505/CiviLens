@@ -23,6 +23,12 @@
                     @if (auth()->user()?->hasRole(config('civiclens.roles.admin')) || auth()->user()?->hasPermission(config('civiclens.permissions.search_manage')))
                         <a href="{{ route('admin.search.index') }}">Search</a>
                     @endif
+                    @can('viewAny', App\Models\AnalyticsReport::class)
+                        <a href="{{ route('admin.analytics.index') }}">Analytics</a>
+                    @endcan
+                    @can('viewAny', App\Models\IntelligenceIndicator::class)
+                        <a href="{{ route('admin.intelligence.index') }}">Intelligence</a>
+                    @endcan
                     @can('viewAny', App\Models\Document::class)
                         <a href="{{ route('admin.documents.index') }}">Documents</a>
                     @endcan
