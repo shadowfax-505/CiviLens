@@ -4,6 +4,19 @@
 
 Use Docker or Laravel Sail for PHP, MySQL, Redis, Meilisearch, and mail testing.
 
+## Production Container Stack
+
+Sprint 13 part 1 adds a production-oriented Docker scaffold:
+
+- `Dockerfile` builds Composer dependencies, Vite assets, and a PHP-FPM runtime.
+- `docker-compose.production.yml` defines app, worker, Nginx, MySQL, and Redis services.
+- `docker/production/nginx.conf` serves public assets and forwards PHP requests to PHP-FPM.
+- `docker/production/supervisord.conf` runs queue workers and the Laravel scheduler loop.
+- `docker/production/php.ini` sets production PHP limits and disables error display.
+- `.env.production.example` documents required production environment variables.
+
+Use this scaffold as a deployable baseline. Production secrets must be injected through the hosting environment, not committed.
+
 ## Deployment Principles
 
 - Environment variables configure services.
@@ -27,6 +40,14 @@ Before promoting a release, run:
 - `php artisan view:cache`
 
 Queue workers should be restarted after deployment so new event listeners and queued job classes are loaded.
+
+## Health Checks
+
+Use `GET /healthz` for load balancer and uptime checks. The endpoint reports app, database, cache, storage, and queue readiness without exposing secrets or internal paths.
+
+## Scheduler
+
+The scheduler should run continuously in production. Sprint 13 part 1 schedules `civiclens:integrity-run` daily at 02:15 to generate deterministic civic integrity indicators from active rules.
 
 ## V2 Expansion Notes
 

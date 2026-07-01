@@ -28,9 +28,16 @@ V1 runs GitHub Actions on push and pull request. The workflow validates Composer
 - Back up MySQL.
 - Monitor queue failures.
 - Track search indexing failures.
+- Monitor `/healthz` for app, database, cache, storage, and queue readiness.
+- Confirm Supervisor keeps the default queue worker and scheduler loop alive in production.
+- Review `civic_intelligence_runs` after scheduled execution to detect failed integrity runs.
 - Record release notes.
 - Restart workers after deployments.
 - Keep `.env.example` aligned with queue, storage, mail, and external-service configuration.
+
+## Production Runtime
+
+Sprint 13 part 1 includes production container files for PHP-FPM, Nginx, Supervisor, MySQL, and Redis. Deployments should run optimized Composer autoloading, Vite builds, controlled migrations, `php artisan optimize`, and worker restarts. Rollbacks should restore the previous image and database backup or migration rollback plan before restarting workers.
 
 ## V2 Expansion Notes
 

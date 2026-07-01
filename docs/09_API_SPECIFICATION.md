@@ -162,6 +162,7 @@ The Laravel app currently implements web identity routes for:
 - `GET /admin/analytics/alerts`
 - `GET /admin/intelligence`
 - `GET /admin/intelligence/dashboard/summary`
+- `POST /admin/intelligence/engine/run`
 - `GET /admin/intelligence/indicators`
 - `GET /admin/intelligence/indicators/{indicator}`
 - `PATCH /admin/intelligence/indicators/{indicator}/review`
@@ -190,6 +191,7 @@ The Laravel app currently implements web identity routes for:
 - `PATCH /admin/citizen-reports/{report}/status`
 - `PATCH /admin/citizen-reports/{report}/archive`
 - `PATCH /admin/citizen-reports/{report}/restore`
+- `GET /healthz`
 
 JSON API authentication endpoints are still planned and should be implemented with Sanctum when package installation is available.
 
@@ -223,9 +225,15 @@ Supported query parameters include:
 
 ## Intelligence Endpoint Notes
 
-Sprint 10 intelligence endpoints are authenticated admin web endpoints protected by `intelligence.manage`. Indicator filters support `q`, `severity`, `status`, and `module`.
+Sprint 10 and Sprint 13 intelligence endpoints are authenticated admin web endpoints protected by `intelligence.manage`. Indicator filters support `q`, `severity`, `status`, and `module`.
+
+`POST /admin/intelligence/engine/run` executes the deterministic Civic Integrity Engine against active rules, records a `civic_intelligence_runs` row, and tags generated indicators with engine metadata. It does not make legal conclusions and does not run OCR, LLMs, embeddings, vector search, semantic search, or AI agents.
 
 Processing jobs prepare future OCR, AI review, and search synchronization only. They do not run OCR engines, LLMs, embeddings, or vector search in v1.
+
+## Health Endpoint Notes
+
+`GET /healthz` returns public-safe application, database, cache, storage, and queue readiness checks for production monitoring. The response must not expose secrets, credentials, full environment dumps, internal storage paths, or database connection details.
 
 ## Public Portal Endpoint Notes
 
