@@ -6,7 +6,11 @@ AI assists analysis. It must not accuse individuals or organizations of corrupti
 
 ## V1 Scope
 
-V1 prepares the data model and documentation for later intelligence features but does not require machine learning to launch.
+V1 implements deterministic intelligence readiness, not machine learning. Sprint 10 adds rule-based indicators, evidence packages, human review workflows, processing job readiness, and audit timelines.
+
+Implemented v1 intelligence outputs are advisory. They must include source records, rule version, detection timestamp, severity, confidence, and review status.
+
+V1 does not perform real OCR extraction, LLM calls, embedding generation, vector search, or automated legal conclusions.
 
 ## V2 Candidate Features
 
@@ -19,4 +23,3 @@ V1 prepares the data model and documentation for later intelligence features but
 ## Explainability Requirement
 
 Every AI-generated insight must include source records, rule/model version, timestamp, and human review status.
-

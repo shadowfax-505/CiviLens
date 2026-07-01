@@ -237,6 +237,52 @@ Sprint 08 added permission slug:
 
 - `search.manage`
 
+## Implemented in Sprint 09
+
+Business Intelligence & Analytics adds normalized analytics infrastructure tables:
+
+- `analytics_snapshot_periods`
+- `analytics_snapshots`
+- `analytics_reports`
+- `analytics_alert_rules`
+- `analytics_alerts`
+- `dashboard_states`
+- `analytics_events`
+
+`analytics_snapshots` stores immutable periodic dashboard payloads by period, dashboard, date, and filter hash. Snapshots preserve calculated metric and chart outputs but do not replace operational source records.
+
+`analytics_reports` stores generated report metadata, filters, dashboard payloads, format, status, and expiration. File rendering for PDF and spreadsheet output remains future-ready unless a rendering package is approved.
+
+`analytics_alert_rules` stores configurable rule-based thresholds. `analytics_alerts` stores triggered warnings and is immutable. AI-generated alerts are not implemented in v1.
+
+`dashboard_states` stores user-owned saved filters. `analytics_events` records dashboard and analytics activity for audit and monitoring.
+
+Sprint 09 added permission slug:
+
+- `analytics.manage`
+
+## Implemented in Sprint 10
+
+Intelligence Readiness adds normalized, explainable, reviewable intelligence infrastructure:
+
+- `intelligence_rule_types`
+- `intelligence_rules`
+- `intelligence_indicators`
+- `intelligence_evidence`
+- `intelligence_reviews`
+- `intelligence_processing_jobs`
+- `intelligence_activities`
+
+`intelligence_rules` stores deterministic rule definitions, thresholds, module scope, severity defaults, version, active state, and creator/updater users.
+
+`intelligence_indicators` stores generated advisory signals with source polymorphic references, module, severity, confidence score, status, detected timestamp, rule version, detection payload, and metadata. Indicators reference source facts and do not replace them.
+
+`intelligence_evidence` links indicators to supporting source records. `intelligence_reviews` stores human review decisions. `intelligence_processing_jobs` stores preparation jobs for future OCR, AI review, and search synchronization without running real OCR or LLM processing. `intelligence_activities` stores append-only timeline events.
+
+Sprint 10 added permission slug:
+
+- `intelligence.manage`
+
 ## Identity Columns Added in Sprint 01
 
 The `users` table now includes:

@@ -101,3 +101,5 @@ Implemented routes:
 ## V2 Notes
 
 Future providers may add typo tolerance, federated ranking, OCR text, semantic vectors, embeddings, and AI retrieval. They must preserve `SearchProvider`, `Searchable`, authorization filtering, analytics, and source-record authority.
+
+Sprint 10 registers intelligence indicators as searchable records. Search results must remain permission-aware and should expose indicators as advisory review records, not source-of-truth facts.

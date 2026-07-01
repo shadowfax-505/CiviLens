@@ -55,5 +55,7 @@ This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read t
 - [Contractor Module](modules/contractors/README.md) - contractor identity, compliance, risk, performance, and vendor intelligence.
 - [Document Module](modules/documents/README.md) - enterprise document management, secure storage, versioning, metadata, permissions, and AI-ready processing hooks.
 - [Search Module](modules/search/README.md) - provider-agnostic universal search, knowledge graph, suggestions, saved searches, and analytics.
+- [Analytics Module](modules/analytics/README.md) - business intelligence dashboards, KPI engine, snapshots, reports, alerts, and chart-ready analytics.
+- [Intelligence Module](modules/intelligence/README.md) - rule-based indicators, evidence review, processing readiness, and explainability governance.
 - [Sprints](sprints/Sprint-01-Foundation.md) - delivery plans.
 - [V2 Upgrade Path](v2/V2_UPGRADE_PATH.md) - controlled evolution after v1.

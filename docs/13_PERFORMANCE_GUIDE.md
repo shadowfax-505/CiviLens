@@ -18,6 +18,8 @@
 
 The platform now includes placeholder-safe queued jobs for notifications, reports, exports, OCR, AI processing, and search indexing. Existing business workflows remain synchronous unless a future sprint explicitly moves work behind queues.
 
+Sprint 10 adds bounded intelligence rule execution and processing readiness queues. Rule execution should use module filters and limits, indicators should be indexed through the existing search provider abstraction, and dashboard counts should be cached only when invalidation is clear.
+
 ## Search Performance
 
 Sprint 08 introduces indexed search tables and cache-backed suggestions/analytics.
@@ -31,6 +33,14 @@ Current safeguards:
 - Indexing is queue-ready through `IndexSearchableEntity` and `ReindexSearchRegistry`.
 
 Future external providers must preserve permission-aware filtering and should keep database filters authoritative for access control.
+
+## Analytics Performance
+
+Sprint 09 metric calculations are centralized in `MetricEngine` and cached for short windows using filter-aware cache keys. `AggregationEngine` keeps source-record filters reusable so dashboards, reports, snapshots, and alerts do not duplicate query logic.
+
+Snapshots store point-in-time calculated payloads for reporting speed and historical reproducibility. They do not duplicate operational source facts.
+
+Future high-volume deployments may add materialized aggregate tables, scheduled refreshes, and read replicas once production data volume justifies them.
 
 ## V2 Expansion Notes
 

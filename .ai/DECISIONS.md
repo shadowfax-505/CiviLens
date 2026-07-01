@@ -14,3 +14,5 @@
 | Implement contractors as normalized organization/profile intelligence records with derived service-calculated scores | Accepted | Documented in `docs/modules/contractors/README.md` |
 | Implement documents as normalized metadata records with Laravel Storage files, immutable versions, and polymorphic attachments | Accepted | Documented in `docs/modules/documents/README.md` |
 | Implement universal search as provider-agnostic infrastructure with `Searchable` and `SearchProvider` contracts | Accepted | `docs/adr/ADR-008-Provider-Agnostic-Universal-Search.md` |
+| Implement analytics as a service-owned BI layer with immutable snapshots, generated reports, rule-based alerts, dashboard states, and analytics events | Accepted | Documented in `docs/modules/analytics/README.md` |
+| Implement intelligence readiness as deterministic rules, advisory indicators, evidence, human reviews, and processing preparation without real AI execution | Accepted | Documented in `docs/modules/intelligence/README.md` |
