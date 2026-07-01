@@ -2,7 +2,7 @@
 
 ## Current State
 
-CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 documentation skeleton, identity, geography, agencies, projects, finance, procurement, contractor intelligence, document management, universal search, business intelligence analytics, intelligence readiness, and the Sprint 05.5 developer platform hardening layer.
+CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 documentation skeleton, identity, geography, agencies, projects, finance, procurement, contractor intelligence, document management, universal search, business intelligence analytics, intelligence readiness, public transparency, and Sprint 13 part 1 production readiness with a deterministic Civic Integrity Engine.
 
 ## Completed
 
@@ -32,7 +32,8 @@ CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 
 - Sprint 10 intelligence readiness: normalized rule types, rules, advisory indicators, source-linked evidence, human reviews, processing jobs, append-only activities, rule execution services, review workflows, search/knowledge graph integration, admin UI, tests, browser coverage, and documentation.
 - Sprint 11 public transparency: public portal, public project/agency/procurement/contractor/document/search views, safe document download routes, authenticated citizen report submission, UUID tracking, admin moderation, report activity audit trail, tests, browser coverage, and documentation.
 - Sprint 12 enterprise procurement: procurement plans and approvals, bid opening records, immutable evaluation summaries, award approvals, contract payments, milestone acceptance, variation approvals, contract closeouts, procurement metrics, public-safe award notices, workflow events, admin routes, tests, and documentation.
+- Sprint 13 part 1 production readiness and Civic Integrity Engine: production Docker/Nginx/PHP-FPM/Supervisor/Redis/MySQL scaffold, production environment example, public-safe health endpoint, scheduled `civiclens:integrity-run` command, reproducible `civic_intelligence_runs`, manual admin engine trigger, dashboard run status, repeat-winner and citizen-report-cluster rules, Pest tests, Playwright desktop/mobile/dark-mode/keyboard coverage, and documentation.
 
 ## Next Milestone
 
-Complete local/CI verification for Sprint 12, then prepare Sprint 13 only after explicit instruction.
+Continue Sprint 13 remaining parts only after explicit instruction. Do not begin v2 AI infrastructure until v1 deployment is complete and ADR-backed.

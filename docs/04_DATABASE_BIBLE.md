@@ -304,6 +304,18 @@ Sprint 10 added permission slug:
 
 - `intelligence.manage`
 
+## Implemented in Sprint 13 Part 1
+
+Civic Intelligence Engine run history adds a reproducibility and audit table:
+
+- `civic_intelligence_runs`
+
+`civic_intelligence_runs` records each deterministic engine execution with UUID, engine version, status, triggering user, started/completed timestamps, rules executed, indicators created, threshold snapshot, summary payload, and notes. Deletion is blocked at the model layer so run history remains append-only for audit review.
+
+Engine runs do not duplicate source project, budget, procurement, contractor, document, citizen report, agency, geography, search, or analytics facts. Generated indicators continue to live in `intelligence_indicators` with source-linked evidence and human review state.
+
+Indexes support status filtering, engine-version filtering, started/completed timeline lookup, and UUID retrieval.
+
 ## Implemented in Sprint 11
 
 Public Transparency & Citizen Engagement adds moderated citizen reporting:

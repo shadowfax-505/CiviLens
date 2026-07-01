@@ -2,16 +2,17 @@
 
 ## Sprint
 
-Sprint 12: Enterprise Procurement, Tender & Contract Lifecycle Platform
+Sprint 13 Part 1: Enterprise Production Readiness & Civic Intelligence Engine
 
 ## Goal
 
-Implement the enterprise procurement lifecycle from planning through tendering, bids, evaluation, award approval, contracts, variations, milestones, payments, analytics, search, and public-safe transparency without redesigning existing modules.
+Make CivicLens v1 deployable and production-ready while adding a deterministic, explainable Civic Integrity Engine. This sprint does not implement OCR, LLMs, embeddings, vector databases, semantic search, AI agents, or automated legal conclusions.
 
 ## Active Tasks
 
-- Procurement plan schema, policy, service, admin UI, approval activity, and search indexing. Status: implemented.
-- Bid opening privacy, immutable evaluation summaries, award approvals, contract payments, milestone acceptance, variation approvals, and closeouts. Status: implemented.
-- Enterprise procurement intelligence metrics and public-safe award notices. Status: implemented.
-- Pest coverage for service and route workflows. Status: implemented; full gate execution depends on environment.
-- Documentation and AI memory synchronization. Status: in progress.
+- Production Docker, Nginx, PHP-FPM, Supervisor, Redis/MySQL compose, production PHP settings, and `.env.production.example`. Status: implemented.
+- Public-safe `/healthz` readiness endpoint. Status: implemented.
+- Deterministic Civic Integrity Engine run service, run history table, manual admin trigger, scheduled command, and dashboard status. Status: implemented.
+- Sprint 13 rules for repeat approved-award concentration and citizen-report clusters. Status: implemented.
+- Pest and Playwright coverage for engine reproducibility, health readiness, responsive UI, dark-mode path, keyboard access, and critical workflows. Status: implemented.
+- Documentation and AI memory synchronization. Status: implemented.

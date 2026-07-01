@@ -12,6 +12,7 @@ CivicLens is a production-grade civic intelligence platform for public projects,
 - Store derived analytics only when needed for reproducibility, performance, reporting, or audit history.
 - Treat documentation and AI memory as part of the product.
 - Ship production-quality code unless a file is explicitly marked experimental.
+- Keep CivicLens v1 deterministic: production readiness and rule-based integrity analysis are allowed; OCR, LLMs, embeddings, vector databases, semantic search, and autonomous AI agents belong to v2.
 
 ## Repository Architecture
 
@@ -31,7 +32,7 @@ Business controllers must stay thin. Validation belongs in Form Requests. Author
 - Enterprise Document Management
 - Universal Search and Knowledge Discovery
 - Business Intelligence and Analytics
-- Intelligence Readiness and Evidence Review
+- Civic Intelligence Engine, Intelligence Readiness, and Evidence Review
 
 ## Coding Standards
 
@@ -80,6 +81,12 @@ Required gates for full sprint completion:
 
 If a gate cannot run locally, record the reason clearly.
 
+## Production Readiness Rules
+
+- Production deployments must run with `APP_DEBUG=false`, cached configuration/routes/views, supervised queue workers, the scheduler, durable storage, and database backups.
+- `/healthz` is the public-safe health endpoint. It may report component status, but it must never expose secrets, internal paths, environment dumps, or credentials.
+- Docker, Nginx, PHP-FPM, Supervisor, Redis, MySQL, queues, and scheduler configuration must remain aligned with `docs/11_DEPLOYMENT_GUIDE.md` and `.env.production.example`.
+
 ## Documentation Synchronization
 
 Update documentation whenever behavior, schema, APIs, architecture, or sprint state changes.
@@ -126,6 +133,22 @@ A sprint is complete only when implementation is complete, tests pass where the 
 - AI may assist with risk indicators and pattern detection but must not make legal accusations.
 - Future AI outputs must be explainable, source-backed, reviewable, and separated from source facts.
 - Preserve architectural consistency across sprints.
+
+## Risk Detection Philosophy
+
+- CivicLens never declares corruption, guilt, fraud, or legal wrongdoing.
+- V1 intelligence may identify deterministic risk indicators, public integrity signals, statistical anomalies, procurement irregularities, budget irregularities, timeline irregularities, documentation gaps, contractor risk, and agency performance patterns.
+- Every indicator must include source evidence, rule version, thresholds, detection payload, timestamp, severity, confidence, and human review status.
+- Rule thresholds and weights must be centralized in `intelligence_rules`; engine runs must preserve threshold snapshots for reproducibility.
+- Human review remains mandatory before an indicator is treated as an accepted finding.
+
+## Review Checklist
+
+- Controllers are thin, authorized, and validated through policies and Form Requests where applicable.
+- New calculations are deterministic, documented, testable, and do not mutate source modules.
+- Search, analytics, audit/activity, events, queues, and documentation are updated when behavior changes.
+- Sensitive bid, contractor, document, intelligence, and health data remains permission-aware and public-safe.
+- Browser coverage exists for critical operator workflows, responsive layouts, keyboard access, and dark-mode paths when Playwright can run.
 
 ## ADR Policy
 

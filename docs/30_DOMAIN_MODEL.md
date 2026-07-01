@@ -219,6 +219,25 @@ Processing jobs prepare future OCR, AI review, and search synchronization. They 
 
 Intelligence indicators are registered with Universal Search and exposed through the Knowledge Graph by linking back to their source and evidence records.
 
+## Civic Integrity Engine
+
+Sprint 13 part 1 adds a reproducible engine run aggregate around the existing Intelligence domain.
+
+A Civic Intelligence Run stores:
+
+- Engine version
+- Status
+- Triggering user
+- Started and completed timestamps
+- Rules executed
+- Indicators created
+- Threshold snapshot
+- Summary payload
+
+The engine evaluates active rules across projects, budgets, procurement, contractors, documents, citizen reports, agencies, geography, search, analytics, and historical records by reading source tables and producing advisory indicators. It does not mutate source modules or make legal conclusions.
+
+Current Sprint 13 rules include repeat approved-award concentration by bidder and unresolved citizen-report clustering by project. Both generate source-linked evidence for human review.
+
 ## Public Transparency & Citizen Engagement
 
 Sprint 11 implements public transparency as curated read models over existing source domains plus moderated citizen reports.

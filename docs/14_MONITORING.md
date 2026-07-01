@@ -14,6 +14,7 @@
 - Report generation.
 - Alert triggers.
 - Intelligence rule execution.
+- Civic integrity engine run status and indicator counts.
 - Intelligence indicator review transitions.
 - Intelligence processing job lifecycle events.
 - Procurement plan approval, bid opening, evaluation completion, award approval, variation approval, milestone completion, and contract closeout events.
@@ -25,6 +26,7 @@
 - Sprint 10 intelligence events are logged for rule execution, indicator detection, evidence linking, review transitions, and processing job queue/completion/failure states.
 - Sprint 11 public portal events are logged for citizen report submission/status/archive, public search, public document download, and public project view activity.
 - Sprint 12 procurement lifecycle events are logged for plan approval, bid opening, evaluation completion, award approval, variation approval, milestone completion, and contract closeout.
+- Sprint 13 part 1 adds `/healthz` for app/database/cache/storage/queue readiness and `civic_intelligence_runs` for scheduled deterministic engine status.
 - Structured log context helpers keep operational metadata consistent.
 - Performance timing helpers are available for future instrumentation around expensive workflows.
 - Queue jobs log lifecycle activity and should be connected to queue failure monitoring in production.

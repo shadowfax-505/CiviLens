@@ -45,6 +45,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Citizen\CitizenReportDashboardController;
+use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPortal\CitizenReportController;
 use App\Http\Controllers\PublicPortal\PublicAgencyController;
@@ -59,6 +60,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/healthz', HealthCheckController::class)->name('healthz');
 
 Route::prefix('public')->name('public.')->group(function (): void {
     Route::get('/', PublicHomeController::class)->name('home');
@@ -143,6 +146,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::prefix('intelligence')->name('intelligence.')->group(function (): void {
             Route::get('/', IntelligenceDashboardController::class)->name('index');
             Route::get('/dashboard/summary', [IntelligenceDashboardController::class, 'summary'])->name('dashboard.summary');
+            Route::post('/engine/run', [IntelligenceDashboardController::class, 'runEngine'])->name('engine.run');
             Route::get('/indicators', [IntelligenceIndicatorController::class, 'index'])->name('indicators.index');
             Route::get('/indicators/{indicator}', [IntelligenceIndicatorController::class, 'show'])->name('indicators.show');
             Route::patch('/indicators/{indicator}/review', [IntelligenceIndicatorController::class, 'review'])->name('indicators.review');

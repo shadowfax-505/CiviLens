@@ -28,6 +28,10 @@ Public Transparency is implemented as curated public web views over approved sou
 
 Enterprise Procurement extends the existing tender core with procurement planning, bid opening privacy, immutable evaluation finalization, award approvals, contract payments, milestone acceptance, variation approval, closeout, enterprise procurement metrics, workflow events, and public-safe award notices. It remains additive to Sprint 05 and does not duplicate finance-owned budget facts.
 
+## Sprint 13 Part 1 Memory
+
+Production readiness adds Docker, production compose, Nginx, PHP-FPM, Supervisor, queue worker, scheduler loop, production PHP configuration, `.env.production.example`, and a public-safe `/healthz` endpoint. The Civic Integrity Engine remains deterministic: active rules run through existing intelligence services, `civic_intelligence_runs` stores reproducible threshold snapshots and run summaries, and generated indicators require human review. V1 still excludes OCR, LLMs, embeddings, vector databases, semantic search, AI agents, and legal conclusions.
+
 ## Required Reading
 
 - `docs/ENGINEERING_DIRECTIVE.md`
