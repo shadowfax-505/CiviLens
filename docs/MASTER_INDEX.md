@@ -14,7 +14,7 @@ This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read t
 - [System Architecture](03_SYSTEM_ARCHITECTURE.md) - architecture, stack, module boundaries, and data flow.
 - [Database Bible](04_DATABASE_BIBLE.md) - schema plan, normalization, indexing, and migration strategy.
 - [Search Architecture](05_SEARCH_ARCHITECTURE.md) - Laravel Scout and Meilisearch strategy.
-- [Intelligence Layer](06_INTELLIGENCE_LAYER.md) - OCR, anomaly indicators, explainability, and AI policy.
+- [Intelligence Layer](06_INTELLIGENCE_LAYER.md) - deterministic civic integrity analysis, risk indicators, explainability, and future AI policy.
 - [UI Design System](07_UI_DESIGN_SYSTEM.md) - user experience, components, accessibility, and responsive design.
 - [Security Constitution](08_SECURITY_CONSTITUTION.md) - authentication, authorization, OWASP, privacy, and auditability.
 - [API Specification](09_API_SPECIFICATION.md) - REST API conventions and endpoints.
@@ -56,7 +56,7 @@ This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read t
 - [Document Module](modules/documents/README.md) - enterprise document management, secure storage, versioning, metadata, permissions, and AI-ready processing hooks.
 - [Search Module](modules/search/README.md) - provider-agnostic universal search, knowledge graph, suggestions, saved searches, and analytics.
 - [Analytics Module](modules/analytics/README.md) - business intelligence dashboards, KPI engine, snapshots, reports, alerts, and chart-ready analytics.
-- [Intelligence Module](modules/intelligence/README.md) - rule-based indicators, evidence review, processing readiness, and explainability governance.
+- [Intelligence Module](modules/intelligence/README.md) - Civic Integrity Engine runs, rule-based indicators, evidence review, processing readiness, and explainability governance.
 - [Public Module](modules/public/README.md) - public transparency portal, safe browsing, public search, and citizen report moderation.
 - [Sprints](sprints/Sprint-01-Foundation.md) - delivery plans.
 - [V2 Upgrade Path](v2/V2_UPGRADE_PATH.md) - controlled evolution after v1.

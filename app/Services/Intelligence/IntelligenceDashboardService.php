@@ -2,6 +2,7 @@
 
 namespace App\Services\Intelligence;
 
+use App\Models\CivicIntelligenceRun;
 use App\Models\IntelligenceIndicator;
 use App\Models\IntelligenceProcessingJob;
 use App\Models\IntelligenceRule;
@@ -35,6 +36,7 @@ class IntelligenceDashboardService
                 'stale_evidence' => IntelligenceIndicator::query()->where('status', 'needs_more_evidence')->count(),
                 'ocr_readiness' => IntelligenceProcessingJob::query()->where('job_type', 'ocr_preparation')->where('status', 'queued')->count(),
                 'active_rules' => IntelligenceRule::query()->where('is_active', true)->count(),
+                'engine_runs' => CivicIntelligenceRun::query()->count(),
             ],
             'charts' => [
                 'status_distribution' => $statusDistribution,
@@ -49,6 +51,9 @@ class IntelligenceDashboardService
                 ->latest('queued_at')
                 ->limit(8)
                 ->get(),
+            'latest_engine_run' => CivicIntelligenceRun::query()
+                ->latest('started_at')
+                ->first(),
         ];
     }
 

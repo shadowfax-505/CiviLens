@@ -14,7 +14,7 @@ Modular Laravel monolith with explicit domain boundaries.
 - Documents and reports.
 - Search and analytics.
 - Audit logging.
-- Intelligence readiness.
+- Civic intelligence, intelligence readiness, and evidence review.
 
 ## Sprint 02 Foundation
 
@@ -35,6 +35,12 @@ Procurement is implemented as a normalized tender-to-contract lifecycle. Tenders
 ## Sprint 12 Foundation
 
 Enterprise Procurement extends the Sprint 05 lifecycle with procurement plans, plan approval activities, bid opening records, withdrawals, compliance checklist items, immutable evaluation summaries, award approvals, contract deliverables, payments, closeouts, milestone acceptance metadata, and variation approval metadata. `ProcurementPlanningService`, `ProcurementLifecycleService`, and `EnterpriseProcurementAnalyticsService` own behavior; controllers remain thin. Public procurement exposes only public tenders and public-disclosed approved awards.
+
+## Sprint 13 Part 1 Foundation
+
+Production readiness is implemented through additive deployment files: Dockerfile, production compose, Nginx, PHP-FPM, Supervisor, queue worker, scheduler loop, production PHP settings, `.env.production.example`, and `/healthz`.
+
+The Civic Integrity Engine is deterministic and built on the Sprint 10 Intelligence module. `CivicIntegrityEngineService` runs active `IntelligenceRule` records through `RuleExecutionService`, stores reproducible run metadata in `civic_intelligence_runs`, snapshots thresholds/configuration, and tags generated indicators with engine metadata. New rules detect repeat approved-award concentration and unresolved citizen-report clusters. The engine never makes corruption, fraud, guilt, or legal conclusions.
 
 ## Sprint 05.5 Engineering Foundation
 

@@ -1,0 +1,14 @@
+.git
+.codebase-memory
+node_modules
+vendor
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/testing/*
+storage/framework/views/*
+storage/logs/*
+database/*.sqlite
+playwright-report
+test-results
+.env
+.env.production

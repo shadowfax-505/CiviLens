@@ -1,0 +1,63 @@
+services:
+  app:
+    build:
+      context: .
+      target: app
+    env_file:
+      - .env.production
+    depends_on:
+      - mysql
+      - redis
+    volumes:
+      - civic_storage:/var/www/html/storage
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: app
+    env_file:
+      - .env.production
+    command: ["supervisord", "-c", "/etc/supervisord.conf"]
+    depends_on:
+      - app
+      - mysql
+      - redis
+    volumes:
+      - civic_storage:/var/www/html/storage
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.29-alpine
+    depends_on:
+      - app
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html:ro
+      - civic_storage:/var/www/html/storage:ro
+      - ./docker/production/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-civiclens}
+      MYSQL_USER: ${DB_USERNAME:-civiclens}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-civiclens}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-civiclens_root}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  civic_storage:
+  mysql_data:
+  redis_data:

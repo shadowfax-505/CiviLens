@@ -10,11 +10,15 @@
                 <div class="flex flex-wrap gap-3">
                     <a href="{{ route('admin.intelligence.indicators.index') }}" class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-50">Review Indicators</a>
                     <a href="{{ route('admin.intelligence.processing-jobs.index') }}" class="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-400">Processing Queue</a>
+                    <form method="POST" action="{{ route('admin.intelligence.engine.run') }}">
+                        @csrf
+                        <button class="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400">Run Civic Integrity Engine</button>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
             @foreach ($summary['cards'] as $label => $value)
                 <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{{ str($label)->headline() }}</p>
@@ -22,6 +26,23 @@
                 </article>
             @endforeach
         </div>
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Civic Integrity Engine</h2>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Deterministic, evidence-backed analysis for human review. The engine records thresholds, rule versions, and run metadata.</p>
+                </div>
+                @if ($summary['latest_engine_run'])
+                    <div class="rounded-xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-800/60">
+                        <p class="font-semibold text-slate-950 dark:text-white">{{ str($summary['latest_engine_run']->status)->headline() }} run</p>
+                        <p class="mt-1 text-slate-500 dark:text-slate-400">{{ number_format($summary['latest_engine_run']->rules_executed) }} rules · {{ number_format($summary['latest_engine_run']->indicators_created) }} indicators · {{ $summary['latest_engine_run']->started_at?->diffForHumans() }}</p>
+                    </div>
+                @else
+                    <p class="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">No engine runs recorded yet.</p>
+                @endif
+            </div>
+        </section>
 
         <div class="grid gap-6 lg:grid-cols-3">
             <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">

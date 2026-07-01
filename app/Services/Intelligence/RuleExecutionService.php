@@ -5,7 +5,10 @@ namespace App\Services\Intelligence;
 use App\Events\IntelligenceIndicatorDetected;
 use App\Events\IntelligenceRuleExecuted;
 use App\Models\AnalyticsAlert;
+use App\Models\Award;
+use App\Models\BidderOrganization;
 use App\Models\Budget;
+use App\Models\CitizenReport;
 use App\Models\ComplianceRecord;
 use App\Models\Document;
 use App\Models\IntelligenceIndicator;
@@ -40,6 +43,8 @@ class RuleExecutionService
             'document-pending-ocr-readiness' => $this->documentPendingOcr($rule, $user),
             'search-indexing-failure' => $this->searchIndexingFailure($rule, $user),
             'analytics-alert-escalation' => $this->analyticsAlertEscalation($rule, $user),
+            'procurement-repeat-winner-concentration' => $this->repeatWinnerConcentration($rule, $user),
+            'citizen-report-cluster' => $this->citizenReportCluster($rule, $user),
             default => collect(),
         };
 
@@ -237,6 +242,80 @@ class RuleExecutionService
                 ['analytics_alert_id' => $alert->id],
                 $user,
             ));
+    }
+
+    /**
+     * @return Collection<int, IntelligenceIndicator>
+     */
+    private function repeatWinnerConcentration(IntelligenceRule $rule, ?User $user): Collection
+    {
+        $thresholds = is_array($rule->thresholds) ? $rule->thresholds : [];
+        $warning = (int) data_get($thresholds, 'warning', 3);
+
+        return Award::query()
+            ->join('bid_submissions', 'awards.bid_submission_id', '=', 'bid_submissions.id')
+            ->where('awards.status', 'approved')
+            ->selectRaw('bid_submissions.bidder_organization_id as bidder_id, count(*) as award_count')
+            ->groupBy('bid_submissions.bidder_organization_id')
+            ->havingRaw('count(*) >= ?', [$warning])
+            ->limit(25)
+            ->get()
+            ->map(function (Award $row) use ($rule, $user, $thresholds): ?IntelligenceIndicator {
+                $bidderId = $row->getAttribute('bidder_id');
+                $awardCount = $row->getAttribute('award_count');
+                $bidder = BidderOrganization::query()->find((int) $bidderId);
+                if (! $bidder instanceof BidderOrganization) {
+                    return null;
+                }
+
+                return $this->createIndicator(
+                    $rule,
+                    $bidder,
+                    'Repeat award concentration signal',
+                    $bidder->name.' has a concentrated pattern of approved awards requiring human review.',
+                    (float) $awardCount,
+                    ['award_count' => (int) $awardCount, 'thresholds' => $thresholds],
+                    $user,
+                );
+            })
+            ->filter()
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, IntelligenceIndicator>
+     */
+    private function citizenReportCluster(IntelligenceRule $rule, ?User $user): Collection
+    {
+        $thresholds = is_array($rule->thresholds) ? $rule->thresholds : [];
+        $warning = (int) data_get($thresholds, 'warning', 3);
+
+        return CitizenReport::query()
+            ->whereNull('resolved_at')
+            ->whereNotNull('project_id')
+            ->selectRaw('project_id, count(*) as report_count')
+            ->groupBy('project_id')
+            ->havingRaw('count(*) >= ?', [$warning])
+            ->limit(25)
+            ->get()
+            ->map(function (CitizenReport $cluster) use ($rule, $user, $thresholds): ?IntelligenceIndicator {
+                $project = Project::query()->find($cluster->project_id);
+                if (! $project instanceof Project) {
+                    return null;
+                }
+
+                return $this->createIndicator(
+                    $rule,
+                    $project,
+                    'Citizen report cluster signal',
+                    $project->name.' has multiple unresolved citizen reports requiring triage.',
+                    (float) $cluster->getAttribute('report_count'),
+                    ['report_count' => (int) $cluster->getAttribute('report_count'), 'thresholds' => $thresholds],
+                    $user,
+                );
+            })
+            ->filter()
+            ->values();
     }
 
     /**

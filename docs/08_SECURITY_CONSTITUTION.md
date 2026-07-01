@@ -13,6 +13,8 @@ Protect account access, document integrity, audit logs, and administrative actio
 - Validation for every request.
 - Audit logs for sensitive operations.
 - No secrets committed to git.
+- Public health checks must be readiness-only and must not expose secrets, credentials, internal paths, or environment dumps.
+- Civic intelligence indicators must remain advisory, evidence-backed, and human-reviewed; CivicLens must never make legal accusations.
 
 ## Implemented in Sprint 01
 
@@ -26,6 +28,12 @@ Protect account access, document integrity, audit logs, and administrative actio
 ## API Auth Status
 
 Sanctum is still the documented API authentication target. Installing `laravel/sanctum` was blocked by the execution environment usage limit during Sprint 01, so token-based API auth is not yet implemented.
+
+## Sprint 13 Part 1 Security Notes
+
+`/healthz` is intentionally public-safe. It reports component readiness only.
+
+Manual Civic Integrity Engine execution is protected by the existing `intelligence.manage` authorization path. Generated indicators inherit the existing evidence, search visibility, and human review controls.
 
 ## V2 Expansion Notes
 

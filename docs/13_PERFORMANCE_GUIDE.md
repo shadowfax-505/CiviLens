@@ -24,6 +24,8 @@ Sprint 11 public pages use paginated listings and eager-loaded public-safe relat
 
 Sprint 12 procurement pages eager load tender, bid, evaluation, award, contract, payment, milestone, variation, and public award notice relationships used by each screen. Enterprise procurement metrics are calculated in a dedicated service and should be cached only after invalidation rules are defined for bid submission, award approval, variation approval, milestone completion, and contract closeout events.
 
+Sprint 13 part 1 keeps the Civic Integrity Engine bounded by active rule queries and rule-level limits. Engine runs snapshot thresholds once, execute deterministic rules in services, and tag generated indicators without duplicating source facts. High-volume deployments should move scheduled engine execution to a dedicated queue or command runner before increasing rule cardinality.
+
 ## Search Performance
 
 Sprint 08 introduces indexed search tables and cache-backed suggestions/analytics.

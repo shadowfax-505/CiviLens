@@ -18,3 +18,4 @@
 | Implement analytics as a service-owned BI layer with immutable snapshots, generated reports, rule-based alerts, dashboard states, and analytics events | Accepted | Documented in `docs/modules/analytics/README.md` |
 | Implement intelligence readiness as deterministic rules, advisory indicators, evidence, human reviews, and processing preparation without real AI execution | Accepted | Documented in `docs/modules/intelligence/README.md` |
 | Implement public transparency as curated public web views with authenticated, moderated citizen reports | Accepted | Documented in `docs/modules/public/README.md` |
+| Implement Sprint 13 part 1 production readiness and deterministic Civic Integrity Engine without OCR, LLMs, embeddings, vector search, semantic search, AI agents, or legal conclusions | Accepted | Documented in `docs/06_INTELLIGENCE_LAYER.md` and `docs/modules/intelligence/README.md` |
