@@ -272,7 +272,7 @@ Business Intelligence & Analytics adds normalized analytics infrastructure table
 
 `analytics_snapshots` stores immutable periodic dashboard payloads by period, dashboard, date, and filter hash. Snapshots preserve calculated metric and chart outputs but do not replace operational source records.
 
-`analytics_reports` stores generated report metadata, filters, dashboard payloads, format, status, and expiration. File rendering for PDF and spreadsheet output remains future-ready unless a rendering package is approved.
+`analytics_reports` stores generated report metadata, filters, dashboard payloads, format, status, and expiration. Sprint 13 part 2 renders lightweight CSV, spreadsheet-compatible, and PDF downloads from stored dashboard payloads, branding, filters, KPIs, charts, and evidence metadata.
 
 `analytics_alert_rules` stores configurable rule-based thresholds. `analytics_alerts` stores triggered warnings and is immutable. AI-generated alerts are not implemented in v1.
 
@@ -294,7 +294,7 @@ Intelligence Readiness adds normalized, explainable, reviewable intelligence inf
 - `intelligence_processing_jobs`
 - `intelligence_activities`
 
-`intelligence_rules` stores deterministic rule definitions, thresholds, module scope, severity defaults, version, active state, and creator/updater users.
+`intelligence_rules` stores deterministic rule definitions, thresholds, module scope, severity defaults, version, active state, creator/updater users, admin-managed priority, weight, execution frequency, documentation URL, description, and latest execution metadata.
 
 `intelligence_indicators` stores generated advisory signals with source polymorphic references, module, severity, confidence score, status, detected timestamp, rule version, detection payload, and metadata. Indicators reference source facts and do not replace them.
 
@@ -315,6 +315,16 @@ Civic Intelligence Engine run history adds a reproducibility and audit table:
 Engine runs do not duplicate source project, budget, procurement, contractor, document, citizen report, agency, geography, search, or analytics facts. Generated indicators continue to live in `intelligence_indicators` with source-linked evidence and human review state.
 
 Indexes support status filtering, engine-version filtering, started/completed timeline lookup, and UUID retrieval.
+
+## Implemented in Sprint 13 Part 2
+
+Production hardening extends deterministic rule governance with an append-only audit table:
+
+- `intelligence_rule_audits`
+
+`intelligence_rule_audits` records rule configuration updates and executions with actor, event name, before/after snapshots, and occurrence timestamp. Administrators must change rules through `RuleManagementService` and the admin console so rule weights, thresholds, severity, priority, documentation, active state, execution frequency, and last-run metadata remain reviewable.
+
+The new columns on `intelligence_rules` are additive and nullable/defaulted for backwards-compatible rollout. Rollback removes only the Part 2 governance columns and audit table; it does not delete existing indicators or engine run history.
 
 ## Implemented in Sprint 11
 

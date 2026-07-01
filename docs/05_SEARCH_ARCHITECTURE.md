@@ -92,6 +92,8 @@ Cached data:
 
 Cache invalidation occurs through analytics writes and click tracking. The TTL is controlled by `SEARCH_CACHE_TTL_MINUTES`.
 
+Sprint 13 part 2 surfaces search activity in the Executive Command Center and authorized system metrics. These summaries read the existing search analytics and search job tables; they do not introduce semantic search, embeddings, vector databases, or provider-specific query code.
+
 ## Queueing
 
 Indexing is queue-ready through:

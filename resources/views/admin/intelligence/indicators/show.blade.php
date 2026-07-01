@@ -11,8 +11,8 @@
                 <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Explainability</h2>
                 <dl class="mt-4 grid gap-4 md:grid-cols-2">
                     <div>
-                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Rule</dt>
-                        <dd class="mt-1 text-sm text-slate-900 dark:text-white">{{ $explanation['rule']->name }}</dd>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Triggered Rule</dt>
+                        <dd class="mt-1 text-sm text-slate-900 dark:text-white">{{ $explanation['triggered_rule'] }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Rule Version</dt>
@@ -26,7 +26,36 @@
                         <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Review Status</dt>
                         <dd class="mt-1 text-sm text-slate-900 dark:text-white">{{ str($explanation['status'])->headline() }}</dd>
                     </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Threshold</dt>
+                        <dd class="mt-1 font-mono text-sm text-slate-900 dark:text-white">{{ json_encode($explanation['threshold']) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Actual Value</dt>
+                        <dd class="mt-1 text-sm text-slate-900 dark:text-white">{{ $explanation['actual_value'] ?? 'Recorded in payload' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Expected Value</dt>
+                        <dd class="mt-1 text-sm text-slate-900 dark:text-white">{{ $explanation['expected_value'] ?? 'Threshold dependent' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Engine Version</dt>
+                        <dd class="mt-1 text-sm text-slate-900 dark:text-white">{{ $explanation['engine_version'] }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Calculation Timestamp</dt>
+                        <dd class="mt-1 text-sm text-slate-900 dark:text-white">{{ $explanation['calculation_timestamp']?->toDayDateTimeString() }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Human Review Requirement</dt>
+                        <dd class="mt-1 text-sm text-slate-900 dark:text-white">{{ $explanation['human_review_required'] ? 'Human review required' : 'No review required' }}</dd>
+                    </div>
                 </dl>
+
+                <div class="mt-6 rounded-xl bg-amber-50 p-4 text-sm text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">
+                    <p class="font-semibold">Recommendation</p>
+                    <p class="mt-1">{{ $explanation['recommendation'] }}</p>
+                </div>
 
                 <h3 class="mt-6 text-base font-semibold text-slate-950 dark:text-white">Evidence</h3>
                 <div class="mt-3 space-y-3">

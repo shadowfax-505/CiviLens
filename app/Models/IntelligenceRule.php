@@ -19,6 +19,7 @@ class IntelligenceRule extends Model
             'thresholds' => 'array',
             'configuration' => 'array',
             'is_active' => 'boolean',
+            'last_executed_at' => 'datetime',
         ];
     }
 
@@ -30,6 +31,11 @@ class IntelligenceRule extends Model
     public function indicators(): HasMany
     {
         return $this->hasMany(IntelligenceIndicator::class);
+    }
+
+    public function audits(): HasMany
+    {
+        return $this->hasMany(IntelligenceRuleAudit::class);
     }
 
     public function creator(): BelongsTo

@@ -26,6 +26,7 @@ class RuleExecutionService
     public function __construct(
         private readonly EvidenceBuilder $evidence,
         private readonly IndicatorScoringService $scoring,
+        private readonly RuleManagementService $management,
     ) {}
 
     /**
@@ -33,6 +34,8 @@ class RuleExecutionService
      */
     public function run(IntelligenceRule $rule, ?User $user = null): Collection
     {
+        $startedAt = microtime(true);
+
         $indicators = match ($rule->slug) {
             'project-delay-risk' => $this->projectDelayRisk($rule, $user),
             'budget-overrun-risk' => $this->budgetOverrunRisk($rule, $user),
@@ -49,6 +52,7 @@ class RuleExecutionService
         };
 
         IntelligenceRuleExecuted::dispatch($rule, $indicators->count());
+        $this->management->recordExecution($rule, (int) ((microtime(true) - $startedAt) * 1000), $user);
 
         return $indicators;
     }

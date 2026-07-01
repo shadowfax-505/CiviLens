@@ -41,9 +41,19 @@ Before promoting a release, run:
 
 Queue workers should be restarted after deployment so new event listeners and queued job classes are loaded.
 
+Rollback plan:
+
+- Restore the previous container image or release artifact.
+- Restore the last verified database backup if migrations are not backward-compatible.
+- Run `php artisan optimize:clear`, then rebuild config, route, and view caches.
+- Restart Supervisor-managed queue workers and scheduler loop.
+- Verify `/healthz`, `/version`, and the latest `civic_intelligence_runs` status.
+
 ## Health Checks
 
 Use `GET /healthz` for load balancer and uptime checks. The endpoint reports app, database, cache, storage, and queue readiness without exposing secrets or internal paths.
+
+Use `GET /version` during release verification to confirm deployed application version, environment label, and commit metadata. Authenticated operators can use `GET /admin/system/metrics` to review queue, scheduler, database, cache, storage, and integrity-run metrics.
 
 ## Scheduler
 

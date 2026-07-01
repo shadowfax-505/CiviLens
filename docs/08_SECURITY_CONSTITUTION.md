@@ -35,6 +35,16 @@ Sanctum is still the documented API authentication target. Installing `laravel/s
 
 Manual Civic Integrity Engine execution is protected by the existing `intelligence.manage` authorization path. Generated indicators inherit the existing evidence, search visibility, and human review controls.
 
+## Sprint 13 Part 2 Security Notes
+
+`/version` exposes only deploy-safe metadata and must not leak secrets, raw configuration, connection strings, or internal storage paths.
+
+`/admin/system/metrics` is protected by analytics authorization. It may summarize queue, scheduler, cache, database, and integrity-run state for operators, but it must not publish credentials, SQL connection details, filesystem paths, or personally sensitive records.
+
+Rule management is protected by intelligence authorization. All rule configuration changes must pass through validation and write `intelligence_rule_audits`; direct production database editing is prohibited.
+
+`RequestCorrelation` attaches a request ID to responses and log context for incident review without exposing private user data.
+
 ## V2 Expansion Notes
 
 Add threat modeling for public APIs, rate limiting by tier, data provenance signatures, and model governance controls.

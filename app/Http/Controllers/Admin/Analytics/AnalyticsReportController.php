@@ -38,9 +38,9 @@ class AnalyticsReportController extends Controller
     {
         abort_unless(request()->user()?->can('view', $report) === true, 403);
 
-        return response($reports->csv($report), 200, [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="'.$report->uuid.'.csv"',
+        return response($reports->content($report), 200, [
+            'Content-Type' => $reports->mimeType($report),
+            'Content-Disposition' => 'attachment; filename="'.$report->uuid.'.'.$reports->extension($report).'"',
         ]);
     }
 }

@@ -26,7 +26,7 @@ Snapshots and alerts are immutable history records. Reports store generated dash
 - `DashboardService` composes dashboard payloads.
 - `TrendAnalysisService` prepares trend and distribution data.
 - `ForecastPreparationService` exposes future-model feature readiness without running AI.
-- `ReportBuilder` generates report records and CSV output.
+- `ReportBuilder` generates report records plus CSV, spreadsheet-compatible, and PDF output from stored dashboard payloads.
 - `SnapshotService` generates immutable periodic snapshots.
 - `InsightService` evaluates rule-based alerts.
 - `ChartService` emits chart-library-neutral definitions.
@@ -44,6 +44,8 @@ Implemented dashboard contexts:
 - Projects
 - Search
 - System Health
+
+Sprint 13 part 2 also promotes `/dashboard` into the authenticated Executive Command Center. It composes project, budget, procurement, contractor, citizen report, document, integrity, system health, search analytics, recent activity, agency, contractor, and alert summaries through services rather than duplicating source facts.
 
 Dashboards support URL-persistent filters for date range, fiscal year, agency, division, district, project, budget, funding source, and procurement method where applicable.
 
@@ -70,11 +72,11 @@ Jobs:
 
 ## UI
 
-Admin routes provide an executive dashboard, dashboard tabs, filters, KPI cards, chart-ready panels, rule-based alerts, report listing, and alert listing. Chart payloads are emitted through `data-chart-definition` attributes so Chart.js or another chart library can be attached later without changing analytics services.
+Admin routes provide an executive dashboard, dashboard tabs, filters, KPI cards, chart-ready panels, rule-based alerts, report listing, report generation controls, and alert listing. Chart payloads are emitted through `data-chart-definition` attributes so Chart.js or another chart library can be attached later without changing analytics services.
 
 ## V2 Notes
 
-Future sprints may add scheduled report delivery, PDF and spreadsheet rendering packages, materialized aggregate tables, GIS map widgets, predictive analytics, and AI-generated insights. AI outputs must remain explainable and separated from source facts unless an ADR promotes them.
+Future sprints may add scheduled report delivery, richer PDF/spreadsheet rendering packages, materialized aggregate tables, GIS map widgets, predictive analytics, and AI-generated insights. AI outputs must remain explainable and separated from source facts unless an ADR promotes them.
 
 Sprint 10 intelligence indicators can feed analytics summaries by aggregate counts and review status only. Analytics must not duplicate indicator evidence or mutate intelligence review state.
 
