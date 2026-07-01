@@ -8,6 +8,7 @@ use App\Models\Country;
 use App\Models\District;
 use App\Models\Division;
 use App\Models\Document;
+use App\Models\IntelligenceIndicator;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Tender;
@@ -33,6 +34,8 @@ return [
         'documents_manage' => 'documents.manage',
         'search_manage' => 'search.manage',
         'analytics_view' => 'analytics.view',
+        'analytics_manage' => 'analytics.manage',
+        'intelligence_manage' => 'intelligence.manage',
         'reports_submit' => 'reports.submit',
     ],
 
@@ -59,6 +62,7 @@ return [
             'upazilas' => Upazila::class,
             'unions' => AdministrativeUnion::class,
             'wards' => Ward::class,
+            'intelligence' => IntelligenceIndicator::class,
         ],
         'future_providers' => [
             'scout' => 'Documented placeholder for Laravel Scout-backed search.',

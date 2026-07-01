@@ -141,6 +141,22 @@ The Laravel app currently implements web identity routes for:
 - `POST /admin/search/saved`
 - `POST /admin/search/clicks`
 - `GET /admin/search/knowledge/{module}/{id}`
+- `GET /admin/analytics`
+- `GET /admin/analytics/metrics`
+- `POST /admin/analytics/snapshots`
+- `GET /admin/analytics/reports`
+- `POST /admin/analytics/reports`
+- `GET /admin/analytics/reports/{report}/download`
+- `GET /admin/analytics/alerts`
+- `GET /admin/intelligence`
+- `GET /admin/intelligence/dashboard/summary`
+- `GET /admin/intelligence/indicators`
+- `GET /admin/intelligence/indicators/{indicator}`
+- `PATCH /admin/intelligence/indicators/{indicator}/review`
+- `POST /admin/intelligence/rules/{rule}/run`
+- `GET /admin/intelligence/rules/{rule}/preview`
+- `GET /admin/intelligence/processing-jobs`
+- `POST /admin/intelligence/processing-jobs`
 
 JSON API authentication endpoints are still planned and should be implemented with Sanctum when package installation is available.
 
@@ -158,6 +174,36 @@ Supported query parameters include:
 - `direction`
 - `page`
 - `per_page`
+
+## Analytics Endpoint Notes
+
+Sprint 09 analytics endpoints are authenticated admin web endpoints. `GET /admin/analytics/metrics` returns JSON for a single registered metric through `MetricEngine`.
+
+Supported query parameters include:
+
+- `dashboard`
+- `metric`
+- `period`
+- `format`
+- `date_from`
+- `date_to`
+
+## Intelligence Endpoint Notes
+
+Sprint 10 intelligence endpoints are authenticated admin web endpoints protected by `intelligence.manage`. Indicator filters support `q`, `severity`, `status`, and `module`.
+
+Processing jobs prepare future OCR, AI review, and search synchronization only. They do not run OCR engines, LLMs, embeddings, or vector search in v1.
+- `fiscal_year_id`
+- `agency_id`
+- `division_id`
+- `district_id`
+- `contractor_id`
+- `project_id`
+- `budget_id`
+- `funding_source_id`
+- `procurement_method_id`
+
+Analytics routes are protected by `AnalyticsPolicy`. Results must remain permission-aware and must not expose records users cannot access.
 
 ## V2 Expansion Notes
 

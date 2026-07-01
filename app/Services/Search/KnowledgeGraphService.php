@@ -7,6 +7,8 @@ use App\Models\Agency;
 use App\Models\Budget;
 use App\Models\Document;
 use App\Models\Documentable;
+use App\Models\IntelligenceEvidence;
+use App\Models\IntelligenceIndicator;
 use App\Models\Project;
 use App\Models\SearchIndex;
 use App\Models\Tender;
@@ -99,6 +101,13 @@ class KnowledgeGraphService
         if ($entity instanceof Document) {
             return [
                 'attached_to' => $this->results($this->documentTargets($entity), $user),
+            ];
+        }
+
+        if ($entity instanceof IntelligenceIndicator) {
+            return [
+                'source' => $this->results(collect([$entity->source])->filter(), $user),
+                'evidence' => $this->results($entity->evidence()->get()->map(fn (Model $evidence): ?Model => $evidence instanceof IntelligenceEvidence && $evidence->evidenceable instanceof Model ? $evidence->evidenceable : null)->filter()->values(), $user),
             ];
         }
 

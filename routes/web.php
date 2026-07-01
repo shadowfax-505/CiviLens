@@ -1,6 +1,11 @@
 <?php
 
 use App\Http\Controllers\Admin\AgencyController;
+use App\Http\Controllers\Admin\Analytics\AnalyticsAlertController;
+use App\Http\Controllers\Admin\Analytics\AnalyticsDashboardController;
+use App\Http\Controllers\Admin\Analytics\AnalyticsMetricController;
+use App\Http\Controllers\Admin\Analytics\AnalyticsReportController;
+use App\Http\Controllers\Admin\Analytics\AnalyticsSnapshotController;
 use App\Http\Controllers\Admin\Contractors\ContractorProfileController;
 use App\Http\Controllers\Admin\Contractors\OrganizationController;
 use App\Http\Controllers\Admin\Documents\DocumentBulkActionController;
@@ -15,6 +20,10 @@ use App\Http\Controllers\Admin\Geography\DivisionController;
 use App\Http\Controllers\Admin\Geography\UnionController;
 use App\Http\Controllers\Admin\Geography\UpazilaController;
 use App\Http\Controllers\Admin\Geography\WardController;
+use App\Http\Controllers\Admin\Intelligence\IntelligenceDashboardController;
+use App\Http\Controllers\Admin\Intelligence\IntelligenceIndicatorController;
+use App\Http\Controllers\Admin\Intelligence\IntelligenceProcessingJobController;
+use App\Http\Controllers\Admin\Intelligence\IntelligenceRuleController;
 use App\Http\Controllers\Admin\Procurement\AwardController;
 use App\Http\Controllers\Admin\Procurement\BidSubmissionController;
 use App\Http\Controllers\Admin\Procurement\ContractController;
@@ -85,6 +94,28 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::put('/users/{user}/password', [UserController::class, 'resetPassword'])->name('users.password');
 
         Route::resource('agencies', AgencyController::class)->except('show');
+
+        Route::prefix('intelligence')->name('intelligence.')->group(function (): void {
+            Route::get('/', IntelligenceDashboardController::class)->name('index');
+            Route::get('/dashboard/summary', [IntelligenceDashboardController::class, 'summary'])->name('dashboard.summary');
+            Route::get('/indicators', [IntelligenceIndicatorController::class, 'index'])->name('indicators.index');
+            Route::get('/indicators/{indicator}', [IntelligenceIndicatorController::class, 'show'])->name('indicators.show');
+            Route::patch('/indicators/{indicator}/review', [IntelligenceIndicatorController::class, 'review'])->name('indicators.review');
+            Route::post('/rules/{rule}/run', [IntelligenceRuleController::class, 'run'])->name('rules.run');
+            Route::get('/rules/{rule}/preview', [IntelligenceRuleController::class, 'preview'])->name('rules.preview');
+            Route::get('/processing-jobs', [IntelligenceProcessingJobController::class, 'index'])->name('processing-jobs.index');
+            Route::post('/processing-jobs', [IntelligenceProcessingJobController::class, 'store'])->name('processing-jobs.store');
+        });
+
+        Route::prefix('analytics')->name('analytics.')->group(function (): void {
+            Route::get('/', AnalyticsDashboardController::class)->name('index');
+            Route::get('/metrics', AnalyticsMetricController::class)->name('metrics');
+            Route::post('/snapshots', [AnalyticsSnapshotController::class, 'store'])->name('snapshots.store');
+            Route::get('/reports', [AnalyticsReportController::class, 'index'])->name('reports.index');
+            Route::post('/reports', [AnalyticsReportController::class, 'store'])->name('reports.store');
+            Route::get('/reports/{report}/download', [AnalyticsReportController::class, 'download'])->name('reports.download');
+            Route::get('/alerts', AnalyticsAlertController::class)->name('alerts');
+        });
 
         Route::prefix('search')->name('search.')->group(function (): void {
             Route::get('/', [SearchController::class, 'index'])->name('index');

@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Agency;
 use App\Models\AgencyType;
+use App\Models\AnalyticsAlertRule;
+use App\Models\AnalyticsSnapshotPeriod;
 use App\Models\Budget;
 use App\Models\BudgetCategory;
 use App\Models\BudgetStatus;
@@ -26,6 +28,8 @@ use App\Models\DocumentType;
 use App\Models\DocumentVisibility;
 use App\Models\FiscalYear;
 use App\Models\FundingSource;
+use App\Models\IntelligenceRule;
+use App\Models\IntelligenceRuleType;
 use App\Models\LicenseType;
 use App\Models\OrganizationCompanyType;
 use App\Models\OrganizationIndustry;
@@ -79,6 +83,8 @@ class DatabaseSeeder extends Seeder
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Documents', 'slug' => config('civiclens.permissions.documents_manage'), 'description' => 'Manage enterprise documents, versions, metadata, and permissions.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Search', 'slug' => config('civiclens.permissions.search_manage'), 'description' => 'Use universal search, saved searches, discovery, and search analytics.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'View Analytics', 'slug' => config('civiclens.permissions.analytics_view'), 'description' => 'View platform analytics dashboards.'],
+            ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Analytics', 'slug' => config('civiclens.permissions.analytics_manage'), 'description' => 'Generate analytics snapshots, reports, alerts, and dashboard states.'],
+            ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Intelligence', 'slug' => config('civiclens.permissions.intelligence_manage'), 'description' => 'Manage rule-based intelligence indicators, evidence review, and processing readiness.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Submit Reports', 'slug' => config('civiclens.permissions.reports_submit'), 'description' => 'Submit civic reports and field updates.'],
         ])->map(fn (array $permission) => Permission::query()->firstOrCreate(
             ['slug' => $permission['slug']],
@@ -109,6 +115,7 @@ class DatabaseSeeder extends Seeder
             config('civiclens.permissions.documents_manage'),
             config('civiclens.permissions.search_manage'),
             config('civiclens.permissions.analytics_view'),
+            config('civiclens.permissions.intelligence_manage'),
         ])->pluck('id'));
         $citizen->permissions()->sync($permissions->where('slug', config('civiclens.permissions.reports_submit'))->pluck('id'));
 
@@ -124,6 +131,95 @@ class DatabaseSeeder extends Seeder
         );
 
         $baselineAdmin->roles()->sync([$admin->id]);
+
+        foreach ([
+            ['name' => 'Project Risk', 'slug' => 'project-risk', 'description' => 'Project schedule and delivery risk indicators.', 'sort_order' => 10],
+            ['name' => 'Financial Risk', 'slug' => 'financial-risk', 'description' => 'Budget utilization and overrun indicators.', 'sort_order' => 20],
+            ['name' => 'Procurement Risk', 'slug' => 'procurement-risk', 'description' => 'Tender and bidding risk indicators.', 'sort_order' => 30],
+            ['name' => 'Contractor Risk', 'slug' => 'contractor-risk', 'description' => 'Contractor compliance and status indicators.', 'sort_order' => 40],
+            ['name' => 'Document Readiness', 'slug' => 'document-readiness', 'description' => 'Metadata and OCR readiness indicators.', 'sort_order' => 50],
+            ['name' => 'Platform Operations', 'slug' => 'platform-operations', 'description' => 'Search, analytics, and platform processing indicators.', 'sort_order' => 60],
+        ] as $type) {
+            IntelligenceRuleType::query()->firstOrCreate(
+                ['slug' => $type['slug']],
+                ['name' => $type['name'], 'description' => $type['description'], 'sort_order' => $type['sort_order'], 'is_active' => true],
+            );
+        }
+
+        $ruleTypes = IntelligenceRuleType::query()->pluck('id', 'slug');
+
+        foreach ([
+            ['type' => 'project-risk', 'name' => 'Project delay risk', 'slug' => 'project-delay-risk', 'module' => 'projects', 'category' => 'delay', 'severity_default' => 'warning', 'thresholds' => ['days_overdue' => 1, 'max_progress' => 90, 'warning' => 30, 'critical' => 90]],
+            ['type' => 'financial-risk', 'name' => 'Budget overrun risk', 'slug' => 'budget-overrun-risk', 'module' => 'finance', 'category' => 'budget', 'severity_default' => 'critical', 'thresholds' => ['warning' => 90, 'critical' => 100]],
+            ['type' => 'financial-risk', 'name' => 'Low budget utilization', 'slug' => 'low-budget-utilization', 'module' => 'finance', 'category' => 'budget', 'severity_default' => 'info', 'thresholds' => ['max_utilization' => 10, 'warning' => 50, 'critical' => 90]],
+            ['type' => 'procurement-risk', 'name' => 'Procurement single bid risk', 'slug' => 'procurement-single-bid-risk', 'module' => 'procurement', 'category' => 'competition', 'severity_default' => 'warning', 'thresholds' => ['warning' => 50, 'critical' => 90]],
+            ['type' => 'contractor-risk', 'name' => 'Contractor compliance expiry', 'slug' => 'contractor-compliance-expiry', 'module' => 'contractors', 'category' => 'compliance', 'severity_default' => 'warning', 'thresholds' => ['warning' => 50, 'critical' => 90]],
+            ['type' => 'contractor-risk', 'name' => 'Contractor blacklist signal', 'slug' => 'contractor-blacklist-signal', 'module' => 'contractors', 'category' => 'status', 'severity_default' => 'critical', 'thresholds' => ['warning' => 50, 'critical' => 90]],
+            ['type' => 'document-readiness', 'name' => 'Document missing metadata', 'slug' => 'document-missing-metadata', 'module' => 'documents', 'category' => 'metadata', 'severity_default' => 'info', 'thresholds' => ['warning' => 50, 'critical' => 90]],
+            ['type' => 'document-readiness', 'name' => 'Document pending OCR readiness', 'slug' => 'document-pending-ocr-readiness', 'module' => 'documents', 'category' => 'ocr', 'severity_default' => 'info', 'thresholds' => ['warning' => 50, 'critical' => 90]],
+            ['type' => 'platform-operations', 'name' => 'Search indexing failure', 'slug' => 'search-indexing-failure', 'module' => 'search', 'category' => 'indexing', 'severity_default' => 'warning', 'thresholds' => ['warning' => 50, 'critical' => 90]],
+            ['type' => 'platform-operations', 'name' => 'Analytics alert escalation', 'slug' => 'analytics-alert-escalation', 'module' => 'analytics', 'category' => 'alert', 'severity_default' => 'warning', 'thresholds' => ['warning' => 50, 'critical' => 90]],
+        ] as $rule) {
+            IntelligenceRule::query()->firstOrCreate(
+                ['slug' => $rule['slug']],
+                [
+                    'intelligence_rule_type_id' => $ruleTypes[$rule['type']],
+                    'name' => $rule['name'],
+                    'module' => $rule['module'],
+                    'category' => $rule['category'],
+                    'severity_default' => $rule['severity_default'],
+                    'thresholds' => $rule['thresholds'],
+                    'configuration' => [],
+                    'version' => '1.0.0',
+                    'is_active' => true,
+                    'created_by' => $baselineAdmin->id,
+                    'updated_by' => $baselineAdmin->id,
+                ],
+            );
+        }
+
+        foreach ([
+            ['name' => 'Daily', 'slug' => 'daily', 'sort_order' => 10],
+            ['name' => 'Weekly', 'slug' => 'weekly', 'sort_order' => 20],
+            ['name' => 'Monthly', 'slug' => 'monthly', 'sort_order' => 30],
+            ['name' => 'Quarterly', 'slug' => 'quarterly', 'sort_order' => 40],
+            ['name' => 'Yearly', 'slug' => 'yearly', 'sort_order' => 50],
+        ] as $period) {
+            AnalyticsSnapshotPeriod::query()->firstOrCreate(
+                ['slug' => $period['slug']],
+                ['name' => $period['name'], 'sort_order' => $period['sort_order'], 'is_active' => true],
+            );
+        }
+
+        foreach ([
+            [
+                'name' => 'Budget utilization warning',
+                'slug' => 'budget-utilization-warning',
+                'category' => 'finance',
+                'metric_key' => 'finance.budget_utilization',
+                'operator' => '>=',
+                'threshold' => 90,
+                'severity' => 'warning',
+                'message_template' => ':metric reached :value%, above the :threshold% threshold.',
+                'sort_order' => 10,
+            ],
+            [
+                'name' => 'Delayed projects watch',
+                'slug' => 'delayed-projects-watch',
+                'category' => 'projects',
+                'metric_key' => 'projects.delayed',
+                'operator' => '>=',
+                'threshold' => 1,
+                'severity' => 'warning',
+                'message_template' => ':metric reached :value, above the :threshold threshold.',
+                'sort_order' => 20,
+            ],
+        ] as $rule) {
+            AnalyticsAlertRule::query()->firstOrCreate(
+                ['slug' => $rule['slug']],
+                array_merge($rule, ['is_active' => true]),
+            );
+        }
 
         $bangladesh = Country::query()->firstOrCreate(
             ['iso2' => 'BD'],

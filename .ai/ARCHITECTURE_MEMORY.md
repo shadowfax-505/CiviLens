@@ -54,6 +54,18 @@ Universal Search is provider-agnostic infrastructure. Searchable source models i
 
 The knowledge graph is exposed through services, not controllers. Search index rows reference source records and do not replace domain source-of-truth tables.
 
+## Sprint 09 Foundation
+
+Analytics is implemented as a cross-module decision-support layer. Operational modules do not calculate BI metrics directly. `MetricRegistry`, `MetricEngine`, `AggregationEngine`, `DashboardService`, `TrendAnalysisService`, `ForecastPreparationService`, `ReportBuilder`, `SnapshotService`, `InsightService`, and `ChartService` own analytics behavior.
+
+Analytics persistence is limited to immutable snapshots, generated report records, rule-based alerts, dashboard states, and analytics events. Source facts remain in projects, finance, procurement, contractors, documents, search, identity, agencies, and geography.
+
+## Sprint 10 Foundation
+
+Intelligence Readiness is implemented as a deterministic, human-reviewed layer. `IntelligenceManager`, `RuleRegistry`, `RuleExecutionService`, `EvidenceBuilder`, `IndicatorScoringService`, `ReviewWorkflowService`, `ProcessingJobService`, `IntelligenceDashboardService`, and `ExplainabilityService` own intelligence behavior.
+
+Persistence is limited to rule definitions, advisory indicators, source-linked evidence, human reviews, processing preparation jobs, and activities. Indicators are searchable and knowledge-graph aware, but source facts remain in their owning modules.
+
 ## V2 Guardrail
 
-Do not merge OCR, semantic search, or anomaly models into v1 without ADR approval.
+Do not merge real OCR extraction, LLM calls, embeddings, semantic search, vector search, or automated legal conclusions into v1 without ADR approval.

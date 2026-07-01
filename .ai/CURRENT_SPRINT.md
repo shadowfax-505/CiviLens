@@ -2,19 +2,17 @@
 
 ## Sprint
 
-Sprint 08: Universal Search, Knowledge Graph & Discovery Platform
+Sprint 10: Intelligence Readiness, Evidence Review & Risk Indicator Platform
 
 ## Goal
 
-Implement provider-agnostic universal search, knowledge discovery, analytics, suggestions, saved searches, and queue-ready indexing without redesigning completed modules.
+Implement deterministic intelligence readiness with rule-based indicators, source-linked evidence, human review workflows, and OCR/AI processing preparation without real OCR, LLM calls, embeddings, vector search, or automated legal conclusions.
 
 ## Active Tasks
 
-- Search schema, contracts, provider abstraction, and registry. Status: implemented.
-- `Searchable` integration for projects, budgets, procurement, contractors, documents, agencies, and geography. Status: implemented.
-- Database provider, ranking, indexing, suggestions, analytics, caching, events, and queue jobs. Status: implemented.
-- Knowledge graph service and relationship explorer. Status: implemented.
-- Admin search UI, advanced filters, JSON endpoints, analytics dashboard, saved/recent searches, and navigation. Status: implemented.
-- Pest tests for schema, indexing, filtering, sorting, authorization, registry, analytics, suggestions, queues, events, cache, and knowledge graph. Status: implemented.
-- Browser search workflow coverage. Status: implemented; local execution blocked by approval/usage limit during this run.
-- Documentation, ADR, and AI memory synchronization. Status: implemented.
+- Intelligence schema, models, factories, seed data, permissions, and policies. Status: implemented.
+- Rule registry, execution, evidence, scoring, review, processing, dashboard, and explainability services. Status: implemented.
+- Admin intelligence dashboard, indicator review queue, indicator detail, processing queue, JSON summary, and rule preview/run routes. Status: implemented.
+- Pest tests for schema, services, authorization, rule execution, evidence, reviews, queues, events, search integration, and filters. Status: implemented.
+- Browser intelligence workflow coverage. Status: implemented in Playwright spec; local execution depends on environment.
+- Documentation and AI memory synchronization. Status: implemented.
