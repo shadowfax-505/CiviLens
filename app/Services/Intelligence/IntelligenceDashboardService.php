@@ -2,10 +2,16 @@
 
 namespace App\Services\Intelligence;
 
+use App\Models\Agency;
+use App\Models\Budget;
+use App\Models\CitizenReport;
 use App\Models\CivicIntelligenceRun;
+use App\Models\Document;
 use App\Models\IntelligenceIndicator;
 use App\Models\IntelligenceProcessingJob;
 use App\Models\IntelligenceRule;
+use App\Models\Organization;
+use App\Models\Project;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class IntelligenceDashboardService
@@ -41,6 +47,12 @@ class IntelligenceDashboardService
             'charts' => [
                 'status_distribution' => $statusDistribution,
                 'severity_distribution' => $severityDistribution,
+                'module_distribution' => IntelligenceIndicator::query()
+                    ->selectRaw('module, count(*) as aggregate')
+                    ->groupBy('module')
+                    ->pluck('aggregate', 'module')
+                    ->map(fn (int|string $value): int => (int) $value)
+                    ->all(),
             ],
             'recent_indicators' => IntelligenceIndicator::query()
                 ->with('rule')
@@ -54,6 +66,45 @@ class IntelligenceDashboardService
             'latest_engine_run' => CivicIntelligenceRun::query()
                 ->latest('started_at')
                 ->first(),
+            'integrity_timeline' => CivicIntelligenceRun::query()
+                ->latest('started_at')
+                ->limit(10)
+                ->get(),
+            'rule_execution_history' => IntelligenceRule::query()
+                ->withCount('indicators')
+                ->orderByDesc('last_executed_at')
+                ->orderBy('priority')
+                ->limit(10)
+                ->get(),
+            'rankings' => [
+                'agencies' => Agency::query()->withCount(['projects', 'tenders'])->orderByDesc('projects_count')->limit(5)->get(),
+                'contractors' => Organization::query()->orderBy('legal_name')->limit(5)->get(),
+                'projects' => Project::query()->orderByDesc('progress_percentage')->limit(5)->get(),
+                'budgets' => Budget::query()->orderByDesc('actual_expenditure')->limit(5)->get(),
+                'documents' => [
+                    'complete' => Document::query()->whereNotNull('description')->whereNotNull('language')->count(),
+                    'metadata_gaps' => Document::query()->where(fn ($query) => $query->whereNull('description')->orWhereNull('language'))->count(),
+                ],
+                'citizen_reports' => CitizenReport::query()
+                    ->whereNotNull('project_id')
+                    ->selectRaw('project_id, count(*) as aggregate')
+                    ->groupBy('project_id')
+                    ->orderByDesc('aggregate')
+                    ->limit(5)
+                    ->get(),
+                'geography' => Project::query()
+                    ->whereNotNull('division_id')
+                    ->selectRaw('division_id, count(*) as aggregate')
+                    ->groupBy('division_id')
+                    ->orderByDesc('aggregate')
+                    ->limit(5)
+                    ->get(),
+            ],
+            'performance' => [
+                'average_run_ms' => (int) CivicIntelligenceRun::query()->whereNotNull('summary_payload')->get()->avg(fn (CivicIntelligenceRun $run): int => (int) data_get($run->summary_payload, 'duration_ms', 0)),
+                'rules_with_execution_data' => IntelligenceRule::query()->whereNotNull('last_executed_at')->count(),
+                'failed_runs_24h' => CivicIntelligenceRun::query()->where('status', 'failed')->where('started_at', '>=', now()->subDay())->count(),
+            ],
         ];
     }
 

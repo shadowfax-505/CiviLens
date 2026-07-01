@@ -195,6 +195,7 @@ Analytics owns:
 
 - Metric registration
 - Metric calculation
+- Executive command-center composition
 - Dashboard composition
 - Chart-ready definitions
 - Immutable snapshots
@@ -203,17 +204,19 @@ Analytics owns:
 - Dashboard states
 - Analytics audit events
 
-Analytics must not mutate source modules or store duplicated operational records. Snapshots and reports preserve calculated point-in-time payloads for reproducibility and performance only.
+Analytics must not mutate source modules or store duplicated operational records. Snapshots and reports preserve calculated point-in-time payloads for reproducibility and performance only. Sprint 13 part 2 report downloads render CSV, spreadsheet-compatible, and PDF payloads from stored report data, branding, filters, KPIs, charts, and evidence metadata.
 
 ## Intelligence Readiness
 
 Sprint 10 implements Intelligence as a deterministic, human-reviewed readiness layer.
 
-An Intelligence Rule belongs to an Intelligence Rule Type. Rules define module scope, category, thresholds, severity defaults, version, and active state.
+An Intelligence Rule belongs to an Intelligence Rule Type. Rules define module scope, category, thresholds, severity defaults, version, active state, priority, weight, execution frequency, documentation URL, description, and latest execution metadata.
 
 An Intelligence Indicator belongs to an Intelligence Rule and optionally references a source record through a polymorphic source relation. Indicators have many evidence records, reviews, and activities.
 
 Evidence records link to supporting source records through polymorphic references. Reviews preserve human decisions such as accepted, dismissed, in review, or needs more evidence.
+
+Intelligence Rule Audits preserve rule-management events with actor, before/after snapshots, event name, and occurrence timestamp. Administrators must use the rule-management service and console so threshold and weight changes remain reproducible.
 
 Processing jobs prepare future OCR, AI review, and search synchronization. They do not run real OCR, LLM calls, embeddings, semantic search, or automated legal conclusions in v1.
 
@@ -237,6 +240,8 @@ A Civic Intelligence Run stores:
 The engine evaluates active rules across projects, budgets, procurement, contractors, documents, citizen reports, agencies, geography, search, analytics, and historical records by reading source tables and producing advisory indicators. It does not mutate source modules or make legal conclusions.
 
 Current Sprint 13 rules include repeat approved-award concentration by bidder and unresolved citizen-report clustering by project. Both generate source-linked evidence for human review.
+
+Sprint 13 part 2 adds dashboard projections for integrity timelines, rule execution history, indicator distribution, agency/contractor/project/budget/document/citizen-report/geography rankings, and performance metrics. These projections read indicators, evidence, reviews, source records, and run history; they do not create a separate risk source of truth.
 
 ## Public Transparency & Citizen Engagement
 

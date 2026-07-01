@@ -7,10 +7,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100">
-    <header class="border-b border-slate-200 bg-white/90 px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
-        <nav class="mx-auto flex max-w-6xl items-center justify-between">
+    <header class="border-b border-slate-200 bg-white/90 px-4 py-4 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
+        <nav class="mx-auto flex max-w-6xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <a class="font-semibold tracking-tight" href="{{ route('public.home') }}">CivicLens</a>
-            <div class="flex gap-4 text-sm">
+            <div class="flex flex-wrap gap-x-4 gap-y-2 text-sm">
                 <a href="{{ route('public.home') }}">Public</a>
                 @auth
                     <a href="{{ route('dashboard') }}">Dashboard</a>

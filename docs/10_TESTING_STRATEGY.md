@@ -17,11 +17,11 @@
 - `composer metrics` runs the local complexity report.
 - `composer quality` runs the primary PHP quality gate.
 - `npm run build` verifies frontend assets.
-- `npm run test:e2e` runs Playwright browser coverage for login, registration, dashboard, admin CRUD/search/filter/pagination, authorization, health readiness, intelligence dashboard accessibility, dark-mode rendering paths, and responsive smoke tests.
+- `npm run test:e2e` runs Playwright browser coverage for login, registration, dashboard, admin CRUD/search/filter/pagination, authorization, health/version readiness, executive command center, intelligence dashboard accessibility, rule management, report generation screens, dark-mode rendering paths, keyboard access, and responsive smoke tests.
 
 ## Coverage Targets
 
-V1 should cover authentication, project CRUD, budget/procurement flows, search, intelligence engine reproducibility, production health checks, and admin-only operations.
+V1 should cover authentication, project CRUD, budget/procurement flows, search, intelligence engine reproducibility, rule management audit history, production health/version checks, report exports, and admin-only operations.
 
 ## Browser Testing Notes
 

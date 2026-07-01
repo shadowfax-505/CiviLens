@@ -4,7 +4,9 @@
 
 CivicLens is an AI-assisted Civic Intelligence Platform for collecting, validating, searching, analyzing, and visualizing public-sector project information.
 
-This repository contains the **Enterprise v1.0 Laravel foundation** plus the project documentation set. The current application includes authentication, role and permission management, user administration, geographic reference data, agency registry workflows, project lifecycle management, the budget engine, procurement/tender management, and the Sprint 05.5 engineering platform layer.
+This repository contains the **Enterprise v1.0 Laravel platform** plus the project documentation set. The current application includes authentication, role and permission management, user administration, geography, agencies, projects, budgets, procurement and contracts, contractors, documents, universal search, analytics, public transparency, citizen reports, production deployment scaffolding, and the deterministic Civic Integrity Engine.
+
+V1 does not implement OCR, LLMs, embeddings, vector databases, semantic search, autonomous AI agents, or legal conclusions. Integrity signals are deterministic, evidence-backed, and human-reviewed.
 
 ## Repository Map
 
@@ -21,6 +23,18 @@ This repository contains the **Enterprise v1.0 Laravel foundation** plus the pro
 - `resources/views/` - Blade views for auth, dashboard, profile, and admin workflows.
 - `tests/` - Pest feature/unit coverage and Playwright browser specifications.
 - `tools/quality/` - lightweight repository health and maintainability tooling.
+- `docker/production/` - Nginx, PHP-FPM, Supervisor, and production PHP configuration.
+
+## Production Readiness
+
+- `/dashboard` provides the authenticated Executive Command Center.
+- `/admin/intelligence` provides the Civic Integrity dashboard and explainability views.
+- `/admin/intelligence/rules` provides audited rule management and dry-run review.
+- `/admin/analytics/reports` generates CSV, spreadsheet-compatible, and PDF reports.
+- `/healthz` exposes public-safe readiness checks.
+- `/version` exposes deploy metadata without secrets.
+- `/admin/system/metrics` exposes authorized operational metrics.
+- `docker-compose.production.yml` is the baseline production stack for app, worker, Nginx, MySQL, and Redis.
 
 ## Development Commands
 

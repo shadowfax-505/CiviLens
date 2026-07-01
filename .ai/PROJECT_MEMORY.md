@@ -2,7 +2,7 @@
 
 ## Current State
 
-CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 documentation skeleton, identity, geography, agencies, projects, finance, procurement, contractor intelligence, document management, universal search, business intelligence analytics, intelligence readiness, public transparency, and Sprint 13 part 1 production readiness with a deterministic Civic Integrity Engine.
+CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 documentation skeleton, identity, geography, agencies, projects, finance, procurement, contractor intelligence, document management, universal search, business intelligence analytics, intelligence readiness, public transparency, and Sprint 13 production hardening with a deterministic Civic Integrity Engine.
 
 ## Completed
 
@@ -33,7 +33,8 @@ CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 
 - Sprint 11 public transparency: public portal, public project/agency/procurement/contractor/document/search views, safe document download routes, authenticated citizen report submission, UUID tracking, admin moderation, report activity audit trail, tests, browser coverage, and documentation.
 - Sprint 12 enterprise procurement: procurement plans and approvals, bid opening records, immutable evaluation summaries, award approvals, contract payments, milestone acceptance, variation approvals, contract closeouts, procurement metrics, public-safe award notices, workflow events, admin routes, tests, and documentation.
 - Sprint 13 part 1 production readiness and Civic Integrity Engine: production Docker/Nginx/PHP-FPM/Supervisor/Redis/MySQL scaffold, production environment example, public-safe health endpoint, scheduled `civiclens:integrity-run` command, reproducible `civic_intelligence_runs`, manual admin engine trigger, dashboard run status, repeat-winner and citizen-report-cluster rules, Pest tests, Playwright desktop/mobile/dark-mode/keyboard coverage, and documentation.
+- Sprint 13 part 2 production hardening: Executive Command Center, enriched Integrity dashboard, audited rule-management console, rule dry-runs, expanded explainability, CSV/spreadsheet/PDF report downloads, version endpoint, authorized system metrics, request correlation IDs, updated Playwright coverage, and synchronized docs/memory.
 
 ## Next Milestone
 
-Continue Sprint 13 remaining parts only after explicit instruction. Do not begin v2 AI infrastructure until v1 deployment is complete and ADR-backed.
+CivicLens v1 is now positioned for deployment and academic submission. Do not begin v2 AI infrastructure until v1 deployment is complete and ADR-backed.

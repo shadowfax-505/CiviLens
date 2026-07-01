@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\Contractors\OrganizationController;
 use App\Http\Controllers\Admin\Documents\DocumentBulkActionController;
 use App\Http\Controllers\Admin\Documents\DocumentController;
 use App\Http\Controllers\Admin\Documents\DocumentVersionController;
+use App\Http\Controllers\Admin\ExecutiveDashboardController;
 use App\Http\Controllers\Admin\Finance\BudgetController;
 use App\Http\Controllers\Admin\Finance\BudgetRevisionController;
 use App\Http\Controllers\Admin\Finance\BudgetTransactionController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\SearchAnalyticsController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SearchKnowledgeController;
+use App\Http\Controllers\Admin\SystemMetricsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -55,6 +57,7 @@ use App\Http\Controllers\PublicPortal\PublicHomeController;
 use App\Http\Controllers\PublicPortal\PublicProcurementController;
 use App\Http\Controllers\PublicPortal\PublicProjectController;
 use App\Http\Controllers\PublicPortal\PublicSearchController;
+use App\Http\Controllers\VersionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -62,6 +65,7 @@ Route::get('/', function () {
 });
 
 Route::get('/healthz', HealthCheckController::class)->name('healthz');
+Route::get('/version', VersionController::class)->name('version');
 
 Route::prefix('public')->name('public.')->group(function (): void {
     Route::get('/', PublicHomeController::class)->name('home');
@@ -106,9 +110,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/confirm-password', [ConfirmablePasswordController::class, 'show'])->name('password.confirm');
     Route::post('/confirm-password', [ConfirmablePasswordController::class, 'store']);
 
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', ExecutiveDashboardController::class)->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -127,6 +129,8 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     });
 
     Route::prefix('admin')->name('admin.')->group(function (): void {
+        Route::get('/system/metrics', SystemMetricsController::class)->name('system.metrics');
+
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::patch('/users/{user}/status', [UserController::class, 'updateStatus'])->name('users.status');
         Route::patch('/users/{user}/lock', [UserController::class, 'updateLock'])->name('users.lock');
@@ -150,8 +154,12 @@ Route::middleware(['auth', 'active'])->group(function (): void {
             Route::get('/indicators', [IntelligenceIndicatorController::class, 'index'])->name('indicators.index');
             Route::get('/indicators/{indicator}', [IntelligenceIndicatorController::class, 'show'])->name('indicators.show');
             Route::patch('/indicators/{indicator}/review', [IntelligenceIndicatorController::class, 'review'])->name('indicators.review');
+            Route::get('/rules', [IntelligenceRuleController::class, 'index'])->name('rules.index');
+            Route::get('/rules/{rule}', [IntelligenceRuleController::class, 'show'])->name('rules.show');
+            Route::patch('/rules/{rule}', [IntelligenceRuleController::class, 'update'])->name('rules.update');
             Route::post('/rules/{rule}/run', [IntelligenceRuleController::class, 'run'])->name('rules.run');
             Route::get('/rules/{rule}/preview', [IntelligenceRuleController::class, 'preview'])->name('rules.preview');
+            Route::post('/rules/{rule}/dry-run', [IntelligenceRuleController::class, 'dryRun'])->name('rules.dry-run');
             Route::get('/processing-jobs', [IntelligenceProcessingJobController::class, 'index'])->name('processing-jobs.index');
             Route::post('/processing-jobs', [IntelligenceProcessingJobController::class, 'store'])->name('processing-jobs.store');
         });

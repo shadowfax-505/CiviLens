@@ -153,6 +153,7 @@ The Laravel app currently implements web identity routes for:
 - `POST /admin/search/saved`
 - `POST /admin/search/clicks`
 - `GET /admin/search/knowledge/{module}/{id}`
+- `GET /dashboard`
 - `GET /admin/analytics`
 - `GET /admin/analytics/metrics`
 - `POST /admin/analytics/snapshots`
@@ -166,10 +167,15 @@ The Laravel app currently implements web identity routes for:
 - `GET /admin/intelligence/indicators`
 - `GET /admin/intelligence/indicators/{indicator}`
 - `PATCH /admin/intelligence/indicators/{indicator}/review`
+- `GET /admin/intelligence/rules`
+- `GET /admin/intelligence/rules/{rule}`
+- `PATCH /admin/intelligence/rules/{rule}`
 - `POST /admin/intelligence/rules/{rule}/run`
 - `GET /admin/intelligence/rules/{rule}/preview`
+- `POST /admin/intelligence/rules/{rule}/dry-run`
 - `GET /admin/intelligence/processing-jobs`
 - `POST /admin/intelligence/processing-jobs`
+- `GET /admin/system/metrics`
 - `GET /public`
 - `GET /public/projects`
 - `GET /public/projects/{project:slug}`
@@ -192,6 +198,7 @@ The Laravel app currently implements web identity routes for:
 - `PATCH /admin/citizen-reports/{report}/archive`
 - `PATCH /admin/citizen-reports/{report}/restore`
 - `GET /healthz`
+- `GET /version`
 
 JSON API authentication endpoints are still planned and should be implemented with Sanctum when package installation is available.
 
@@ -229,11 +236,15 @@ Sprint 10 and Sprint 13 intelligence endpoints are authenticated admin web endpo
 
 `POST /admin/intelligence/engine/run` executes the deterministic Civic Integrity Engine against active rules, records a `civic_intelligence_runs` row, and tags generated indicators with engine metadata. It does not make legal conclusions and does not run OCR, LLMs, embeddings, vector search, semantic search, or AI agents.
 
+`GET /admin/intelligence/rules` lists deterministic rule configuration and execution metadata. `PATCH /admin/intelligence/rules/{rule}` updates active state, priority, weight, thresholds, severity, description, documentation URL, and execution frequency through validation and audit history. `POST /admin/intelligence/rules/{rule}/dry-run` returns a deterministic estimate without creating indicators.
+
 Processing jobs prepare future OCR, AI review, and search synchronization only. They do not run OCR engines, LLMs, embeddings, or vector search in v1.
 
 ## Health Endpoint Notes
 
 `GET /healthz` returns public-safe application, database, cache, storage, and queue readiness checks for production monitoring. The response must not expose secrets, credentials, full environment dumps, internal storage paths, or database connection details.
+
+`GET /version` returns deploy-safe application name, version, environment label, commit, and generated timestamp. `GET /admin/system/metrics` returns authorized operational metrics for administrators.
 
 ## Public Portal Endpoint Notes
 

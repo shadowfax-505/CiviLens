@@ -12,6 +12,7 @@ Implemented capabilities:
 
 - Configurable intelligence rule types and rules.
 - Reproducible Civic Integrity Engine runs with engine version, threshold snapshots, run status, and generated-indicator counts.
+- Audited rule management for active state, priority, weight, thresholds, severity, descriptions, documentation URLs, execution frequency, dry-run estimates, and latest execution metadata.
 - Advisory indicators with severity, confidence, source references, and rule versions.
 - Evidence records linked to source data through polymorphic references.
 - Human review workflow for pending, in-review, accepted, dismissed, and needs-more-evidence states.
@@ -33,7 +34,11 @@ Both rules store detection payloads, evidence links, rule versions, and threshol
 
 ## Operations
 
-`POST /admin/intelligence/engine/run` lets authorized administrators run the engine manually. The `civiclens:integrity-run` Artisan command is scheduled daily for production. Dashboard summaries show engine run counts and the latest run status.
+`POST /admin/intelligence/engine/run` lets authorized administrators run the engine manually. The `civiclens:integrity-run` Artisan command is scheduled daily for production. Dashboard summaries show engine run counts, latest run status, integrity timelines, rule execution history, indicator distribution, agency/contractor/project/budget/document/citizen-report/geography rankings, and performance metrics.
+
+`/admin/intelligence/rules` is the production rule-management console. Updates are validated and written through `RuleManagementService`, then recorded in `intelligence_rule_audits`. Dry-runs estimate matching source records without creating indicators, evidence, reviews, or activities.
+
+`ExplainabilityService` exposes triggered rules, threshold context, actual/expected values, source records, supporting evidence, calculation timestamps, engine version, recommendations, deterministic confidence, and human review requirements.
 
 ## V2 Notes
 

@@ -6,4 +6,5 @@
 - Procurement is implemented; future work should add document storage, external search indexing, and deeper analytics rather than replacing the normalized source tables.
 - Search indexing is still database-backed; Scout/Meilisearch wiring is deferred until external services are configured.
 - API schemas are high-level and still need detailed OpenAPI coverage.
+- Report exports are production-usable lightweight renderers; richer XLSX/PDF packages can be added later if package installation is approved.
 - V2 intelligence features are intentionally deferred.

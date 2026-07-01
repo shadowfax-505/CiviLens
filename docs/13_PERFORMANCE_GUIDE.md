@@ -26,6 +26,8 @@ Sprint 12 procurement pages eager load tender, bid, evaluation, award, contract,
 
 Sprint 13 part 1 keeps the Civic Integrity Engine bounded by active rule queries and rule-level limits. Engine runs snapshot thresholds once, execute deterministic rules in services, and tag generated indicators without duplicating source facts. High-volume deployments should move scheduled engine execution to a dedicated queue or command runner before increasing rule cardinality.
 
+Sprint 13 part 2 keeps dashboards service-composed and query-bounded. The Executive Command Center uses aggregate counts, latest records, and limited rankings instead of loading full collections. Integrity dashboard rankings eager load source/evidence relationships where needed and group by indexed foreign keys or source columns. Rule dry-runs estimate matches with count queries only and never create indicators.
+
 ## Search Performance
 
 Sprint 08 introduces indexed search tables and cache-backed suggestions/analytics.
@@ -45,6 +47,8 @@ Future external providers must preserve permission-aware filtering and should ke
 Sprint 09 metric calculations are centralized in `MetricEngine` and cached for short windows using filter-aware cache keys. `AggregationEngine` keeps source-record filters reusable so dashboards, reports, snapshots, and alerts do not duplicate query logic.
 
 Snapshots store point-in-time calculated payloads for reporting speed and historical reproducibility. They do not duplicate operational source facts.
+
+Report downloads render from stored `analytics_reports.payload` data. Large scheduled exports should continue through the `GenerateAnalyticsReport` job path or a future queue-backed renderer before adding heavy spreadsheet/PDF packages.
 
 Future high-volume deployments may add materialized aggregate tables, scheduled refreshes, and read replicas once production data volume justifies them.
 

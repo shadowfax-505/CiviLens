@@ -32,6 +32,10 @@ Enterprise Procurement extends the existing tender core with procurement plannin
 
 Production readiness adds Docker, production compose, Nginx, PHP-FPM, Supervisor, queue worker, scheduler loop, production PHP configuration, `.env.production.example`, and a public-safe `/healthz` endpoint. The Civic Integrity Engine remains deterministic: active rules run through existing intelligence services, `civic_intelligence_runs` stores reproducible threshold snapshots and run summaries, and generated indicators require human review. V1 still excludes OCR, LLMs, embeddings, vector databases, semantic search, AI agents, and legal conclusions.
 
+## Sprint 13 Part 2 Memory
+
+Production hardening extends, rather than rebuilds, Sprint 13 part 1. `/dashboard` is the Executive Command Center. `SystemMetricsService` powers `/healthz`, `/version`, and authorized `/admin/system/metrics`. `RequestCorrelation` attaches `X-Request-Id` to responses and log context. `RuleManagementService` owns audited rule updates, dry-runs, and execution metadata with `intelligence_rule_audits`. `IntelligenceDashboardService` now exposes timelines, distributions, rankings, and performance metrics. `ReportBuilder` renders CSV, spreadsheet-compatible, and PDF downloads from stored analytics report payloads. No v2 AI infrastructure was added.
+
 ## Required Reading
 
 - `docs/ENGINEERING_DIRECTIVE.md`
