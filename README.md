@@ -1,6 +1,5 @@
 # CivicLens
 
-[![CI](https://github.com/muttakinrahman/civiclens/actions/workflows/ci.yml/badge.svg)](https://github.com/muttakinrahman/civiclens/actions/workflows/ci.yml)
 
 CivicLens is an AI-assisted Civic Intelligence Platform for collecting, validating, searching, analyzing, and visualizing public-sector project information.
 
