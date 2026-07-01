@@ -11,8 +11,10 @@
 | Implement projects as normalized lifecycle records with lookup tables and activity audit log | Accepted | Documented in `docs/modules/projects/README.md` |
 | Make budgets the single source of truth for project financial values | Accepted | Documented in `docs/modules/finance/README.md` |
 | Implement procurement as a normalized tender-to-contract lifecycle with immutable activities and budget references | Accepted | Documented in `docs/modules/procurement/README.md` |
+| Extend procurement into an enterprise plan-to-closeout workflow through additive tables, service-owned transitions, public-safe award notices, and provider-agnostic search registration | Accepted | Documented in `docs/modules/procurement/README.md` |
 | Implement contractors as normalized organization/profile intelligence records with derived service-calculated scores | Accepted | Documented in `docs/modules/contractors/README.md` |
 | Implement documents as normalized metadata records with Laravel Storage files, immutable versions, and polymorphic attachments | Accepted | Documented in `docs/modules/documents/README.md` |
 | Implement universal search as provider-agnostic infrastructure with `Searchable` and `SearchProvider` contracts | Accepted | `docs/adr/ADR-008-Provider-Agnostic-Universal-Search.md` |
 | Implement analytics as a service-owned BI layer with immutable snapshots, generated reports, rule-based alerts, dashboard states, and analytics events | Accepted | Documented in `docs/modules/analytics/README.md` |
 | Implement intelligence readiness as deterministic rules, advisory indicators, evidence, human reviews, and processing preparation without real AI execution | Accepted | Documented in `docs/modules/intelligence/README.md` |
+| Implement public transparency as curated public web views with authenticated, moderated citizen reports | Accepted | Documented in `docs/modules/public/README.md` |

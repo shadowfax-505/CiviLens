@@ -12,6 +12,8 @@ use App\Models\BudgetStatus;
 use App\Models\BudgetTransactionType;
 use App\Models\BudgetType;
 use App\Models\CertificationType;
+use App\Models\CitizenReportCategory;
+use App\Models\CitizenReportStatus;
 use App\Models\ComplianceStatus;
 use App\Models\ComplianceType;
 use App\Models\ContractorActivityType;
@@ -86,6 +88,7 @@ class DatabaseSeeder extends Seeder
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Analytics', 'slug' => config('civiclens.permissions.analytics_manage'), 'description' => 'Generate analytics snapshots, reports, alerts, and dashboard states.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Intelligence', 'slug' => config('civiclens.permissions.intelligence_manage'), 'description' => 'Manage rule-based intelligence indicators, evidence review, and processing readiness.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Submit Reports', 'slug' => config('civiclens.permissions.reports_submit'), 'description' => 'Submit civic reports and field updates.'],
+            ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Citizen Reports', 'slug' => config('civiclens.permissions.citizen_reports_manage'), 'description' => 'Moderate public citizen reports and status workflows.'],
         ])->map(fn (array $permission) => Permission::query()->firstOrCreate(
             ['slug' => $permission['slug']],
             $permission,
@@ -116,6 +119,7 @@ class DatabaseSeeder extends Seeder
             config('civiclens.permissions.search_manage'),
             config('civiclens.permissions.analytics_view'),
             config('civiclens.permissions.intelligence_manage'),
+            config('civiclens.permissions.citizen_reports_manage'),
         ])->pluck('id'));
         $citizen->permissions()->sync($permissions->where('slug', config('civiclens.permissions.reports_submit'))->pluck('id'));
 
@@ -566,6 +570,43 @@ class DatabaseSeeder extends Seeder
             DocumentTag::query()->firstOrCreate(
                 ['slug' => $slug],
                 ['name' => $name, 'description' => "{$name} document tag."],
+            );
+        }
+
+        foreach ([
+            ['Safety Concern', 'safety-concern', 10],
+            ['Delayed Work', 'delayed-work', 20],
+            ['Budget Concern', 'budget-concern', 30],
+            ['Procurement Concern', 'procurement-concern', 40],
+            ['Missing Information', 'missing-information', 50],
+            ['Document Request', 'document-request', 60],
+            ['General Feedback', 'general-feedback', 70],
+        ] as [$name, $slug, $sortOrder]) {
+            CitizenReportCategory::query()->firstOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'description' => "{$name} citizen report category.", 'is_active' => true, 'sort_order' => $sortOrder],
+            );
+        }
+
+        foreach ([
+            ['Submitted', 'submitted', true, false, 10],
+            ['In Review', 'in-review', false, false, 20],
+            ['Needs Information', 'needs-information', false, false, 30],
+            ['Accepted', 'accepted', false, false, 40],
+            ['Resolved', 'resolved', false, true, 50],
+            ['Dismissed', 'dismissed', false, true, 60],
+            ['Archived', 'archived', false, true, 70],
+        ] as [$name, $slug, $isDefault, $isTerminal, $sortOrder]) {
+            CitizenReportStatus::query()->firstOrCreate(
+                ['slug' => $slug],
+                [
+                    'name' => $name,
+                    'description' => "{$name} citizen report status.",
+                    'is_default' => $isDefault,
+                    'is_terminal' => $isTerminal,
+                    'is_active' => true,
+                    'sort_order' => $sortOrder,
+                ],
             );
         }
 

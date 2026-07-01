@@ -142,6 +142,27 @@ Timeline integrity is provided by `procurement_activities`. Activity records are
 
 Indexes support tender number lookup, project/budget joins, agency/status filters, method/category filters, published/closing date ranges, active/archive state, bidder lookup, contract status summaries, and activity timelines.
 
+## Implemented in Sprint 12
+
+Enterprise Procurement extends the Sprint 05 tender core without replacing existing source tables:
+
+- `procurement_plans`
+- `procurement_plan_activities`
+- `bid_opening_records`
+- `bid_withdrawals`
+- `bid_compliance_items`
+- `evaluation_summaries`
+- `award_approvals`
+- `contract_deliverables`
+- `contract_payments`
+- `contract_closeouts`
+
+Sprint 12 also adds an optional `organization_id` contractor registry link to `bidder_organizations`; bid amount, validity, security, proposal summary, opening, and withdrawal fields to `bid_submissions`; public disclosure status to `awards`; acceptance/completion metadata to `contract_milestones`; and approved amount, schedule extension, and reason fields to `variation_orders`.
+
+Procurement plans reference agencies, budgets, projects, fiscal years, funding sources, and procurement methods. Bidder organizations auto-link to Sprint 06 contractor organizations when registration numbers match. Bid opening records preserve the first auditable opening timestamp and recorded amount. Evaluation summaries are immutable finalization records derived from evaluation scores. Award approvals, payments, milestone acceptance, variation approvals, and closeouts preserve lifecycle history without duplicating finance-owned budget facts.
+
+Indexes support plan approval status, agency/fiscal-year planning, bid opening lookup, evaluation finalization lookup, contract payment timelines, and closeout reporting.
+
 ## Implemented in Sprint 06
 
 Contractor Intelligence & Vendor Management adds normalized organization, compliance, legal, credential, performance, and lifecycle records:
@@ -282,6 +303,21 @@ Intelligence Readiness adds normalized, explainable, reviewable intelligence inf
 Sprint 10 added permission slug:
 
 - `intelligence.manage`
+
+## Implemented in Sprint 11
+
+Public Transparency & Citizen Engagement adds moderated citizen reporting:
+
+- `citizen_report_categories`
+- `citizen_report_statuses`
+- `citizen_reports`
+- `citizen_report_activities`
+
+Citizen reports use a public UUID for tracking instead of exposing internal IDs. Reports reference the submitter, category, status, optional project, agency, document, and geography records. Report activities preserve submitted, status change, archive, and restore events with actor, old/new values, request IP, and user agent.
+
+Sprint 11 added permission slug:
+
+- `citizen_reports.manage`
 
 ## Identity Columns Added in Sprint 01
 

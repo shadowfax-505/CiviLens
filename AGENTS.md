@@ -26,7 +26,7 @@ Business controllers must stay thin. Validation belongs in Form Requests. Author
 - Government Agency Registry
 - Project Lifecycle Management
 - Financial Management and Budget Engine
-- Procurement and Tender Management
+- Enterprise Procurement, Tender, Award, and Contract Lifecycle Platform
 - Contractor Intelligence and Vendor Management
 - Enterprise Document Management
 - Universal Search and Knowledge Discovery

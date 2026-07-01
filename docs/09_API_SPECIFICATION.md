@@ -97,6 +97,11 @@ The Laravel app currently implements web identity routes for:
 - `POST /admin/finance/budgets/{budget}/revisions`
 - `POST /admin/finance/budgets/{budget}/transactions`
 - `DELETE /admin/finance/budget-transactions/{budgetTransaction}` returns 405 because financial transactions are immutable.
+- `GET /admin/procurement/plans`
+- `POST /admin/procurement/plans`
+- `GET /admin/procurement/plans/create`
+- `GET /admin/procurement/plans/{plan}`
+- `PATCH /admin/procurement/plans/{plan}/approve`
 - `GET /admin/procurement/tenders`
 - `GET /admin/procurement/tenders/archived`
 - `POST /admin/procurement/tenders`
@@ -109,9 +114,16 @@ The Laravel app currently implements web identity routes for:
 - `POST /admin/procurement/tenders/{tender}/bids`
 - `POST /admin/procurement/tenders/{tender}/criteria`
 - `POST /admin/procurement/bid-submissions/{bidSubmission}/scores`
+- `POST /admin/procurement/bid-submissions/{bidSubmission}/open`
+- `POST /admin/procurement/bid-submissions/{bidSubmission}/finalize-evaluation`
 - `POST /admin/procurement/tenders/{tender}/awards`
+- `PATCH /admin/procurement/awards/{award}/approve`
 - `POST /admin/procurement/awards/{award}/contracts`
+- `POST /admin/procurement/contracts/{contract}/payments`
+- `PATCH /admin/procurement/contracts/{contract}/close`
 - `GET /admin/procurement/contracts/{contract}`
+- `PATCH /admin/procurement/milestones/{milestone}/complete`
+- `PATCH /admin/procurement/variation-orders/{variationOrder}/approve`
 - `GET /admin/contractors/organizations`
 - `GET /admin/contractors/organizations/archived`
 - `POST /admin/contractors/organizations`
@@ -157,6 +169,27 @@ The Laravel app currently implements web identity routes for:
 - `GET /admin/intelligence/rules/{rule}/preview`
 - `GET /admin/intelligence/processing-jobs`
 - `POST /admin/intelligence/processing-jobs`
+- `GET /public`
+- `GET /public/projects`
+- `GET /public/projects/{project:slug}`
+- `GET /public/agencies`
+- `GET /public/agencies/{agency:slug}`
+- `GET /public/procurement`
+- `GET /public/contractors`
+- `GET /public/contractors/{organization}`
+- `GET /public/documents`
+- `GET /public/documents/{document}/download`
+- `GET /public/search`
+- `GET /public/reports/create`
+- `POST /public/reports`
+- `GET /public/reports/{uuid}`
+- `GET /citizen/reports`
+- `GET /citizen/reports/{report}`
+- `GET /admin/citizen-reports`
+- `GET /admin/citizen-reports/{report}`
+- `PATCH /admin/citizen-reports/{report}/status`
+- `PATCH /admin/citizen-reports/{report}/archive`
+- `PATCH /admin/citizen-reports/{report}/restore`
 
 JSON API authentication endpoints are still planned and should be implemented with Sanctum when package installation is available.
 
@@ -193,6 +226,10 @@ Supported query parameters include:
 Sprint 10 intelligence endpoints are authenticated admin web endpoints protected by `intelligence.manage`. Indicator filters support `q`, `severity`, `status`, and `module`.
 
 Processing jobs prepare future OCR, AI review, and search synchronization only. They do not run OCR engines, LLMs, embeddings, or vector search in v1.
+
+## Public Portal Endpoint Notes
+
+Sprint 11 public routes are web endpoints, not versioned public APIs. Public search is limited to indexed records with `visibility=public`; public document downloads stream through application routes and do not expose internal storage paths. Citizen report submission requires authentication and is rate-limited.
 - `fiscal_year_id`
 - `agency_id`
 - `division_id`

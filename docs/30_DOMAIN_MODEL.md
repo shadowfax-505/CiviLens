@@ -92,11 +92,15 @@ A Tender belongs to:
 - Tender Category
 - Tender Status
 
-A Tender has many bid submissions, evaluation criteria, awards, and immutable procurement activities. Bid submissions belong to bidder organizations. Awards point to winning bid submissions. Contracts belong to awards and reference the same project and budget as the tender.
+A Procurement Plan belongs to an agency, budget, project, fiscal year, funding source, and procurement method. Plan approval is tracked through immutable procurement plan activities.
+
+A Tender has many bid submissions, evaluation criteria, awards, and immutable procurement activities. Bid submissions belong to bidder organizations and may have opening records, withdrawals, compliance checklist items, and immutable evaluation summaries. Bidder organizations can link to Sprint 06 contractor organizations for performance, compliance, licensing, legal, blacklist, and previous-award context. Awards point to winning bid submissions and approval records. Contracts belong to awards and reference the same project and budget as the tender.
+
+Contracts own milestones, deliverables, payments, variation orders, extensions, damages, completion certificates, and closeout records. Milestone acceptance, variation approval, payment recording, and contract closeout are auditable lifecycle transitions.
 
 Procurement must not duplicate finance-managed allocation or expenditure values. Budget filtering and dashboard context read through `budgets.current_allocation` and related budget records.
 
-Historical traceability is represented through `procurement_activities`, which logs workflow events without deletion support. Future document management and AI review features should attach supporting files and analysis to tenders, bids, contracts, and activities rather than replacing source procurement records.
+Historical traceability is represented through `procurement_activities` and `procurement_plan_activities`, which log workflow events without deletion support. Future document management and AI review features should attach supporting files and analysis to plans, tenders, bids, contracts, variations, payments, and activities rather than replacing source procurement records.
 
 ## Contractor Intelligence
 
@@ -214,3 +218,18 @@ Evidence records link to supporting source records through polymorphic reference
 Processing jobs prepare future OCR, AI review, and search synchronization. They do not run real OCR, LLM calls, embeddings, semantic search, or automated legal conclusions in v1.
 
 Intelligence indicators are registered with Universal Search and exposed through the Knowledge Graph by linking back to their source and evidence records.
+
+## Public Transparency & Citizen Engagement
+
+Sprint 11 implements public transparency as curated read models over existing source domains plus moderated citizen reports.
+
+A Citizen Report belongs to:
+
+- Citizen Report Category
+- Citizen Report Status
+- Submitter user
+- Optional project, agency, document, and geography records
+
+Citizen report activities form the audit timeline for submission, moderation status changes, archive, and restore actions. Public tracking uses UUIDs so internal numeric IDs are not exposed.
+
+Public project, procurement, document, agency, contractor, and search screens must read through public-safe services and must not publish private documents, internal storage paths, confidential contractor legal records, unreviewed intelligence indicators, or private analytics payloads.

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\Analytics\AnalyticsDashboardController;
 use App\Http\Controllers\Admin\Analytics\AnalyticsMetricController;
 use App\Http\Controllers\Admin\Analytics\AnalyticsReportController;
 use App\Http\Controllers\Admin\Analytics\AnalyticsSnapshotController;
+use App\Http\Controllers\Admin\CitizenReports\CitizenReportModerationController;
 use App\Http\Controllers\Admin\Contractors\ContractorProfileController;
 use App\Http\Controllers\Admin\Contractors\OrganizationController;
 use App\Http\Controllers\Admin\Documents\DocumentBulkActionController;
@@ -28,6 +29,8 @@ use App\Http\Controllers\Admin\Procurement\AwardController;
 use App\Http\Controllers\Admin\Procurement\BidSubmissionController;
 use App\Http\Controllers\Admin\Procurement\ContractController;
 use App\Http\Controllers\Admin\Procurement\EvaluationController;
+use App\Http\Controllers\Admin\Procurement\ProcurementPlanController;
+use App\Http\Controllers\Admin\Procurement\ProcurementWorkflowController;
 use App\Http\Controllers\Admin\Procurement\TenderController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\SearchAnalyticsController;
@@ -41,11 +44,35 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Citizen\CitizenReportDashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicPortal\CitizenReportController;
+use App\Http\Controllers\PublicPortal\PublicAgencyController;
+use App\Http\Controllers\PublicPortal\PublicContractorController;
+use App\Http\Controllers\PublicPortal\PublicDocumentController;
+use App\Http\Controllers\PublicPortal\PublicHomeController;
+use App\Http\Controllers\PublicPortal\PublicProcurementController;
+use App\Http\Controllers\PublicPortal\PublicProjectController;
+use App\Http\Controllers\PublicPortal\PublicSearchController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
+});
+
+Route::prefix('public')->name('public.')->group(function (): void {
+    Route::get('/', PublicHomeController::class)->name('home');
+    Route::get('/projects', [PublicProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects/{project:slug}', [PublicProjectController::class, 'show'])->name('projects.show');
+    Route::get('/agencies', [PublicAgencyController::class, 'index'])->name('agencies.index');
+    Route::get('/agencies/{agency:slug}', [PublicAgencyController::class, 'show'])->name('agencies.show');
+    Route::get('/procurement', PublicProcurementController::class)->name('procurement.index');
+    Route::get('/contractors', [PublicContractorController::class, 'index'])->name('contractors.index');
+    Route::get('/contractors/{organization}', [PublicContractorController::class, 'show'])->name('contractors.show');
+    Route::get('/documents', [PublicDocumentController::class, 'index'])->name('documents.index');
+    Route::get('/documents/{document}/download', [PublicDocumentController::class, 'download'])->name('documents.download');
+    Route::get('/search', PublicSearchController::class)->name('search');
+    Route::get('/reports/{uuid}', [CitizenReportController::class, 'show'])->whereUuid('uuid')->name('reports.show');
 });
 
 Route::middleware('guest')->group(function (): void {
@@ -86,12 +113,30 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
     Route::put('/profile/notifications', [ProfileController::class, 'updateNotifications'])->name('profile.notifications');
 
+    Route::middleware('throttle:6,1')->group(function (): void {
+        Route::get('/public/reports/create', [CitizenReportController::class, 'create'])->name('public.reports.create');
+        Route::post('/public/reports', [CitizenReportController::class, 'store'])->name('public.reports.store');
+    });
+
+    Route::prefix('citizen')->name('citizen.')->group(function (): void {
+        Route::get('/reports', [CitizenReportDashboardController::class, 'index'])->name('reports.index');
+        Route::get('/reports/{report}', [CitizenReportDashboardController::class, 'show'])->name('reports.show');
+    });
+
     Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::patch('/users/{user}/status', [UserController::class, 'updateStatus'])->name('users.status');
         Route::patch('/users/{user}/lock', [UserController::class, 'updateLock'])->name('users.lock');
         Route::put('/users/{user}/roles', [UserRoleController::class, 'update'])->name('users.roles');
         Route::put('/users/{user}/password', [UserController::class, 'resetPassword'])->name('users.password');
+
+        Route::prefix('citizen-reports')->name('citizen-reports.')->group(function (): void {
+            Route::get('/', [CitizenReportModerationController::class, 'index'])->name('index');
+            Route::get('/{report}', [CitizenReportModerationController::class, 'show'])->name('show');
+            Route::patch('/{report}/status', [CitizenReportModerationController::class, 'status'])->name('status');
+            Route::patch('/{report}/archive', [CitizenReportModerationController::class, 'archive'])->name('archive');
+            Route::patch('/{report}/restore', [CitizenReportModerationController::class, 'restore'])->name('restore');
+        });
 
         Route::resource('agencies', AgencyController::class)->except('show');
 
@@ -163,6 +208,11 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         });
 
         Route::prefix('procurement')->name('procurement.')->group(function (): void {
+            Route::get('/plans', [ProcurementPlanController::class, 'index'])->name('plans.index');
+            Route::get('/plans/create', [ProcurementPlanController::class, 'create'])->name('plans.create');
+            Route::post('/plans', [ProcurementPlanController::class, 'store'])->name('plans.store');
+            Route::get('/plans/{plan}', [ProcurementPlanController::class, 'show'])->name('plans.show');
+            Route::patch('/plans/{plan}/approve', [ProcurementPlanController::class, 'approve'])->name('plans.approve');
             Route::get('/tenders/archived', [TenderController::class, 'archived'])->name('tenders.archived');
             Route::patch('/tenders/{tender}/publish', [TenderController::class, 'publish'])->name('tenders.publish');
             Route::patch('/tenders/{tender}/close', [TenderController::class, 'close'])->name('tenders.close');
@@ -171,9 +221,16 @@ Route::middleware(['auth', 'active'])->group(function (): void {
             Route::post('/tenders/{tender}/bids', [BidSubmissionController::class, 'store'])->name('tenders.bids.store');
             Route::post('/tenders/{tender}/criteria', [EvaluationController::class, 'storeCriterion'])->name('tenders.criteria.store');
             Route::post('/bid-submissions/{bidSubmission}/scores', [EvaluationController::class, 'storeScore'])->name('bid-submissions.scores.store');
+            Route::post('/bid-submissions/{bidSubmission}/open', [ProcurementWorkflowController::class, 'openBid'])->name('bid-submissions.open');
+            Route::post('/bid-submissions/{bidSubmission}/finalize-evaluation', [ProcurementWorkflowController::class, 'finalizeEvaluation'])->name('bid-submissions.evaluations.finalize');
             Route::post('/tenders/{tender}/awards', [AwardController::class, 'store'])->name('tenders.awards.store');
+            Route::patch('/awards/{award}/approve', [ProcurementWorkflowController::class, 'approveAward'])->name('awards.approve');
             Route::post('/awards/{award}/contracts', [ContractController::class, 'store'])->name('awards.contracts.store');
+            Route::post('/contracts/{contract}/payments', [ProcurementWorkflowController::class, 'recordPayment'])->name('contracts.payments.store');
+            Route::patch('/contracts/{contract}/close', [ProcurementWorkflowController::class, 'closeContract'])->name('contracts.close');
             Route::get('/contracts/{contract}', [ContractController::class, 'show'])->name('contracts.show');
+            Route::patch('/milestones/{milestone}/complete', [ProcurementWorkflowController::class, 'completeMilestone'])->name('milestones.complete');
+            Route::patch('/variation-orders/{variationOrder}/approve', [ProcurementWorkflowController::class, 'approveVariation'])->name('variation-orders.approve');
             Route::resource('tenders', TenderController::class)->except('destroy');
         });
 

@@ -32,15 +32,27 @@
                 <select name="bidder_organization_id" class="rounded border px-3 py-2 text-slate-950">@foreach ($bidders as $bidder)<option value="{{ $bidder->id }}">{{ $bidder->name }}</option>@endforeach</select>
                 <input name="reference_number" placeholder="Bid reference" class="rounded border px-3 py-2 text-slate-950">
                 <input name="submitted_at" placeholder="Submitted at" class="rounded border px-3 py-2 text-slate-950">
+                <input name="bid_amount" type="number" min="0" step="0.01" placeholder="Bid amount" class="rounded border px-3 py-2 text-slate-950">
+                <input name="bid_security_amount" type="number" min="0" step="0.01" placeholder="Security amount" class="rounded border px-3 py-2 text-slate-950">
+                <input name="bid_valid_until" type="date" class="rounded border px-3 py-2 text-slate-950">
                 <input name="technical_score" type="number" min="0" max="100" step="0.01" placeholder="Technical score" class="rounded border px-3 py-2 text-slate-950">
                 <input name="financial_score" type="number" min="0" max="100" step="0.01" placeholder="Financial score" class="rounded border px-3 py-2 text-slate-950">
+                <textarea name="technical_proposal_summary" placeholder="Technical proposal summary" class="rounded border px-3 py-2 text-slate-950"></textarea>
+                <textarea name="financial_proposal_summary" placeholder="Financial proposal summary" class="rounded border px-3 py-2 text-slate-950"></textarea>
                 <input name="status" value="submitted" class="rounded border px-3 py-2 text-slate-950">
                 <textarea name="notes" placeholder="Notes" class="rounded border px-3 py-2 text-slate-950"></textarea>
                 <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Record bid</button>
             </form>
             <ol class="mt-5 space-y-2">
                 @forelse ($tender->bidSubmissions as $bid)
-                    <li class="rounded border px-3 py-2 text-sm dark:border-slate-800">{{ $bid->reference_number }} - {{ $bid->bidderOrganization?->name }} - {{ $bid->status }}</li>
+                    <li class="rounded border px-3 py-2 text-sm dark:border-slate-800">
+                        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                            <span>{{ $bid->reference_number }} - {{ $bid->bidderOrganization?->name }} - {{ $bid->status }} @if ($bid->opened_at) - {{ number_format((float) $bid->bid_amount, 2) }} @endif</span>
+                            @unless ($bid->opened_at)
+                                <form method="POST" action="{{ route('admin.procurement.bid-submissions.open', $bid) }}">@csrf<button class="rounded border px-3 py-1 text-xs font-semibold dark:border-slate-700">Open bid</button></form>
+                            @endunless
+                        </div>
+                    </li>
                 @empty
                     <li class="text-sm text-slate-500">No bids recorded.</li>
                 @endforelse
@@ -66,6 +78,15 @@
                     <textarea name="comments" placeholder="Comments" class="rounded border px-3 py-2 text-slate-950"></textarea>
                     <button class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Record score</button>
                 </form>
+                @unless ($bid->evaluationSummary)
+                    <form method="POST" action="{{ route('admin.procurement.bid-submissions.evaluations.finalize', $bid) }}" class="mt-2 grid gap-2 rounded border p-3 dark:border-slate-800">
+                        @csrf
+                        <textarea name="recommendation" placeholder="Evaluation recommendation" class="rounded border px-3 py-2 text-slate-950"></textarea>
+                        <button class="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Finalize evaluation</button>
+                    </form>
+                @else
+                    <p class="mt-2 rounded border px-3 py-2 text-sm dark:border-slate-800">Final score: {{ $bid->evaluationSummary->overall_score }} - {{ $bid->evaluationSummary->recommendation }}</p>
+                @endunless
             @endforeach
         </div>
 
@@ -81,7 +102,14 @@
             </form>
             <ol class="mt-5 space-y-2">
                 @forelse ($tender->awards as $award)
-                    <li class="rounded border px-3 py-2 text-sm dark:border-slate-800">{{ $award->bidSubmission?->bidderOrganization?->name }} - {{ $award->status }}</li>
+                    <li class="rounded border px-3 py-2 text-sm dark:border-slate-800">
+                        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                            <span>{{ $award->bidSubmission?->bidderOrganization?->name }} - {{ $award->status }}</span>
+                            @if ($award->status !== 'approved')
+                                <form method="POST" action="{{ route('admin.procurement.awards.approve', $award) }}">@csrf @method('PATCH')<button class="rounded bg-emerald-700 px-3 py-1 text-xs font-semibold text-white">Approve award</button></form>
+                            @endif
+                        </div>
+                    </li>
                 @empty
                     <li class="text-sm text-slate-500">No awards recorded.</li>
                 @endforelse

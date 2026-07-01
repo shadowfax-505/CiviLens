@@ -30,7 +30,9 @@ CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 
 - Sprint 08 universal search: provider-agnostic `Searchable` and `SearchProvider` contracts, database provider, normalized search index/history/saved-search/click/analytics tables, ranking, suggestions, cache, queue-ready indexing, knowledge graph services, admin UI, JSON endpoints, tests, browser coverage, and documentation.
 - Sprint 09 business intelligence: normalized analytics snapshots, reports, alert rules, alerts, dashboard states, analytics events, registry-driven metrics, dashboard services, chart-ready payloads, snapshots, report generation, rule-based alerts, admin UI, tests, browser coverage, and documentation.
 - Sprint 10 intelligence readiness: normalized rule types, rules, advisory indicators, source-linked evidence, human reviews, processing jobs, append-only activities, rule execution services, review workflows, search/knowledge graph integration, admin UI, tests, browser coverage, and documentation.
+- Sprint 11 public transparency: public portal, public project/agency/procurement/contractor/document/search views, safe document download routes, authenticated citizen report submission, UUID tracking, admin moderation, report activity audit trail, tests, browser coverage, and documentation.
+- Sprint 12 enterprise procurement: procurement plans and approvals, bid opening records, immutable evaluation summaries, award approvals, contract payments, milestone acceptance, variation approvals, contract closeouts, procurement metrics, public-safe award notices, workflow events, admin routes, tests, and documentation.
 
 ## Next Milestone
 
-Complete local/CI verification for Sprint 10, then plan Sprint 11 without starting it automatically.
+Complete local/CI verification for Sprint 12, then prepare Sprint 13 only after explicit instruction.
