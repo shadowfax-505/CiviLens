@@ -15,3 +15,4 @@ Each module doc describes purpose, responsibilities, database tables, APIs, auth
 - Universal Search
 - Business Intelligence & Analytics
 - Intelligence Readiness
+- Public Transparency & Citizen Engagement

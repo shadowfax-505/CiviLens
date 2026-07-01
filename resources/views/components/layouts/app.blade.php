@@ -9,10 +9,17 @@
 <body class="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100">
     <header class="border-b border-slate-200 bg-white/90 px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
         <nav class="mx-auto flex max-w-6xl items-center justify-between">
-            <a class="font-semibold tracking-tight" href="/">CivicLens</a>
+            <a class="font-semibold tracking-tight" href="{{ route('public.home') }}">CivicLens</a>
             <div class="flex gap-4 text-sm">
+                <a href="{{ route('public.home') }}">Public</a>
                 @auth
                     <a href="{{ route('dashboard') }}">Dashboard</a>
+                    @can('create', App\Models\CitizenReport::class)
+                        <a href="{{ route('citizen.reports.index') }}">My Reports</a>
+                    @endcan
+                    @can('viewAny', App\Models\CitizenReport::class)
+                        <a href="{{ route('admin.citizen-reports.index') }}">Citizen Reports</a>
+                    @endcan
                     <a href="{{ route('profile.show') }}">Profile</a>
                     @can('viewAny', App\Models\User::class)
                         <a href="{{ route('admin.users.index') }}">Users</a>

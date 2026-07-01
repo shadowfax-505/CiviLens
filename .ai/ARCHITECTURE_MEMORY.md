@@ -32,6 +32,10 @@ Budgets are the single source of truth for project financial values. Projects no
 
 Procurement is implemented as a normalized tender-to-contract lifecycle. Tenders attach to projects, budgets, agencies, configurable procurement methods, categories, and statuses. Awards connect winning bids to contracts. Contracts reference the same project and budget as the tender and do not duplicate finance-owned allocation or expenditure totals. Procurement history is preserved through append-only `procurement_activities`.
 
+## Sprint 12 Foundation
+
+Enterprise Procurement extends the Sprint 05 lifecycle with procurement plans, plan approval activities, bid opening records, withdrawals, compliance checklist items, immutable evaluation summaries, award approvals, contract deliverables, payments, closeouts, milestone acceptance metadata, and variation approval metadata. `ProcurementPlanningService`, `ProcurementLifecycleService`, and `EnterpriseProcurementAnalyticsService` own behavior; controllers remain thin. Public procurement exposes only public tenders and public-disclosed approved awards.
+
 ## Sprint 05.5 Engineering Foundation
 
 The developer platform uses GitHub Actions, PHPStan/Larastan, Pint, Pest, Rector dry-runs, Playwright, and local complexity metrics as the quality spine. Domain events and queued job scaffolds are available for future notifications, reporting, exports, OCR, AI processing, and search indexing without changing current synchronous business workflows.
@@ -65,6 +69,10 @@ Analytics persistence is limited to immutable snapshots, generated report record
 Intelligence Readiness is implemented as a deterministic, human-reviewed layer. `IntelligenceManager`, `RuleRegistry`, `RuleExecutionService`, `EvidenceBuilder`, `IndicatorScoringService`, `ReviewWorkflowService`, `ProcessingJobService`, `IntelligenceDashboardService`, and `ExplainabilityService` own intelligence behavior.
 
 Persistence is limited to rule definitions, advisory indicators, source-linked evidence, human reviews, processing preparation jobs, and activities. Indicators are searchable and knowledge-graph aware, but source facts remain in their owning modules.
+
+## Sprint 11 Foundation
+
+Public Transparency is implemented as a public-safe read layer over source domains. `PublicVisibilityService`, public listing/detail services, and report workflow services centralize what guests and citizens can see. Citizen reports are moderated records with UUID tracking and append-only activities; they do not publish unreviewed citizen-submitted text as source civic facts.
 
 ## V2 Guardrail
 

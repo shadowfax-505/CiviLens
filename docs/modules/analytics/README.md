@@ -30,6 +30,7 @@ Snapshots and alerts are immutable history records. Reports store generated dash
 - `SnapshotService` generates immutable periodic snapshots.
 - `InsightService` evaluates rule-based alerts.
 - `ChartService` emits chart-library-neutral definitions.
+- `EnterpriseProcurementAnalyticsService` calculates Sprint 12 procurement intelligence metrics including participation, award distribution, average bidders, single-bid tenders, repeat winners, duration, competitiveness, completion rate, and variation frequency.
 
 ## Dashboards
 
@@ -76,3 +77,5 @@ Admin routes provide an executive dashboard, dashboard tabs, filters, KPI cards,
 Future sprints may add scheduled report delivery, PDF and spreadsheet rendering packages, materialized aggregate tables, GIS map widgets, predictive analytics, and AI-generated insights. AI outputs must remain explainable and separated from source facts unless an ADR promotes them.
 
 Sprint 10 intelligence indicators can feed analytics summaries by aggregate counts and review status only. Analytics must not duplicate indicator evidence or mutate intelligence review state.
+
+Sprint 12 procurement metrics feed the procurement dashboard and are designed for future intelligence indicators. They are calculated from operational source tables and do not duplicate tender, bid, award, contract, variation, or payment source facts.

@@ -20,6 +20,14 @@ Business Intelligence is implemented as an Analytics module. Metrics are registe
 
 Intelligence Readiness is implemented as deterministic rules, advisory indicators, source-linked evidence, human reviews, processing preparation jobs, and append-only activities. V1 does not run real OCR, LLM calls, embeddings, vector search, or automated legal conclusions.
 
+## Sprint 11 Memory
+
+Public Transparency is implemented as curated public web views over approved source records plus authenticated citizen report submission, UUID tracking, admin moderation, and append-only report activities. Public APIs, open-data exports, maps, OCR publication, semantic search, and AI-generated public summaries remain deferred.
+
+## Sprint 12 Memory
+
+Enterprise Procurement extends the existing tender core with procurement planning, bid opening privacy, immutable evaluation finalization, award approvals, contract payments, milestone acceptance, variation approval, closeout, enterprise procurement metrics, workflow events, and public-safe award notices. It remains additive to Sprint 05 and does not duplicate finance-owned budget facts.
+
 ## Required Reading
 
 - `docs/ENGINEERING_DIRECTIVE.md`

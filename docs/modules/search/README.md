@@ -33,7 +33,7 @@ Search rows reference source records by type and ID. Source domain tables remain
 
 - Projects
 - Budgets
-- Procurement tenders and contracts
+- Procurement plans, tenders, and contracts
 - Contractor organizations
 - Documents
 - Agencies
@@ -103,3 +103,7 @@ Implemented routes:
 Future providers may add typo tolerance, federated ranking, OCR text, semantic vectors, embeddings, and AI retrieval. They must preserve `SearchProvider`, `Searchable`, authorization filtering, analytics, and source-record authority.
 
 Sprint 10 registers intelligence indicators as searchable records. Search results must remain permission-aware and should expose indicators as advisory review records, not source-of-truth facts.
+
+Sprint 11 adds public web search over public index rows only. It is intentionally narrower than admin universal search and excludes private/internal records and intelligence indicators.
+
+Sprint 12 registers procurement plans as searchable records through the existing provider-agnostic registry. Tender and contract indexing remains the source for procurement lifecycle search, and bid/evaluation internals stay private unless a future reviewed read model explicitly publishes them.

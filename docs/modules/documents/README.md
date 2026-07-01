@@ -63,6 +63,8 @@ The document library supports dashboard summary cards, upload trends, document t
 
 Upload requests validate MIME/extension allowlists, file size limits, required metadata, relationship type allowlists, and tag existence. Storage paths are retained as private metadata and downloads stream through authorized Laravel routes.
 
+Sprint 11 adds public document listing and download routes for documents with public visibility only. Public downloads still stream through application routes and never reveal storage paths.
+
 ## Events And Queues
 
 Domain events include `DocumentUploaded`, `DocumentUpdated`, `DocumentArchived`, `DocumentVersionCreated`, and `DocumentMetadataUpdated`.

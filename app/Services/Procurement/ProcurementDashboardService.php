@@ -9,6 +9,8 @@ use Illuminate\Support\Carbon;
 
 class ProcurementDashboardService
 {
+    public function __construct(private readonly EnterpriseProcurementAnalyticsService $enterpriseAnalytics) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -30,6 +32,7 @@ class ProcurementDashboardService
                 ->groupBy('status')
                 ->pluck('total', 'status')
                 ->all(),
+            'enterprise_metrics' => $this->enterpriseAnalytics->metrics(),
         ];
     }
 

@@ -6,6 +6,7 @@
             <p class="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300">Tender, evaluation, award, and contract records remain traceable through an immutable procurement timeline.</p>
         </div>
         <div class="flex flex-wrap gap-2">
+            <a href="{{ route('admin.procurement.plans.index') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Plans</a>
             <a href="{{ route('admin.procurement.tenders.index') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Active</a>
             <a href="{{ route('admin.procurement.tenders.archived') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Archived</a>
             @unless ($archived)
@@ -20,7 +21,9 @@
         <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Average Bidders</p><p class="text-xl font-bold">{{ $summary['average_bidders'] }}</p></div>
         <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Award Rate</p><p class="text-xl font-bold">{{ $summary['award_rate'] }}%</p></div>
         <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Avg Evaluation Time</p><p class="text-xl font-bold">{{ $summary['average_evaluation_days'] }} days</p></div>
-        <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:col-span-3"><p class="text-sm text-slate-500">Contract Status Summary</p><p class="text-xl font-bold">{{ collect($summary['contract_status_summary'])->map(fn ($total, $status) => "{$status}: {$total}")->implode(' | ') ?: 'No contracts yet' }}</p></div>
+        <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Single-Bid Tenders</p><p class="text-xl font-bold">{{ $summary['enterprise_metrics']['single_bid_tenders'] }}</p></div>
+        <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Variation Frequency</p><p class="text-xl font-bold">{{ $summary['enterprise_metrics']['variation_frequency'] }}</p></div>
+        <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:col-span-2"><p class="text-sm text-slate-500">Contract Status Summary</p><p class="text-xl font-bold">{{ collect($summary['contract_status_summary'])->map(fn ($total, $status) => "{$status}: {$total}")->implode(' | ') ?: 'No contracts yet' }}</p></div>
     </section>
 
     <form method="GET" class="mt-8 rounded-xl border bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">

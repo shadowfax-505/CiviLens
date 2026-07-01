@@ -1,7 +1,7 @@
 # Next Steps
 
-1. Complete local/CI verification for Sprint 10.
-2. Plan Sprint 11 without starting it automatically.
+1. Complete local/CI verification for Sprint 12.
+2. Do not begin Sprint 13 until explicitly requested.
 3. Install Sanctum and implement token API auth when package access is available.
 4. Configure MySQL, Redis, and optional external search providers for local development.
 5. Implement future Scout, Meilisearch, or OpenSearch providers behind `SearchProvider` only when external services are available.

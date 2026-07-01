@@ -20,6 +20,10 @@ The platform now includes placeholder-safe queued jobs for notifications, report
 
 Sprint 10 adds bounded intelligence rule execution and processing readiness queues. Rule execution should use module filters and limits, indicators should be indexed through the existing search provider abstraction, and dashboard counts should be cached only when invalidation is clear.
 
+Sprint 11 public pages use paginated listings and eager-loaded public-safe relationships. Public dashboard counts should stay simple source-table aggregates until traffic justifies cached materialized summaries with explicit invalidation.
+
+Sprint 12 procurement pages eager load tender, bid, evaluation, award, contract, payment, milestone, variation, and public award notice relationships used by each screen. Enterprise procurement metrics are calculated in a dedicated service and should be cached only after invalidation rules are defined for bid submission, award approval, variation approval, milestone completion, and contract closeout events.
+
 ## Search Performance
 
 Sprint 08 introduces indexed search tables and cache-backed suggestions/analytics.

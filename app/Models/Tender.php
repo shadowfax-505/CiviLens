@@ -86,6 +86,11 @@ class Tender extends Model implements Searchable
         return $this->hasMany(BidSubmission::class)->latest('submitted_at');
     }
 
+    public function plans(): HasMany
+    {
+        return $this->hasMany(ProcurementPlan::class, 'project_id', 'project_id');
+    }
+
     public function evaluationCommittees(): HasMany
     {
         return $this->hasMany(EvaluationCommittee::class);

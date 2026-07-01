@@ -2,17 +2,16 @@
 
 ## Sprint
 
-Sprint 10: Intelligence Readiness, Evidence Review & Risk Indicator Platform
+Sprint 12: Enterprise Procurement, Tender & Contract Lifecycle Platform
 
 ## Goal
 
-Implement deterministic intelligence readiness with rule-based indicators, source-linked evidence, human review workflows, and OCR/AI processing preparation without real OCR, LLM calls, embeddings, vector search, or automated legal conclusions.
+Implement the enterprise procurement lifecycle from planning through tendering, bids, evaluation, award approval, contracts, variations, milestones, payments, analytics, search, and public-safe transparency without redesigning existing modules.
 
 ## Active Tasks
 
-- Intelligence schema, models, factories, seed data, permissions, and policies. Status: implemented.
-- Rule registry, execution, evidence, scoring, review, processing, dashboard, and explainability services. Status: implemented.
-- Admin intelligence dashboard, indicator review queue, indicator detail, processing queue, JSON summary, and rule preview/run routes. Status: implemented.
-- Pest tests for schema, services, authorization, rule execution, evidence, reviews, queues, events, search integration, and filters. Status: implemented.
-- Browser intelligence workflow coverage. Status: implemented in Playwright spec; local execution depends on environment.
-- Documentation and AI memory synchronization. Status: implemented.
+- Procurement plan schema, policy, service, admin UI, approval activity, and search indexing. Status: implemented.
+- Bid opening privacy, immutable evaluation summaries, award approvals, contract payments, milestone acceptance, variation approvals, and closeouts. Status: implemented.
+- Enterprise procurement intelligence metrics and public-safe award notices. Status: implemented.
+- Pest coverage for service and route workflows. Status: implemented; full gate execution depends on environment.
+- Documentation and AI memory synchronization. Status: in progress.
