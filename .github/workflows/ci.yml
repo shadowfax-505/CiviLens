@@ -17,18 +17,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v3
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
-          extensions: mbstring, dom, fileinfo, pdo_sqlite, sqlite3
+          php-version: '8.4'
+          extensions: bcmath, dom, fileinfo, intl, mbstring, pdo_sqlite, redis, sqlite3, zip
           coverage: none
           tools: composer:v2
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
@@ -43,8 +43,11 @@ jobs:
       - name: Validate Composer configuration
         run: composer validate --strict
 
+      - name: Audit Composer dependencies
+        run: composer audit
+
       - name: Install PHP dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
+        run: composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
       - name: Prepare Laravel environment
         run: |
@@ -79,6 +82,9 @@ jobs:
 
       - name: Run browser tests
         run: npm run test:e2e
+
+      - name: Run Git whitespace check
+        run: git diff --check
 
       - name: Cache Laravel optimized files
         run: |
