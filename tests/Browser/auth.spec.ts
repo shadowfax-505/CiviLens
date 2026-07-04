@@ -3,7 +3,7 @@ import { loginAsAdmin, registerCitizen } from './helpers';
 
 test('login shows the dashboard for the seeded administrator', async ({ page }) => {
   await loginAsAdmin(page);
-  await expect(page.getByText('Welcome to the CivicLens v1 identity foundation.')).toBeVisible();
+  await expect(page.getByText('CivicLens v1.0 RC1 is ready for production-readiness validation')).toBeVisible();
 });
 
 test('registration creates a citizen account and protects admin routes', async ({ page }, testInfo) => {

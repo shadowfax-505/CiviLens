@@ -7,12 +7,17 @@ The database is the strongest part of CivicLens. V1 should demonstrate normaliza
 ## Core Tables
 
 - `users`, `roles`, `permissions`, `role_user`, `role_permission`
-- `agencies`, `locations`, `projects`, `project_statuses`, `project_status_log`
-- `budgets`, `budget_items`
-- `procurements`, `procurement_items`, `suppliers`, `contracts`
-- `documents`, `report_cards`, `comments`, `categories`, `entity_category`
-- `activity_logs`, `notifications`, `settings`, `files`
-- `llm_models`, `embeddings`, `anomaly_events`, `delay_alerts`, `contractor_scores`
+- `countries`, `divisions`, `districts`, `upazilas`, `unions`, `wards`
+- `agencies`, `agency_types`, `agency_user`
+- `projects`, `project_categories`, `project_statuses`, `project_priorities`, `project_activities`
+- `budgets`, `budget_revisions`, `budget_transactions`
+- `procurement_plans`, `tenders`, `bid_submissions`, `awards`, `contracts`, `contract_milestones`, `variation_orders`
+- `organizations`, `contractor_profiles`, `compliance_records`, `legal_cases`, `blacklist_histories`, `contractor_performance_snapshots`
+- `documents`, `document_versions`, `documentables`, `document_permissions`, `document_activities`
+- `search_indexes`, `search_history`, `saved_searches`, `search_jobs`
+- `analytics_snapshots`, `analytics_reports`, `analytics_alerts`, `dashboard_states`, `analytics_events`
+- `intelligence_rules`, `intelligence_indicators`, `intelligence_evidence`, `intelligence_reviews`, `civic_intelligence_runs`, `intelligence_rule_audits`
+- `citizen_reports`, `citizen_report_activities`
 
 ## Index Strategy
 

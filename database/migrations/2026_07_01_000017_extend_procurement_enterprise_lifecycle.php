@@ -50,7 +50,7 @@ return new class extends Migration
             $table->json('new_values')->nullable();
             $table->timestamps();
 
-            $table->index(['procurement_plan_id', 'created_at']);
+            $table->index(['procurement_plan_id', 'created_at'], 'proc_plan_activities_plan_created_idx');
         });
 
         Schema::table('bid_submissions', function (Blueprint $table): void {

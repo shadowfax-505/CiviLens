@@ -15,7 +15,30 @@ class MetricEngine
     {
         $cacheKey = 'analytics:metric:'.md5($key.'|'.$filters->hash());
 
-        $metric = Cache::remember($cacheKey, now()->addMinutes(5), fn (): MetricResult => $this->registry->calculate($key, $filters));
+        $cached = Cache::remember(
+            $cacheKey,
+            now()->addMinutes(5),
+            fn (): array => $this->registry->calculate($key, $filters)->toArray(),
+        );
+
+        if ($cached instanceof MetricResult) {
+            $metric = $cached;
+            Cache::put($cacheKey, $metric->toArray(), now()->addMinutes(5));
+        } elseif (is_array($cached)) {
+            $metric = new MetricResult(
+                key: (string) $cached['key'],
+                label: (string) $cached['label'],
+                category: (string) $cached['category'],
+                value: $cached['value'],
+                unit: $cached['unit'] ?? null,
+                description: $cached['description'] ?? null,
+                meta: $cached['meta'] ?? [],
+            );
+        } else {
+            Cache::forget($cacheKey);
+            $metric = $this->registry->calculate($key, $filters);
+            Cache::put($cacheKey, $metric->toArray(), now()->addMinutes(5));
+        }
 
         MetricCalculated::dispatch($metric);
 

@@ -29,12 +29,17 @@ it('exposes public safe version and enriched health readiness data', function ()
     $this->getJson('/version')
         ->assertOk()
         ->assertHeader('X-Request-Id')
+        ->assertHeader('X-Content-Type-Options', 'nosniff')
+        ->assertHeader('X-Frame-Options', 'DENY')
+        ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+        ->assertJsonPath('version', 'v1.0.0-RC1')
         ->assertJsonStructure(['app', 'version', 'environment', 'commit', 'generated_at'])
         ->assertJsonMissingPath('app_key');
 
     $this->getJson('/healthz')
         ->assertOk()
         ->assertHeader('X-Request-Id')
+        ->assertHeader('X-Content-Type-Options', 'nosniff')
         ->assertJsonPath('checks.scheduler.configured', true)
         ->assertJsonPath('checks.integrity.last_run.status', 'completed')
         ->assertJsonMissingPath('env');

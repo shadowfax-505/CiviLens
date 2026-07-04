@@ -7,10 +7,10 @@
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300">Executive Command Center</p>
                     <h1 class="mt-3 text-4xl font-bold tracking-tight">CivicLens Dashboard</h1>
-                    <p class="mt-3 max-w-3xl text-slate-300">Welcome to the CivicLens v1 identity foundation. Monitor delivery, finance, procurement, documents, citizen engagement, and deterministic integrity signals from one production-ready workspace.</p>
+                    <p class="mt-3 max-w-3xl text-slate-300">CivicLens v1.0 RC1 is ready for production-readiness validation across delivery, finance, procurement, documents, citizen engagement, and deterministic integrity signals.</p>
                 </div>
                 <div class="rounded-2xl bg-white/10 px-4 py-3 text-sm">
-                    <p class="font-semibold">System Health</p>
+                    <h2 class="font-semibold">System Health</h2>
                     <p class="mt-1 text-cyan-100">{{ str($summary['system_health']['status'] ?? 'unknown')->upper() }}</p>
                 </div>
             </div>

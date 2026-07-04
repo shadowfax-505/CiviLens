@@ -112,7 +112,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['budget_id', 'transaction_date']);
-            $table->index(['budget_transaction_type_id', 'transaction_date']);
+            $table->index(['budget_transaction_type_id', 'transaction_date'], 'budget_tx_type_date_idx');
             $table->index(['user_id', 'transaction_date']);
         });
     }
