@@ -22,7 +22,7 @@ class SystemMetricsService
             'version' => config('app.version'),
             'environment' => config('app.env'),
             'commit' => config('app.commit'),
-            'generated_at' => now()->toIso8601String(),
+            'generated_at' => date(DATE_ATOM),
         ];
     }
 
@@ -52,7 +52,7 @@ class SystemMetricsService
         return [
             'status' => collect($checks)->every(fn (array $check): bool => ($check['ok'] ?? false) === true) ? 'ok' : 'degraded',
             'checks' => $checks,
-            'timestamp' => now()->toIso8601String(),
+            'timestamp' => date(DATE_ATOM),
         ];
     }
 
@@ -81,7 +81,7 @@ class SystemMetricsService
                 'failed_runs' => CivicIntelligenceRun::query()->where('status', 'failed')->count(),
                 'last_run' => $this->latestIntegrityRun(),
             ],
-            'generated_at' => now()->toIso8601String(),
+            'generated_at' => date(DATE_ATOM),
         ];
     }
 

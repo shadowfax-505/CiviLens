@@ -36,6 +36,10 @@ Production readiness adds Docker, production compose, Nginx, PHP-FPM, Supervisor
 
 Production hardening extends, rather than rebuilds, Sprint 13 part 1. `/dashboard` is the Executive Command Center. `SystemMetricsService` powers `/healthz`, `/version`, and authorized `/admin/system/metrics`. `RequestCorrelation` attaches `X-Request-Id` to responses and log context. `RuleManagementService` owns audited rule updates, dry-runs, and execution metadata with `intelligence_rule_audits`. `IntelligenceDashboardService` now exposes timelines, distributions, rankings, and performance metrics. `ReportBuilder` renders CSV, spreadsheet-compatible, and PDF downloads from stored analytics report payloads. No v2 AI infrastructure was added.
 
+## RC1 Memory
+
+Release Candidate 1 validates CivicLens v1.0 as `v1.0.0-RC1`. RC hardening may change version metadata, defensive headers, documentation, release notes, checklists, and low-risk stability fixes only. It must not introduce new business modules, public API expansion, v2 AI infrastructure, OCR, LLMs, embeddings, vector search, semantic search, machine learning, recommendation systems, microservices, GraphQL, or experimental packages.
+
 ## Required Reading
 
 - `docs/ENGINEERING_DIRECTIVE.md`

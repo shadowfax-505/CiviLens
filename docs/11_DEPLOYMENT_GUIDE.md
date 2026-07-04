@@ -8,7 +8,7 @@ Use Docker or Laravel Sail for PHP, MySQL, Redis, Meilisearch, and mail testing.
 
 Sprint 13 part 1 adds a production-oriented Docker scaffold:
 
-- `Dockerfile` builds Composer dependencies, Vite assets, and a PHP-FPM runtime.
+- `Dockerfile` builds Composer dependencies, Vite assets, and a PHP 8.4 PHP-FPM runtime with the Redis extension.
 - `docker-compose.production.yml` defines app, worker, Nginx, MySQL, and Redis services.
 - `docker/production/nginx.conf` serves public assets and forwards PHP requests to PHP-FPM.
 - `docker/production/supervisord.conf` runs queue workers and the Laravel scheduler loop.
@@ -40,6 +40,7 @@ Before promoting a release, run:
 - `php artisan view:cache`
 
 Queue workers should be restarted after deployment so new event listeners and queued job classes are loaded.
+When mounting persistent storage volumes, the production entrypoint repairs `storage` and `bootstrap/cache` ownership before warming Laravel caches. Do not remove this step; build-time file ownership does not apply to runtime-mounted volumes.
 
 Rollback plan:
 
@@ -54,6 +55,10 @@ Rollback plan:
 Use `GET /healthz` for load balancer and uptime checks. The endpoint reports app, database, cache, storage, and queue readiness without exposing secrets or internal paths.
 
 Use `GET /version` during release verification to confirm deployed application version, environment label, and commit metadata. Authenticated operators can use `GET /admin/system/metrics` to review queue, scheduler, database, cache, storage, and integrity-run metrics.
+
+For Release Candidate 1, `APP_VERSION` must be `v1.0.0-RC1` and `APP_COMMIT` must match the deployed Git SHA or release artifact identifier.
+
+RC1 Docker validation used manual containers because Docker Compose was unavailable in the local environment. A real production deployment should use `docker-compose.production.yml` or host-native equivalents with HTTPS, durable storage, backups, and external monitoring.
 
 ## Scheduler
 

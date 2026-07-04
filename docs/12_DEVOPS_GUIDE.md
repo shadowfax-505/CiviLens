@@ -30,8 +30,10 @@ V1 runs GitHub Actions on push and pull request. The workflow validates Composer
 - Track search indexing failures.
 - Monitor `/healthz` for app, database, cache, storage, and queue readiness.
 - Verify `/version` after each release and compare `APP_VERSION`/`APP_COMMIT` with the deployment artifact.
+- For RC1, `APP_VERSION` must be `v1.0.0-RC1`.
 - Use authorized `/admin/system/metrics` for operator-facing database, cache, queue, scheduler, storage, and integrity-run summaries.
 - Confirm Supervisor keeps the default queue worker and scheduler loop alive in production.
+- Inside the production worker container, use `supervisorctl -c /etc/supervisord.conf status` to inspect queue and scheduler process state.
 - Review `civic_intelligence_runs` after scheduled execution to detect failed integrity runs.
 - Review `intelligence_rule_audits` after rule-threshold changes or dry-run tuning sessions.
 - Record release notes.
@@ -40,7 +42,7 @@ V1 runs GitHub Actions on push and pull request. The workflow validates Composer
 
 ## Production Runtime
 
-Sprint 13 includes production container files for PHP-FPM, Nginx, Supervisor, MySQL, and Redis. Deployments should run optimized Composer autoloading, Vite builds, controlled migrations, `php artisan optimize`, and worker restarts. Rollbacks should restore the previous image and database backup or migration rollback plan before restarting workers, then clear/rebuild Laravel caches and recheck health/version endpoints.
+Sprint 13 includes production container files for PHP 8.4 FPM, Nginx, Supervisor, MySQL, and Redis. Deployments should run optimized Composer autoloading, Vite builds, controlled migrations, `php artisan optimize`, and worker restarts. Rollbacks should restore the previous image and database backup or migration rollback plan before restarting workers, then clear/rebuild Laravel caches and recheck health/version endpoints.
 
 ## V2 Expansion Notes
 

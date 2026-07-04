@@ -32,6 +32,7 @@
 - Sprint 12 procurement lifecycle events are logged for plan approval, bid opening, evaluation completion, award approval, variation approval, milestone completion, and contract closeout.
 - Sprint 13 adds `/healthz` for app/database/cache/storage/queue/scheduler/integrity readiness, `/version` for deploy metadata, `/admin/system/metrics` for authorized operator metrics, and `civic_intelligence_runs` for scheduled deterministic engine status.
 - `RequestCorrelation` attaches `X-Request-Id` to responses and structured log context.
+- `SecurityHeaders` attaches baseline defensive headers to every response.
 - `intelligence_rule_audits` records rule-management changes and execution events for operational review.
 - Structured log context helpers keep operational metadata consistent.
 - Performance timing helpers are available for future instrumentation around expensive workflows.

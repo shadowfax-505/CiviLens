@@ -71,5 +71,10 @@
 
         {{ $slot }}
     </main>
+
+    <footer class="mx-auto flex max-w-6xl flex-col gap-2 border-t border-slate-200 px-6 py-6 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+        <span>CivicLens {{ config('app.version') }}</span>
+        <span>Release candidate metadata: {{ config('app.commit') }}</span>
+    </footer>
 </body>
 </html>

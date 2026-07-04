@@ -21,7 +21,7 @@ class ReportBuilder
             'subtitle' => 'Enterprise Civic Intelligence Platform',
         ];
         $payload['evidence'] = [
-            'generated_timestamp' => now()->toIso8601String(),
+            'generated_timestamp' => date(DATE_ATOM),
             'filters' => $filters->toArray(),
             'source' => 'Normalized CivicLens operational records',
         ];
@@ -47,7 +47,7 @@ class ReportBuilder
     public function csv(AnalyticsReport $report): string
     {
         $rows = [
-            '"CivicLens","'.$this->escape((string) $report->name).'","'.now()->toIso8601String().'"',
+            '"CivicLens","'.$this->escape((string) $report->name).'","'.date(DATE_ATOM).'"',
             'Metric,Value,Unit',
         ];
         $metrics = data_get($report->getAttribute('payload'), 'metrics', []);

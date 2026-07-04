@@ -60,6 +60,7 @@ Business controllers must stay thin. Validation belongs in Form Requests. Author
 - Do not revert user changes without explicit approval.
 - Prefer non-interactive Git commands.
 - Suggested commit messages should use clear conventional prefixes such as `feat:`, `fix:`, `docs:`, `test:`, or `chore:`.
+- When the user asks for project development work and the repository is not yet connected to GitHub, create or connect the GitHub remote and push the current branch using the configured `GITHUB_PAT_TOKEN`/`GH_TOKEN` credentials.
 
 ## Testing And Quality Gates
 
@@ -87,6 +88,7 @@ If a gate cannot run locally, record the reason clearly.
 - `/healthz` is the public-safe health endpoint. It may report component status, but it must never expose secrets, internal paths, environment dumps, or credentials.
 - `/version` may expose only deploy-safe app metadata such as version, environment label, commit hash, and timestamp. It must never expose secrets or raw configuration.
 - `/admin/system/metrics` is administrative-only and must stay behind analytics authorization.
+- Application responses should include request correlation and baseline defensive security headers.
 - Docker, Nginx, PHP-FPM, Supervisor, Redis, MySQL, queues, and scheduler configuration must remain aligned with `docs/11_DEPLOYMENT_GUIDE.md` and `.env.production.example`.
 - Request and correlation IDs should be present in responses and structured log context for production diagnostics.
 

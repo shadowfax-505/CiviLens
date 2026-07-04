@@ -37,4 +37,4 @@ CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 
 
 ## Next Milestone
 
-CivicLens v1 is now positioned for deployment and academic submission. Do not begin v2 AI infrastructure until v1 deployment is complete and ADR-backed.
+CivicLens v1 is in Release Candidate 1 validation as `v1.0.0-RC1`. Do not begin v2 AI infrastructure until v1 deployment is complete and ADR-backed.

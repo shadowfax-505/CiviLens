@@ -28,7 +28,7 @@ return new class extends Migration
             $table->timestamp('occurred_at')->index();
             $table->timestamps();
 
-            $table->index(['intelligence_rule_id', 'occurred_at']);
+            $table->index(['intelligence_rule_id', 'occurred_at'], 'intel_rule_audits_rule_occurred_idx');
         });
     }
 

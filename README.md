@@ -3,7 +3,7 @@
 
 CivicLens is an AI-assisted Civic Intelligence Platform for collecting, validating, searching, analyzing, and visualizing public-sector project information.
 
-This repository contains the **Enterprise v1.0 Laravel platform** plus the project documentation set. The current application includes authentication, role and permission management, user administration, geography, agencies, projects, budgets, procurement and contracts, contractors, documents, universal search, analytics, public transparency, citizen reports, production deployment scaffolding, and the deterministic Civic Integrity Engine.
+This repository contains the **Enterprise v1.0 Laravel platform** plus the project documentation set. The current release candidate is **v1.0.0-RC1**. The current application includes authentication, role and permission management, user administration, geography, agencies, projects, budgets, procurement and contracts, contractors, documents, universal search, analytics, public transparency, citizen reports, production deployment scaffolding, and the deterministic Civic Integrity Engine.
 
 V1 does not implement OCR, LLMs, embeddings, vector databases, semantic search, autonomous AI agents, or legal conclusions. Integrity signals are deterministic, evidence-backed, and human-reviewed.
 
@@ -33,7 +33,9 @@ V1 does not implement OCR, LLMs, embeddings, vector databases, semantic search, 
 - `/healthz` exposes public-safe readiness checks.
 - `/version` exposes deploy metadata without secrets.
 - `/admin/system/metrics` exposes authorized operational metrics.
+- Application responses include request correlation and baseline defensive security headers.
 - `docker-compose.production.yml` is the baseline production stack for app, worker, Nginx, MySQL, and Redis.
+- RC1 has been validated with a local Docker production-style stack, but public production deployment still requires a provider with HTTPS, DNS, durable storage, backups, and monitoring.
 
 ## Development Commands
 
