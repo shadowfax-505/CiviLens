@@ -102,7 +102,7 @@ return new class extends Migration
             $table->timestamp('failed_at')->nullable();
             $table->timestamps();
 
-            $table->index(['target_type', 'target_id', 'job_type']);
+            $table->index(['target_type', 'target_id', 'job_type'], 'intel_jobs_target_type_id_job_idx');
             $table->index(['status', 'queued_at']);
         });
 

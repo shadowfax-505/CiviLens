@@ -52,7 +52,7 @@ class RuleManagementService
             'thresholds' => $rule->thresholds ?? [],
             'configuration' => $rule->configuration ?? [],
             'explanation' => 'Dry run estimates source records that match the configured deterministic rule without creating indicators or evidence.',
-            'generated_at' => now()->toIso8601String(),
+            'generated_at' => date(DATE_ATOM),
         ];
     }
 

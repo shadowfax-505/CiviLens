@@ -2,6 +2,19 @@
 
 All notable changes to CivicLens are tracked here.
 
+## [1.0.0-RC1] - 2026-07-04
+
+- Promoted CivicLens v1.0 to Release Candidate 1 metadata with `APP_VERSION=v1.0.0-RC1`.
+- Added baseline defensive security headers for application responses.
+- Added visible footer release metadata.
+- Added RC1 release checklist and release notes.
+- Validated the RC1 Docker runtime locally with PHP 8.4, MySQL 8.4, Redis 7.4, Nginx, Supervisor queue workers, scheduler, health/version/metrics endpoints, authentication, analytics, search, procurement, public portal, queue processing, and integrity execution.
+- Hardened the production image by excluding stale Laravel bootstrap cache files, repairing runtime storage ownership for mounted volumes, installing the Redis extension, and aligning PHP requirements with PHP `^8.4.1`.
+- Fixed MySQL migration portability by shortening long generated index names.
+- Hardened analytics metric caching to store portable arrays instead of serialized value objects.
+- Aligned Nginx edge security headers and added Supervisor control status support.
+- Synchronized release, deployment, monitoring, security, database, API, and AI memory documentation for production-readiness validation.
+
 ## [0.1.0] - 2026-06-29
 
 - Created Enterprise v1.0 documentation repository skeleton.

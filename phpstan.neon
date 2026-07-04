@@ -18,6 +18,12 @@ parameters:
 
     tmpDir: storage/framework/cache/phpstan
 
+    bootstrapFiles:
+        - tools/phpstan/bootstrap.php
+
+    parallel:
+        maximumNumberOfProcesses: 1
+
     excludePaths:
         analyse:
             - bootstrap/cache

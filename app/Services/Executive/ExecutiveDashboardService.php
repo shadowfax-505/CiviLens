@@ -64,7 +64,7 @@ class ExecutiveDashboardService
                 ->get(),
             'charts' => [
                 [
-                    'title' => 'Risk Summary',
+                    'title' => 'Risk Breakdown',
                     'segments' => [
                         ['label' => 'Critical', 'value' => $criticalSignals],
                         ['label' => 'Warning', 'value' => $warningSignals],
@@ -80,7 +80,7 @@ class ExecutiveDashboardService
                     ],
                 ],
             ],
-            'generated_at' => now()->toIso8601String(),
+            'generated_at' => date(DATE_ATOM),
         ];
     }
 

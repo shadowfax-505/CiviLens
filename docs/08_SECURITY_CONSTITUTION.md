@@ -45,6 +45,14 @@ Rule management is protected by intelligence authorization. All rule configurati
 
 `RequestCorrelation` attaches a request ID to responses and log context for incident review without exposing private user data.
 
+Release Candidate 1 adds baseline defensive response headers on all application responses:
+
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- `Strict-Transport-Security` in production environments
+
 ## V2 Expansion Notes
 
 Add threat modeling for public APIs, rate limiting by tier, data provenance signatures, and model governance controls.

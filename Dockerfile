@@ -11,11 +11,16 @@ WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
-FROM php:8.3-fpm-alpine AS app
+FROM php:8.4-fpm-bookworm AS app
 WORKDIR /var/www/html
 
-RUN apk add --no-cache bash icu-dev libzip-dev oniguruma-dev supervisor mysql-client \
-    && docker-php-ext-install bcmath intl mbstring opcache pdo_mysql zip
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends bash default-mysql-client libicu-dev libonig-dev libzip-dev supervisor unzip $PHPIZE_DEPS \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && docker-php-ext-install bcmath intl mbstring opcache pdo_mysql zip \
+    && apt-get purge -y --auto-remove $PHPIZE_DEPS \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=assets /app/public/build ./public/build
@@ -24,7 +29,8 @@ COPY docker/production/php.ini /usr/local/etc/php/conf.d/zz-civiclens.ini
 COPY docker/production/supervisord.conf /etc/supervisord.conf
 COPY docker/production/entrypoint.sh /usr/local/bin/civiclens-entrypoint
 
-RUN chmod +x /usr/local/bin/civiclens-entrypoint \
+RUN rm -f bootstrap/cache/*.php \
+    && chmod +x /usr/local/bin/civiclens-entrypoint \
     && chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 9000

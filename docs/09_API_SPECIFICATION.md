@@ -8,7 +8,9 @@
 - Sanctum bearer tokens for private APIs.
 - Public read-only APIs may be introduced in v2.
 
-## Core Endpoints
+## Planned Private JSON API Endpoints
+
+Version 1.0 RC1 ships authenticated web routes and JSON-returning web endpoints for selected admin workflows. Dedicated `/api/*` token endpoints remain planned and require Sanctum installation before promotion:
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
@@ -249,6 +251,11 @@ Processing jobs prepare future OCR, AI review, and search synchronization only. 
 ## Public Portal Endpoint Notes
 
 Sprint 11 public routes are web endpoints, not versioned public APIs. Public search is limited to indexed records with `visibility=public`; public document downloads stream through application routes and do not expose internal storage paths. Citizen report submission requires authentication and is rate-limited.
+
+## Analytics Filter Parameters
+
+Analytics web endpoints support the following filter parameters where applicable:
+
 - `fiscal_year_id`
 - `agency_id`
 - `division_id`
