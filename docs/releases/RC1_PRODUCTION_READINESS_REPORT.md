@@ -45,7 +45,7 @@ Production-stack validation found and fixed four MySQL/runtime blockers:
 
 ## Docker Runtime Validation
 
-RC1 was built and exercised as `civiclens:rc1` with manually started Docker containers because Docker Compose was unavailable locally.
+RC1 was built and exercised as `civiclens:rc1` with manually started Docker containers. Docker Compose was later confirmed available as v5.1.4 for operator deployments that provide a real `.env.production` file.
 
 Validated services:
 

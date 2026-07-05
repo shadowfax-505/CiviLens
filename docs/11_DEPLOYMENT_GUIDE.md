@@ -58,7 +58,7 @@ Use `GET /version` during release verification to confirm deployed application v
 
 For Release Candidate 1, `APP_VERSION` must be `v1.0.0-RC1` and `APP_COMMIT` must match the deployed Git SHA or release artifact identifier.
 
-RC1 Docker validation used manual containers because Docker Compose was unavailable in the local environment. A real production deployment should use `docker-compose.production.yml` or host-native equivalents with HTTPS, durable storage, backups, and external monitoring.
+RC1 Docker validation used manual containers. Docker Compose is available for operator deployments, but `docker-compose.production.yml` requires a real `.env.production` file. A real production deployment should use the Compose stack or host-native equivalents with HTTPS, durable storage, backups, and external monitoring.
 
 ## Scheduler
 
