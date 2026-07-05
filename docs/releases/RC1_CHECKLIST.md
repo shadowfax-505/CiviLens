@@ -41,6 +41,7 @@
 - [ ] `/admin/analytics/reports` renders report generation controls.
 - [ ] Public portal home, project listing, search, and report tracking routes render.
 - [ ] Login, logout, registration, password reset, and profile flows work.
+- [ ] Login and registration screens load the release CSS from `public/build` with no horizontal overflow on desktop or mobile.
 
 ## Database
 

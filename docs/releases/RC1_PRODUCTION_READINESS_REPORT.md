@@ -42,6 +42,7 @@ Production-stack validation found and fixed four MySQL/runtime blockers:
 - Three additional generated index names were shortened before they could fail future MySQL migrations.
 - Runtime storage volumes needed entrypoint ownership repair because build-time ownership does not apply to mounted volumes.
 - Persistent Redis cache could return stale serialized analytics objects, so metric caching now stores arrays and hydrates value objects after retrieval.
+- Production Nginx previously depended on a host bind mount for public assets, which could diverge from the Laravel image's Vite manifest. The Nginx runtime is now image-backed from the same release artifact.
 
 ## Docker Runtime Validation
 

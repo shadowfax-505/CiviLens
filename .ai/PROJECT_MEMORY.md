@@ -34,6 +34,7 @@ CivicLens has a Laravel 13 modular monolith foundation with the Enterprise v1.0 
 - Sprint 12 enterprise procurement: procurement plans and approvals, bid opening records, immutable evaluation summaries, award approvals, contract payments, milestone acceptance, variation approvals, contract closeouts, procurement metrics, public-safe award notices, workflow events, admin routes, tests, and documentation.
 - Sprint 13 part 1 production readiness and Civic Integrity Engine: production Docker/Nginx/PHP-FPM/Supervisor/Redis/MySQL scaffold, production environment example, public-safe health endpoint, scheduled `civiclens:integrity-run` command, reproducible `civic_intelligence_runs`, manual admin engine trigger, dashboard run status, repeat-winner and citizen-report-cluster rules, Pest tests, Playwright desktop/mobile/dark-mode/keyboard coverage, and documentation.
 - Sprint 13 part 2 production hardening: Executive Command Center, enriched Integrity dashboard, audited rule-management console, rule dry-runs, expanded explainability, CSV/spreadsheet/PDF report downloads, version endpoint, authorized system metrics, request correlation IDs, updated Playwright coverage, and synchronized docs/memory.
+- RC1 follow-up hardening: production Nginx now builds from the same release artifact as PHP-FPM so `public/build` cannot drift between Blade-rendered Vite manifests and edge-served assets. Figma file `https://www.figma.com/design/sV9RRgSjm1MB9OM6grywgN` captures the auth and application-shell polish direction implemented in Blade/Tailwind.
 
 ## Next Milestone
 

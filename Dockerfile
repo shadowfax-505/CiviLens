@@ -23,8 +23,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=vendor /app/vendor ./vendor
-COPY --from=assets /app/public/build ./public/build
 COPY . .
+COPY --from=assets /app/public/build ./public/build
 COPY docker/production/php.ini /usr/local/etc/php/conf.d/zz-civiclens.ini
 COPY docker/production/supervisord.conf /etc/supervisord.conf
 COPY docker/production/entrypoint.sh /usr/local/bin/civiclens-entrypoint
@@ -37,3 +37,11 @@ EXPOSE 9000
 
 ENTRYPOINT ["civiclens-entrypoint"]
 CMD ["php-fpm"]
+
+FROM nginx:1.29-alpine AS nginx
+WORKDIR /var/www/html
+
+COPY --from=app /var/www/html/public ./public
+COPY docker/production/nginx.conf /etc/nginx/conf.d/default.conf
+
+RUN ln -sfn ../storage/app/public public/storage
