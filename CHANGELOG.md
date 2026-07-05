@@ -13,6 +13,8 @@ All notable changes to CivicLens are tracked here.
 - Fixed MySQL migration portability by shortening long generated index names.
 - Hardened analytics metric caching to store portable arrays instead of serialized value objects.
 - Aligned Nginx edge security headers and added Supervisor control status support.
+- Fixed production asset drift by building Nginx from the same release artifact as PHP-FPM instead of serving host-mounted `public/build` files.
+- Added Figma-guided Blade polish for the shared shell and authentication screens, including stronger responsive layout, focus states, dark-mode surfaces, and production-grade form styling.
 - Synchronized release, deployment, monitoring, security, database, API, and AI memory documentation for production-readiness validation.
 
 ## [0.1.0] - 2026-06-29

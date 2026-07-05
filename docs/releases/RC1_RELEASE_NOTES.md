@@ -10,6 +10,8 @@
 - Rule management is audited through `intelligence_rule_audits`.
 - Reports support CSV, spreadsheet-compatible, and lightweight PDF downloads.
 - Public-safe `/healthz`, deploy-safe `/version`, authorized `/admin/system/metrics`, request correlation, and defensive security headers support operations.
+- Production Nginx now serves immutable public assets from the same release artifact as PHP-FPM, preventing Vite manifest and edge asset drift.
+- Figma-guided Blade polish improves the shared app shell and authentication flows without adding a new frontend framework.
 
 ## Architecture
 
@@ -31,6 +33,7 @@ No new ADR is required for RC1 because the release hardening stays within accept
 - Report downloads render from stored `analytics_reports.payload`.
 - Civic Integrity Engine runs snapshot thresholds once and execute deterministic rule services.
 - Analytics metric caching stores portable arrays instead of serialized value objects to avoid persistent-cache deserialization failures across optimized deployments.
+- The production Nginx image stage copies `public` from the PHP-FPM build output, so generated Vite assets remain consistent across app-rendered HTML and edge-served files.
 - High-volume deployments should move heavy scheduled analysis and exports to dedicated queue capacity before increasing record cardinality.
 
 ## Security

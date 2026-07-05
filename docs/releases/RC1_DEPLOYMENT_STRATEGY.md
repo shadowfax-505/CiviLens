@@ -42,7 +42,7 @@ The repository already contains production-oriented deployment assets:
 - `docker/production/entrypoint.sh`
 - `.env.production.example`
 
-These assets define the intended runtime: PHP-FPM Laravel app, Nginx, MySQL, Redis, database-backed queue fallback, supervised workers, scheduler loop, and persistent storage.
+These assets define the intended runtime: PHP-FPM Laravel app, image-backed Nginx serving the same immutable Vite build as the app image, MySQL, Redis, database-backed queue fallback, supervised workers, scheduler loop, and persistent storage.
 
 ## Deployment Target Decision
 
@@ -104,6 +104,7 @@ flowchart TD
 - PHP 8.4 production image.
 - Laravel app served through PHP-FPM.
 - Nginx terminates HTTP inside the container stack or receives traffic from an external HTTPS proxy.
+- Nginx serves `public/build` from the release image, not a host bind mount, so Blade-rendered Vite asset paths and edge-served files cannot drift.
 - `APP_DEBUG=false`.
 - `APP_ENV=production`.
 - `APP_VERSION=v1.0.0-RC1`.
@@ -200,6 +201,7 @@ Validation results:
 
 - `civiclens:rc1` built successfully on PHP 8.4.23 with Redis, PDO MySQL, intl, mbstring, opcache, and zip extensions.
 - `docker compose -f docker-compose.production.yml config` rendered a 206-line resolved configuration when supplied with a temporary `.env.production` copied from `.env.production.example`.
+- The production Docker scaffold now builds Nginx from the same release artifact as PHP-FPM, preventing stale host `public/build` assets from diverging from Laravel's Vite manifest.
 - Laravel booted inside the production image with no dev dependencies.
 - MySQL 8.4 migrations ran from an empty schema and seeders completed.
 - Nginx served the app on `http://localhost:8080`.
