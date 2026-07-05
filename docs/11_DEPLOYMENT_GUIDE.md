@@ -8,9 +8,9 @@ Use Docker or Laravel Sail for PHP, MySQL, Redis, Meilisearch, and mail testing.
 
 Sprint 13 part 1 adds a production-oriented Docker scaffold:
 
-- `Dockerfile` builds Composer dependencies, Vite assets, and a PHP 8.4 PHP-FPM runtime with the Redis extension.
-- `docker-compose.production.yml` defines app, worker, Nginx, MySQL, and Redis services.
-- `docker/production/nginx.conf` serves public assets and forwards PHP requests to PHP-FPM.
+- `Dockerfile` builds Composer dependencies, Vite assets, a PHP 8.4 PHP-FPM runtime with the Redis extension, and an Nginx runtime stage with the same immutable public assets.
+- `docker-compose.production.yml` defines app, worker, image-backed Nginx, MySQL, and Redis services.
+- `docker/production/nginx.conf` serves public assets from the release image and forwards PHP requests to PHP-FPM.
 - `docker/production/supervisord.conf` runs queue workers and the Laravel scheduler loop.
 - `docker/production/php.ini` sets production PHP limits and disables error display.
 - `.env.production.example` documents required production environment variables.
@@ -41,6 +41,8 @@ Before promoting a release, run:
 
 Queue workers should be restarted after deployment so new event listeners and queued job classes are loaded.
 When mounting persistent storage volumes, the production entrypoint repairs `storage` and `bootstrap/cache` ownership before warming Laravel caches. Do not remove this step; build-time file ownership does not apply to runtime-mounted volumes.
+
+Do not bind-mount the application checkout into the production Nginx container. The Nginx image stage must serve the same `public/build` manifest and assets that the Laravel image was built with; otherwise Blade-rendered Vite paths can drift from the files served at the edge.
 
 Rollback plan:
 
