@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
 
       - name: Cache Composer dependencies
@@ -68,6 +68,12 @@ jobs:
           touch database/database.sqlite
           php artisan config:clear
 
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
       - name: Run PHP tests
         run: composer test
 
@@ -82,12 +88,6 @@ jobs:
 
       - name: Run complexity metrics
         run: composer metrics
-
-      - name: Install NPM dependencies
-        run: npm ci
-
-      - name: Build frontend assets
-        run: npm run build
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
