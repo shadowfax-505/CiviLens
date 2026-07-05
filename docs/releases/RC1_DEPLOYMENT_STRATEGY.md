@@ -22,7 +22,7 @@ Discovery was performed before any deployment attempt. No secret values were pri
 | GitHub CLI | Available and authenticated | Repo: `shadowfax-505/CiviLens`; token scopes include `repo`. |
 | GitHub Actions | Available for CI only | Workflow `CivicLens CI` exists; no deployment secrets or variables are configured. |
 | Docker CLI | Available after Docker Desktop startup | Used for RC1 local production-style validation. |
-| Docker Compose | Unavailable | `docker compose` is not installed/enabled in this local CLI. |
+| Docker Compose | Available | `docker compose` and `docker-compose` report v5.1.4. Production config rendering requires a real `.env.production` file. |
 | Kubernetes CLI | Installed, not connected | `kubectl` has no current context. |
 | Azure | Incomplete local profile only | VS Code Azure auth files exist, but `az` CLI is missing and no Azure env credentials are set. |
 | MySQL CLI | Installed | Local client only; no managed database provider credentials discovered. |
@@ -53,7 +53,7 @@ These assets define the intended runtime: PHP-FPM Laravel app, Nginx, MySQL, Red
 | Higgsfield website deploy | Poor | MCP available | Rejected. The platform creates Cloudflare Worker React apps and is not appropriate for this Laravel/MySQL/Redis monolith. |
 | GitHub Pages | Poor | GitHub available | Rejected. Static hosting cannot run Laravel, queues, scheduler, MySQL, Redis, or private storage. |
 | GitHub Actions deployment | Conditional | CI available, no deployment secrets | Not currently deployable. Suitable later as automation once a host and secrets exist. |
-| Local Docker | Good for release validation, poor as public production | Docker daemon available; Compose unavailable | Used for manual local production-style validation. Not a replacement for public HTTPS hosting. |
+| Local Docker | Good for release validation, poor as public production | Docker daemon and Compose available | Used for manual local production-style validation. Not a replacement for public HTTPS hosting. |
 | Kubernetes | Conditional | CLI installed, no cluster context | Not currently deployable. Suitable only with a configured cluster, ingress, database, Redis, storage, and secrets. |
 | Managed VPS or container host with Docker Compose | Best architectural fit | No connected provider | Selected strategy, blocked by missing production host/credentials. |
 | AWS ECS/Fargate, DigitalOcean App/Droplet, Render, Railway, Fly.io | Good to strong | No credentials/tools discovered | Viable future targets; cannot be used in this environment now. |
@@ -194,11 +194,12 @@ After deployment, verify:
 
 ## RC1 Local Production-Style Validation
 
-On July 4, 2026, the RC1 image and runtime stack were validated locally with Docker because Docker became available after initial discovery. Docker Compose remained unavailable, so services were started manually on an isolated `civiclens-rc1` network with named volumes.
+On July 4, 2026, the RC1 image and runtime stack were validated locally with Docker because Docker became available after initial discovery. Services were started manually on an isolated `civiclens-rc1` network with named volumes. Docker Compose was later confirmed available as v5.1.4; production config rendering still requires an operator-provided `.env.production` file with real secrets.
 
 Validation results:
 
 - `civiclens:rc1` built successfully on PHP 8.4.23 with Redis, PDO MySQL, intl, mbstring, opcache, and zip extensions.
+- `docker compose -f docker-compose.production.yml config` rendered a 206-line resolved configuration when supplied with a temporary `.env.production` copied from `.env.production.example`.
 - Laravel booted inside the production image with no dev dependencies.
 - MySQL 8.4 migrations ran from an empty schema and seeders completed.
 - Nginx served the app on `http://localhost:8080`.
