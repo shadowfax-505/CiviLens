@@ -8,7 +8,12 @@ class UserPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(config('civiclens.roles.admin'));
+        return $user->canManageUsers();
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->canManageUsers();
     }
 
     public function view(User $user, User $model): bool

@@ -29,7 +29,20 @@ class CitizenReportDashboardController extends Controller
         abort_unless($request->user()?->can('view', $report) === true, 403);
 
         return view('citizen.reports.show', [
-            'report' => $report->load(['category', 'status', 'activities']),
+            'report' => $report->load([
+                'agency',
+                'category',
+                'country',
+                'district',
+                'division',
+                'document',
+                'project',
+                'status',
+                'union',
+                'upazila',
+                'ward',
+                'activities.actor',
+            ]),
         ]);
     }
 }

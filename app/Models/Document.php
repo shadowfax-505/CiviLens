@@ -163,6 +163,11 @@ class Document extends Model implements Searchable
         return route('admin.documents.show', $this, false);
     }
 
+    public function publicSearchUrl(): string
+    {
+        return route('public.documents.download', $this, false);
+    }
+
     public function searchStatus(): ?string
     {
         return $this->status?->slug;
@@ -186,6 +191,7 @@ class Document extends Model implements Searchable
             'version_number' => $this->version_number,
             'ocr_status' => $this->ocr_status,
             'index_status' => $this->index_status,
+            'public_url' => $this->publicSearchUrl(),
         ];
     }
 }

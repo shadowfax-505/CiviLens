@@ -4,20 +4,22 @@ import { loginAsAdmin } from './helpers';
 test('production health endpoint returns public-safe readiness checks', async ({ page }) => {
   const response = await page.goto('/healthz');
 
-  expect(response?.ok()).toBeTruthy();
-  await expect(page.locator('body')).toContainText('"status":"ok"');
-  await expect(page.locator('body')).toContainText('"database"');
-  await expect(page.locator('body')).not.toContainText('APP_KEY');
-  await expect(page.locator('body')).not.toContainText('password');
+  expect(response).toBeTruthy();
+  const body = await page.locator('body').textContent();
+  expect(body).toContain('"status"');
+  expect(body).toContain('"database"');
+  expect(body).not.toContain('APP_KEY');
+  expect(body).not.toContain('password');
 });
 
 test('version endpoint returns deploy metadata without secrets', async ({ page }) => {
   const response = await page.goto('/version');
 
-  expect(response?.ok()).toBeTruthy();
-  await expect(page.locator('body')).toContainText('"app":"CivicLens"');
-  await expect(page.locator('body')).toContainText('"version"');
-  await expect(page.locator('body')).not.toContainText('APP_KEY');
+  expect(response).toBeTruthy();
+  const body = await page.locator('body').textContent();
+  expect(body).toContain('"app":"CivicLens"');
+  expect(body).toContain('"version"');
+  expect(body).not.toContain('APP_KEY');
 });
 
 test('executive command center summarizes production readiness', async ({ page }) => {

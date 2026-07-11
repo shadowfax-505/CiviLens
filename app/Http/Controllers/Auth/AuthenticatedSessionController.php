@@ -25,6 +25,10 @@ class AuthenticatedSessionController extends Controller
         $user->forceFill(['last_login_at' => now()])->save();
         $activityLogger->log($user, 'login', $request, $user);
 
+        if ($user->hasRole(config('civiclens.roles.admin')) && ! $user->hasVerifiedEmail()) {
+            return redirect()->route('verification.notice');
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

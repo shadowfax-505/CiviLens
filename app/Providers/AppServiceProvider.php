@@ -52,6 +52,7 @@ use App\Events\SnapshotGenerated;
 use App\Events\SuggestionGenerated;
 use App\Events\TenderPublished;
 use App\Events\VariationApproved;
+use App\Jobs\NotifyCitizenReportSubmitted;
 use App\Listeners\LogDomainEvent;
 use App\Models\AdministrativeUnion;
 use App\Models\Agency;
@@ -179,6 +180,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(IntelligenceProcessingJobCompleted::class, LogDomainEvent::class);
         Event::listen(IntelligenceProcessingJobFailed::class, LogDomainEvent::class);
         Event::listen(CitizenReportSubmitted::class, LogDomainEvent::class);
+        Event::listen(CitizenReportSubmitted::class, fn (CitizenReportSubmitted $event) => NotifyCitizenReportSubmitted::dispatch($event->report));
         Event::listen(CitizenReportStatusChanged::class, LogDomainEvent::class);
         Event::listen(CitizenReportArchived::class, LogDomainEvent::class);
         Event::listen(PublicSearchExecuted::class, LogDomainEvent::class);

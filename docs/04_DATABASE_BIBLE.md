@@ -18,6 +18,7 @@ The database is the strongest part of CivicLens. V1 should demonstrate normaliza
 - `analytics_snapshots`, `analytics_reports`, `analytics_alerts`, `dashboard_states`, `analytics_events`
 - `intelligence_rules`, `intelligence_indicators`, `intelligence_evidence`, `intelligence_reviews`, `civic_intelligence_runs`, `intelligence_rule_audits`
 - `citizen_reports`, `citizen_report_activities`
+- `change_requests`, `change_request_activities`
 
 ## Index Strategy
 
@@ -345,6 +346,12 @@ Citizen reports use a public UUID for tracking instead of exposing internal IDs.
 Sprint 11 added permission slug:
 
 - `citizen_reports.manage`
+
+## Change-Request Governance
+
+`change_requests` stores staff proposals without replacing source-domain records. It supports an operation, nullable target identifier for proposed creation, structured payload, supporting attachment metadata, requester, reviewer, review status, and review notes. `change_request_activities` is append-only and records submission, review, and source-application confirmation with the acting user, notes, and metadata. Approval and application confirmation never mutate the proposed source record automatically.
+
+Agency records include optional `latitude`, `longitude`, and `geojson`. Organization records include optional `headquarters_latitude`, `headquarters_longitude`, and `headquarters_geojson`. These are additive presentation/location fields and do not replace the normalized geography foreign keys.
 
 ## Identity Columns Added in Sprint 01
 

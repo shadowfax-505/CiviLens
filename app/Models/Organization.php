@@ -22,6 +22,9 @@ class Organization extends Model implements Searchable
         return [
             'established_date' => 'date',
             'archived_at' => 'datetime',
+            'headquarters_latitude' => 'decimal:7',
+            'headquarters_longitude' => 'decimal:7',
+            'headquarters_geojson' => 'array',
         ];
     }
 
@@ -98,6 +101,11 @@ class Organization extends Model implements Searchable
         return route('admin.contractors.organizations.show', $this, false);
     }
 
+    public function publicSearchUrl(): string
+    {
+        return route('public.contractors.show', $this, false);
+    }
+
     public function searchStatus(): ?string
     {
         return $this->status;
@@ -116,6 +124,7 @@ class Organization extends Model implements Searchable
             'organization_company_type_id' => $this->organization_company_type_id,
             'organization_industry_id' => $this->organization_industry_id,
             'country_id' => $this->country_id,
+            'public_url' => $this->publicSearchUrl(),
         ];
     }
 }

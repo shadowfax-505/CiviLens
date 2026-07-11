@@ -24,6 +24,8 @@ class PublicContractorService
                         ->orWhere('registration_number', 'like', '%'.$query.'%');
                 });
             })
+            ->when($filters['organization_company_type_id'] ?? null, fn ($builder, int $typeId) => $builder->where('organization_company_type_id', $typeId))
+            ->when($filters['organization_industry_id'] ?? null, fn ($builder, int $industryId) => $builder->where('organization_industry_id', $industryId))
             ->orderBy('legal_name')
             ->paginate(12)
             ->withQueryString();
@@ -33,6 +35,6 @@ class PublicContractorService
     {
         abort_unless($organization->status === 'active' && $organization->archived_at === null, 404);
 
-        return $organization->load(['companyType', 'industry', 'profile.category', 'profile.classification', 'profile.registrationStatus']);
+        return $organization->load(['companyType', 'industry', 'country', 'branches' => fn ($query) => $query->where('status', 'active'), 'profile.category', 'profile.classification', 'profile.registrationStatus']);
     }
 }

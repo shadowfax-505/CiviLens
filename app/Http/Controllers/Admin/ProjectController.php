@@ -4,14 +4,19 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ProjectRequest;
+use App\Models\AdministrativeUnion;
 use App\Models\Agency;
 use App\Models\Country;
+use App\Models\District;
+use App\Models\Division;
 use App\Models\FiscalYear;
 use App\Models\FundingSource;
 use App\Models\Project;
 use App\Models\ProjectCategory;
 use App\Models\ProjectPriority;
 use App\Models\ProjectStatus;
+use App\Models\Upazila;
+use App\Models\Ward;
 use App\Services\Projects\ProjectLifecycleService;
 use App\Services\Projects\ProjectListingService;
 use App\Support\Http\AuthenticatedUser;
@@ -124,6 +129,11 @@ class ProjectController extends Controller
             'fundingSources' => FundingSource::query()->orderBy('name')->get(),
             'fiscalYears' => FiscalYear::query()->orderByDesc('starts_on')->get(),
             'countries' => Country::query()->orderBy('name')->get(),
+            'divisions' => Division::query()->orderBy('name')->get(),
+            'districts' => District::query()->orderBy('name')->get(),
+            'upazilas' => Upazila::query()->orderBy('name')->get(),
+            'unions' => AdministrativeUnion::query()->orderBy('name')->get(),
+            'wards' => Ward::query()->orderBy('name')->get(),
         ];
     }
 }

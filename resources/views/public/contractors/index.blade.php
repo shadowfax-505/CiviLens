@@ -1,8 +1,10 @@
 <x-layouts.app title="Public Contractors">
     <section class="space-y-6">
         <h1 class="text-3xl font-bold">Public Contractors</h1>
-        <form method="GET" class="flex gap-3">
+        <form method="GET" class="grid gap-3 md:grid-cols-4">
             <input name="q" value="{{ $filters['q'] ?? '' }}" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-950" placeholder="Search contractors">
+            <select name="organization_company_type_id"><option value="">All company types</option>@foreach ($companyTypes as $type)<option value="{{ $type->id }}" @selected(($filters['organization_company_type_id'] ?? null) == $type->id)>{{ $type->name }}</option>@endforeach</select>
+            <select name="organization_industry_id"><option value="">All industries</option>@foreach ($industries as $industry)<option value="{{ $industry->id }}" @selected(($filters['organization_industry_id'] ?? null) == $industry->id)>{{ $industry->name }}</option>@endforeach</select>
             <button class="rounded-lg bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950">Search</button>
         </form>
         <div class="grid gap-4 md:grid-cols-2">

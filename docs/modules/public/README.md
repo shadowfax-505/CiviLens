@@ -6,12 +6,14 @@ The Public module exposes approved civic information to guests and citizens whil
 
 ## Implemented Scope
 
-- Public portal home, project explorer, agency profiles, procurement summaries, document library, and public search.
+- About-first public landing page, project explorer, agency profiles, procurement summaries, document library, and public search.
 - Public procurement award notices for approved awards with public disclosure status.
-- Public project detail pages composed through public-safe services.
+- Public project detail pages composed through public-safe services, including map display when project coordinates exist.
 - Public document downloads through Laravel application routes only.
-- Authenticated citizen report submission, UUID-based status tracking, and citizen report dashboard.
-- Staff/admin moderation queue with status changes, archive/restore actions, and append-only activities.
+- Role-aware shared navigation/search handoff plus staff/admin change-request entry points for projects, agencies, contractors, procurement, and documents.
+- Authenticated citizen report submission with queued acknowledgement emails, UUID-based status tracking, and a detailed citizen report dashboard.
+- Private citizen-report attachments streamed only through an authorized application route for the submitter or report moderators.
+- Staff/admin moderation queue with expanded report context, status changes, archive/restore actions, and append-only activities.
 
 ## Tables
 
@@ -22,7 +24,7 @@ The Public module exposes approved civic information to guests and citizens whil
 
 ## Security
 
-Public records are default-deny. Projects and tenders must be public, active, and not archived. Procurement award notices require approved awards with public disclosure status. Bid amounts, evaluation scores, committee comments, internal documents, and non-public award history are not published. Documents must have public visibility and are streamed through application routes without exposing storage paths. Citizen reports require authentication to submit and are not published as public source facts.
+Public records are default-deny. Projects and tenders must be public, active, and not archived. Procurement award notices require approved awards with public disclosure status. Bid amounts, evaluation scores, committee comments, internal documents, and non-public award history are not published. Documents must have public visibility and are streamed through application routes without exposing storage paths. Citizen reports require authentication to submit and are not published as public source facts. Citizen-report attachments are stored on a private disk and require report-view authorization to download; acknowledgement emails contain only the report reference and authenticated tracking link.
 
 ## V2 Notes
 

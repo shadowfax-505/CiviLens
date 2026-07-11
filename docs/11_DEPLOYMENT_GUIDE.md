@@ -17,6 +17,14 @@ Sprint 13 part 1 adds a production-oriented Docker scaffold:
 
 Use this scaffold as a deployable baseline. Production secrets must be injected through the hosting environment, not committed.
 
+For Docker Compose deployments, copy `.env.production.example` to `.env.production`, set a real `APP_KEY`, replace all database credentials, and run Compose with the production environment file:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
+```
+
+Keep `DB_*` and `MYSQL_*` credentials synchronized. Laravel reads `DB_*`; the MySQL container reads `MYSQL_*`.
+
 ## Deployment Principles
 
 - Environment variables configure services.
@@ -44,6 +52,8 @@ When mounting persistent storage volumes, the production entrypoint repairs `sto
 
 Do not bind-mount the application checkout into the production Nginx container. The Nginx image stage must serve the same `public/build` manifest and assets that the Laravel image was built with; otherwise Blade-rendered Vite paths can drift from the files served at the edge.
 
+Frontend customization is deploy-safe when it stays inside Blade views, shared components, `resources/css/app.css`, and `resources/js/app.js` while preserving route names, form fields, policies, and the Vite manifest pipeline. See `docs/31_FRONTEND_CUSTOMIZATION_GUIDE.md`.
+
 Rollback plan:
 
 - Restore the previous container image or release artifact.
@@ -60,7 +70,7 @@ Use `GET /version` during release verification to confirm deployed application v
 
 For Release Candidate 1, `APP_VERSION` must be `v1.0.0-RC1` and `APP_COMMIT` must match the deployed Git SHA or release artifact identifier.
 
-RC1 Docker validation used manual containers. Docker Compose is available for operator deployments, but `docker-compose.production.yml` requires a real `.env.production` file. A real production deployment should use the Compose stack or host-native equivalents with HTTPS, durable storage, backups, and external monitoring.
+RC1 Docker validation used production image targets and an isolated Docker Compose smoke stack. `docker-compose.production.yml` requires a real `.env.production` file and should be run with `--env-file .env.production` when deploying. A real production deployment should use the Compose stack or host-native equivalents with HTTPS, durable storage, backups, and external monitoring.
 
 ## Scheduler
 

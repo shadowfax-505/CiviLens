@@ -38,7 +38,22 @@ class CitizenReportModerationController extends Controller
         abort_unless($request->user()?->can('view', $report) === true, 403);
 
         return view('admin.citizen-reports.show', [
-            'report' => $report->load(['category', 'status', 'submitter', 'activities.actor']),
+            'report' => $report->load([
+                'activities.actor',
+                'agency',
+                'assignee',
+                'category',
+                'country',
+                'district',
+                'division',
+                'document',
+                'project',
+                'status',
+                'submitter',
+                'union',
+                'upazila',
+                'ward',
+            ]),
             'statuses' => CitizenReportStatus::query()->where('is_active', true)->orderBy('sort_order')->get(),
         ]);
     }
@@ -69,5 +84,13 @@ class CitizenReportModerationController extends Controller
         $reports->restore($report, $request->user());
 
         return back()->with('status', 'Citizen report restored.');
+    }
+
+    public function resendAcknowledgement(Request $request, CitizenReport $report, CitizenReportService $reports): RedirectResponse
+    {
+        abort_unless($request->user()?->can('update', $report) === true, 403);
+        $reports->resendAcknowledgement($report, $request->user());
+
+        return back()->with('status', 'Citizen acknowledgement queued.');
     }
 }

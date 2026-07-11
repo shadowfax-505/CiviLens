@@ -49,6 +49,13 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Local visual review artifacts
+/about-page.png
+/civiclens-*-refreshed.png
+
+# Framework views published only for local comparison
+/resources/views/vendor/pagination/
+
 # Local files
 *.sqlite
 *.sqlite3

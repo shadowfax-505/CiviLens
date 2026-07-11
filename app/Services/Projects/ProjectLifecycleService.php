@@ -6,6 +6,7 @@ use App\Events\ProjectCreated;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 class ProjectLifecycleService
 {
@@ -34,15 +35,45 @@ class ProjectLifecycleService
     {
         $oldStatus = $project->project_status_id;
         $oldProgress = $project->progress_percentage;
-        $original = $project->only(['name', 'project_status_id', 'progress_percentage']);
+        $trackedFields = [
+            'name',
+            'project_status_id',
+            'progress_percentage',
+            'country_id',
+            'division_id',
+            'district_id',
+            'upazila_id',
+            'union_id',
+            'ward_id',
+            'latitude',
+            'longitude',
+            'geojson',
+        ];
+        $original = $project->only($trackedFields);
 
-        $project->update(array_merge($data, [
+        $payload = array_merge($data, [
             'updated_by' => $actor->id,
-            'is_public' => (bool) ($data['is_public'] ?? false),
-            'is_active' => (bool) ($data['is_active'] ?? true),
-        ]));
+            'is_public' => array_key_exists('is_public', $data) ? (bool) $data['is_public'] : $project->is_public,
+            'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : $project->is_active,
+        ]);
 
-        $this->log($project, 'updated', $actor, $request, $original, $project->only(array_keys($original)));
+        $project->update($payload);
+
+        $this->log($project, 'updated', $actor, $request, $original, $project->only($trackedFields));
+
+        $originalLocation = Arr::only($original, ['country_id', 'division_id', 'district_id', 'upazila_id', 'union_id', 'ward_id', 'latitude', 'longitude', 'geojson']);
+        $newLocation = $project->only(['country_id', 'division_id', 'district_id', 'upazila_id', 'union_id', 'ward_id', 'latitude', 'longitude', 'geojson']);
+
+        if ($newLocation !== $originalLocation) {
+            $this->log(
+                $project,
+                'location_updated',
+                $actor,
+                $request,
+                $originalLocation,
+                $newLocation,
+            );
+        }
 
         if ((int) $oldStatus !== (int) $project->project_status_id) {
             $this->log($project, 'status_changed', $actor, $request, ['project_status_id' => $oldStatus], ['project_status_id' => $project->project_status_id]);
