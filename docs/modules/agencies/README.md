@@ -1,5 +1,9 @@
 # Agencies Module
 
+## Change Proposal Governance
+
+Only administrators may create, update, or delete agency registry records. Staff can propose new agencies or corrections through the Change Requests queue; proposals can identify an existing target record or request a new one.
+
 ## Responsibility
 
 Manage agencies or public-sector departments responsible for projects.

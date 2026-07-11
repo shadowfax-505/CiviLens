@@ -7,7 +7,9 @@
                     <h1 class="text-4xl font-black tracking-tight">Universal Search</h1>
                     <p class="mt-2 max-w-2xl text-cyan-50">Search once across projects, budgets, procurement, contractors, agencies, geography, and documents.</p>
                 </div>
-                <a class="rounded-full border border-white/30 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10" href="{{ route('admin.search.analytics') }}">Analytics Dashboard</a>
+                @if ($canManageSearch)
+                    <a class="rounded-full border border-white/30 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10" href="{{ route('admin.search.analytics') }}">Analytics Dashboard</a>
+                @endif
             </div>
 
             <form class="mt-8 grid gap-3 lg:grid-cols-[1fr_180px_160px_auto]" method="GET" action="{{ route('admin.search.index') }}">
@@ -19,14 +21,14 @@
                     @endforeach
                 </datalist>
 
-                <select name="module" class="rounded-2xl border border-white/10 bg-white/95 px-4 py-3 text-slate-950 focus:border-cyan-300 focus:outline-none focus:ring-4 focus:ring-cyan-300/30">
+                <select name="module" class="rounded-2xl border border-white/10 bg-white/95 px-4 py-3 text-slate-950 focus:border-cyan-300 focus:outline-none focus:ring-4 focus:ring-cyan-300/30 dark:bg-slate-950">
                     <option value="">All modules</option>
                     @foreach ($modules as $module)
                         <option value="{{ $module }}" @selected($query->module === $module)>{{ str($module)->headline() }}</option>
                     @endforeach
                 </select>
 
-                <select name="sort" class="rounded-2xl border border-white/10 bg-white/95 px-4 py-3 text-slate-950 focus:border-cyan-300 focus:outline-none focus:ring-4 focus:ring-cyan-300/30">
+                <select name="sort" class="rounded-2xl border border-white/10 bg-white/95 px-4 py-3 text-slate-950 focus:border-cyan-300 focus:outline-none focus:ring-4 focus:ring-cyan-300/30 dark:bg-slate-950">
                     <option value="relevance" @selected($query->sort === 'relevance')>Relevance</option>
                     <option value="title" @selected($query->sort === 'title')>Title</option>
                     <option value="module" @selected($query->sort === 'module')>Module</option>
@@ -68,8 +70,8 @@
                         </div>
 
                         <div class="mt-4 flex flex-wrap gap-3">
-                            @if ($result->url)
-                                <a class="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950" href="{{ $result->url }}">Open Record</a>
+                            @if ($result->metadata['public_url'] ?? $result->url)
+                                <a class="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950" href="{{ $result->metadata['public_url'] ?? $result->url }}">Open Record</a>
                             @endif
                             <a class="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-slate-700" href="{{ route('admin.search.knowledge', ['module' => $knowledgeModule, 'id' => $result->searchableId]) }}">Knowledge View</a>
                         </div>

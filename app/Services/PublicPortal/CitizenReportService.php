@@ -5,11 +5,13 @@ namespace App\Services\PublicPortal;
 use App\Events\CitizenReportArchived;
 use App\Events\CitizenReportStatusChanged;
 use App\Events\CitizenReportSubmitted;
+use App\Jobs\NotifyCitizenReportSubmitted;
 use App\Models\CitizenReport;
 use App\Models\CitizenReportStatus;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class CitizenReportService
 {
@@ -36,6 +38,11 @@ class CitizenReportService
                 'description',
                 'location_text',
                 'contact_preference',
+                'attachment_disk',
+                'attachment_path',
+                'attachment_original_filename',
+                'attachment_mime_type',
+                'attachment_size',
             ]),
             [
                 'public_uuid' => (string) Str::uuid(),
@@ -49,6 +56,7 @@ class CitizenReportService
             'citizen_report_status_id' => $status->id,
         ]);
 
+        $this->activity($report, $submitter, 'acknowledgement_queued', 'Acknowledgement queued.');
         CitizenReportSubmitted::dispatch($report);
 
         return $report->refresh();
@@ -103,6 +111,26 @@ class CitizenReportService
         $this->activity($report, $actor, 'restored', 'Citizen report restored.');
 
         return $report->refresh();
+    }
+
+    public function resendAcknowledgement(CitizenReport $report, User $actor): void
+    {
+        $this->queueAcknowledgement($report, $actor, true);
+    }
+
+    private function queueAcknowledgement(CitizenReport $report, ?User $actor, bool $preventDuplicate): void
+    {
+        if ($preventDuplicate && $report->activities()
+            ->where('event', 'acknowledgement_queued')
+            ->where('created_at', '>=', now()->subMinutes(5))
+            ->exists()) {
+            throw ValidationException::withMessages([
+                'acknowledgement' => 'An acknowledgement was already queued in the last five minutes.',
+            ]);
+        }
+
+        $this->activity($report, $actor, 'acknowledgement_queued', $preventDuplicate ? 'Acknowledgement resend queued.' : 'Acknowledgement queued.');
+        NotifyCitizenReportSubmitted::dispatch($report);
     }
 
     /**

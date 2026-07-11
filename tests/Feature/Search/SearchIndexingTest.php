@@ -2,7 +2,6 @@
 
 use App\Contracts\Search\Searchable;
 use App\Models\Project;
-use App\Models\Role;
 use App\Models\SearchIndex;
 use App\Models\User;
 use App\Services\Search\SearchIndexingService;
@@ -12,15 +11,6 @@ use App\Support\Search\SearchQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
-
-function searchAdminUser(): User
-{
-    $role = Role::query()->create(['name' => 'Administrator', 'slug' => config('civiclens.roles.admin')]);
-    $user = User::factory()->create(['is_active' => true, 'email_verified_at' => now()]);
-    $user->roles()->attach($role);
-
-    return $user;
-}
 
 it('indexes searchable entities through a provider independent manager', function (): void {
     $admin = searchAdminUser();

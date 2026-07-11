@@ -35,7 +35,7 @@ class ProfileController extends Controller
 
         $activityLogger->log($user, 'profile.updated', $request, $user);
 
-        return redirect()->route('profile.show')->with('status', 'profile-updated');
+        return redirect()->route('settings.show')->with('status', 'profile-updated');
     }
 
     public function updateAvatar(UpdateAvatarRequest $request, AccountActivityLogger $activityLogger): RedirectResponse
@@ -51,7 +51,7 @@ class ProfileController extends Controller
 
         $activityLogger->log($user, 'avatar.updated', $request, $user);
 
-        return redirect()->route('profile.show')->with('status', 'avatar-updated');
+        return redirect()->route('settings.show')->with('status', 'avatar-updated');
     }
 
     public function updateNotifications(UpdateNotificationPreferencesRequest $request, AccountActivityLogger $activityLogger): RedirectResponse
@@ -61,12 +61,13 @@ class ProfileController extends Controller
             'notification_preferences' => [
                 'email_reports' => $request->boolean('email_reports'),
                 'security_alerts' => $request->boolean('security_alerts'),
+                'appearance' => $request->validated('appearance', 'system'),
             ],
         ])->save();
 
         $activityLogger->log($user, 'notifications.updated', $request, $user);
 
-        return redirect()->route('profile.show')->with('status', 'notifications-updated');
+        return redirect()->route('settings.show')->with('status', 'notifications-updated');
     }
 
     public function updatePassword(UpdatePasswordRequest $request, AccountActivityLogger $activityLogger): RedirectResponse
@@ -79,6 +80,6 @@ class ProfileController extends Controller
 
         $activityLogger->log($user, 'password.updated', $request, $user);
 
-        return redirect()->route('profile.show')->with('status', 'password-updated');
+        return redirect()->route('settings.show')->with('status', 'password-updated');
     }
 }

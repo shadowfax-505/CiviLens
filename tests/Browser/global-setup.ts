@@ -15,7 +15,7 @@ function artisan(args: string[]) {
       DB_CONNECTION: 'sqlite',
       DB_DATABASE: databasePath,
       CACHE_STORE: 'array',
-      SESSION_DRIVER: 'file',
+      SESSION_DRIVER: 'database',
       QUEUE_CONNECTION: 'sync',
       MAIL_MAILER: 'array',
     },

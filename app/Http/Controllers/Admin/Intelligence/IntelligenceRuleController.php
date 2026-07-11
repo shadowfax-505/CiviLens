@@ -73,10 +73,16 @@ class IntelligenceRuleController extends Controller
         ]);
     }
 
-    public function dryRun(Request $request, IntelligenceRule $rule, RuleManagementService $rules): JsonResponse
+    public function dryRun(Request $request, IntelligenceRule $rule, RuleManagementService $rules): JsonResponse|RedirectResponse
     {
         abort_unless($request->user()?->can('viewAny', IntelligenceIndicator::class) === true, 403);
 
-        return response()->json($rules->dryRun($rule));
+        $result = $rules->dryRun($rule);
+
+        if ($request->expectsJson()) {
+            return response()->json($result);
+        }
+
+        return back()->with('status', 'Dry run for '.$rule->name.' estimated '.number_format((int) $result['estimated_matches']).' matching source record(s).');
     }
 }

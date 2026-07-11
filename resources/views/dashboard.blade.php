@@ -2,14 +2,14 @@
     @php($summary = $summary ?? ['cards' => [], 'risk_summary' => [], 'system_health' => ['status' => 'unknown'], 'recent_integrity_runs' => collect(), 'recent_alerts' => collect(), 'top_agencies' => collect(), 'top_contractors' => collect(), 'charts' => []])
 
     <section class="space-y-8">
-        <div class="rounded-3xl bg-slate-950 p-8 text-white shadow-sm dark:bg-slate-900">
+        <div class="cl-page-hero">
             <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <p class="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300">Executive Command Center</p>
-                    <h1 class="mt-3 text-4xl font-bold tracking-tight">CivicLens Dashboard</h1>
-                    <p class="mt-3 max-w-3xl text-slate-300">CivicLens v1.0 RC1 is ready for production-readiness validation across delivery, finance, procurement, documents, citizen engagement, and deterministic integrity signals.</p>
+                    <p class="cl-kicker text-cyan-100">Executive Command Center</p>
+                    <h1 class="cl-page-title mt-3">CivicLens Dashboard</h1>
+                    <p class="cl-page-copy">CivicLens v1.0 RC1 is ready for production-readiness validation across delivery, finance, procurement, documents, citizen engagement, and deterministic integrity signals.</p>
                 </div>
-                <div class="rounded-2xl bg-white/10 px-4 py-3 text-sm">
+                <div class="rounded-2xl border border-white/20 bg-white/15 px-4 py-3 text-sm backdrop-blur">
                     <h2 class="font-semibold">System Health</h2>
                     <p class="mt-1 text-cyan-100">{{ str($summary['system_health']['status'] ?? 'unknown')->upper() }}</p>
                 </div>
@@ -18,17 +18,17 @@
 
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             @foreach ($summary['cards'] as $card)
-                <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{{ $card['label'] }}</p>
+                <article class="cl-card transition hover:-translate-y-0.5">
+                    <p class="cl-kicker">{{ $card['label'] }}</p>
                     <p class="mt-3 text-3xl font-bold text-slate-950 dark:text-white">{{ $card['value'] }}</p>
-                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">{{ $card['detail'] }}</p>
+                    <p class="mt-2 text-sm cl-muted">{{ $card['detail'] }}</p>
                 </article>
             @endforeach
         </div>
 
         <div class="grid gap-6 xl:grid-cols-3">
-            <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 xl:col-span-2">
-                <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Risk Summary</h2>
+            <section class="cl-card xl:col-span-2">
+                <h2 class="cl-card-title">Risk Summary</h2>
                 <div class="mt-4 grid gap-3 md:grid-cols-3">
                     @foreach (['critical' => 'Critical', 'warning' => 'Warning', 'pending_review' => 'Pending Review'] as $key => $label)
                         <div class="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60">
@@ -60,8 +60,8 @@
                 </div>
             </section>
 
-            <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Recent Integrity Runs</h2>
+            <section class="cl-card">
+                <h2 class="cl-card-title">Recent Integrity Runs</h2>
                 <div class="mt-4 space-y-3">
                     @forelse ($summary['recent_integrity_runs'] as $run)
                         <article class="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800/60">
@@ -76,8 +76,8 @@
         </div>
 
         <div class="grid gap-6 lg:grid-cols-3">
-            <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Top Agencies</h2>
+            <section class="cl-card">
+                <h2 class="cl-card-title">Top Agencies</h2>
                 <div class="mt-4 space-y-3">
                     @forelse ($summary['top_agencies'] as $agency)
                         <p class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800/60">
@@ -90,8 +90,8 @@
                 </div>
             </section>
 
-            <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Top Contractors</h2>
+            <section class="cl-card">
+                <h2 class="cl-card-title">Top Contractors</h2>
                 <div class="mt-4 space-y-3">
                     @forelse ($summary['top_contractors'] as $contractor)
                         <p class="rounded-xl bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800/60">{{ $contractor->legal_name }}</p>
@@ -101,8 +101,8 @@
                 </div>
             </section>
 
-            <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Recent Alerts</h2>
+            <section class="cl-card">
+                <h2 class="cl-card-title">Recent Alerts</h2>
                 <div class="mt-4 space-y-3">
                     @forelse ($summary['recent_alerts'] as $alert)
                         <article class="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800/60">

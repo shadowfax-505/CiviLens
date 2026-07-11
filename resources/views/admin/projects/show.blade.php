@@ -1,32 +1,39 @@
 <x-layouts.app :title="$project->name.' - CivicLens'">
+    @php($mapLocation = ($project->latitude !== null && $project->longitude !== null) ? $project : collect([$project->ward, $project->union, $project->upazila, $project->district, $project->division, $project->country])->first(fn ($location) => $location?->latitude !== null && $location?->longitude !== null))
     <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
             <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">{{ $project->project_code }}</p>
             <h1 class="text-3xl font-bold">{{ $project->name }}</h1>
             <p class="mt-2 max-w-3xl text-slate-600 dark:text-slate-300">{{ $project->description }}</p>
+            @if (auth()->user()?->hasRole(config('civiclens.roles.staff')))
+                <a class="mt-4 inline-flex rounded-full border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950" href="{{ route('admin.change-requests.create', ['module' => 'projects', 'subject_type' => App\Models\Project::class, 'subject_id' => $project->id, 'subject_label' => $project->name, 'subject_url' => route('admin.projects.show', $project)]) }}">Request change</a>
+            @endif
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('admin.projects.edit', $project) }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Edit</a>
-            @if ($project->isArchived())
-                <form method="POST" action="{{ route('admin.projects.restore', $project) }}">
-                    @csrf
-                    @method('PATCH')
-                    <button class="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Restore</button>
-                </form>
-            @else
-                <form method="POST" action="{{ route('admin.projects.archive', $project) }}" onsubmit="return confirm('Archive this project?')">
-                    @csrf
-                    @method('PATCH')
-                    <button class="rounded bg-amber-700 px-4 py-2 text-sm font-semibold text-white">Archive</button>
-                </form>
-            @endif
-            <form method="POST" action="{{ route('admin.projects.destroy', $project) }}" onsubmit="return confirm('Delete this project?')">
-                @csrf
-                @method('DELETE')
-                <button class="rounded bg-red-700 px-4 py-2 text-sm font-semibold text-white">Delete</button>
-            </form>
+            @can('update', $project)
+                <a href="{{ route('admin.projects.edit', $project) }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Edit</a>
+                @if ($project->isArchived())
+                    <form method="POST" action="{{ route('admin.projects.restore', $project) }}">@csrf @method('PATCH')<button class="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Restore</button></form>
+                @else
+                    <form method="POST" action="{{ route('admin.projects.archive', $project) }}" onsubmit="return confirm('Archive this project?')">@csrf @method('PATCH')<button class="rounded bg-amber-700 px-4 py-2 text-sm font-semibold text-white">Archive</button></form>
+                @endif
+            @endcan
+            @can('delete', $project)
+                <form method="POST" action="{{ route('admin.projects.destroy', $project) }}" onsubmit="return confirm('Delete this project?')">@csrf @method('DELETE')<button class="rounded bg-red-700 px-4 py-2 text-sm font-semibold text-white">Delete</button></form>
+            @endcan
         </div>
     </div>
+
+    @if ($mapLocation || ! empty($project->geojson))
+        <div class="mt-8 rounded-xl border bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <x-leaflet-static-map
+                :label="$project->name.' location'"
+                :lat="$mapLocation?->latitude"
+                :lng="$mapLocation?->longitude"
+                :geojson="$project->geojson"
+            />
+        </div>
+    @endif
 
     <section class="mt-8 grid gap-4 md:grid-cols-4">
         <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900">

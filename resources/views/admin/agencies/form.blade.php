@@ -37,6 +37,7 @@
         <input name="website" value="{{ old('website', $agency->website) }}" placeholder="Website" class="rounded border px-3 py-2 text-slate-950">
         <input name="contact_person" value="{{ old('contact_person', $agency->contact_person) }}" placeholder="Contact person" class="rounded border px-3 py-2 text-slate-950">
         <textarea name="address" placeholder="Address" class="rounded border px-3 py-2 text-slate-950 md:col-span-2">{{ old('address', $agency->address) }}</textarea>
+        <div class="md:col-span-2"><x-leaflet-coordinate-picker :lat="old('latitude', $agency->latitude)" :lng="old('longitude', $agency->longitude)" label="Agency location" /></div>
         <textarea name="description" placeholder="Description" class="rounded border px-3 py-2 text-slate-950 md:col-span-2">{{ old('description', $agency->description) }}</textarea>
 
         <fieldset class="rounded border p-4 md:col-span-2 dark:border-slate-800">
@@ -54,4 +55,3 @@
         <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save agency</button>
     </form>
 </x-layouts.app>
-

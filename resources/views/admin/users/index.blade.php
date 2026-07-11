@@ -1,5 +1,8 @@
 <x-layouts.app title="User Administration - CivicLens">
-    <h1 class="text-3xl font-bold">User Administration</h1>
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <h1 class="text-3xl font-bold">User Administration</h1>
+        <a href="{{ route('admin.users.create') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Add Administrator</a>
+    </div>
 
     <form method="GET" action="{{ route('admin.users.index') }}" class="mt-6 grid gap-3 md:grid-cols-4">
         <input name="search" value="{{ request('search') }}" placeholder="Search users" class="rounded border px-3 py-2 text-slate-950">
@@ -30,7 +33,7 @@
             <tbody>
                 @foreach ($users as $user)
                     <tr class="border-t dark:border-slate-800">
-                        <td class="px-4 py-3">{{ $user->name }}</td>
+                        <td class="px-4 py-3"><a href="{{ route('admin.users.show', $user) }}" class="font-medium text-blue-600 hover:underline dark:text-blue-400">{{ $user->name }}</a></td>
                         <td class="px-4 py-3">{{ $user->email }}</td>
                         <td class="px-4 py-3">{{ $user->locked_at ? 'Locked' : ($user->is_active ? 'Active' : 'Inactive') }}</td>
                         <td class="px-4 py-3">{{ $user->roles->pluck('name')->join(', ') }}</td>
@@ -42,4 +45,3 @@
 
     <div class="mt-6">{{ $users->links() }}</div>
 </x-layouts.app>
-

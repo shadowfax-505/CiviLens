@@ -1,5 +1,7 @@
 <?php
 
+use App\Jobs\NotifyCitizenReportSubmitted;
+use App\Mail\CitizenReportAcknowledgement;
 use App\Models\CitizenReport;
 use App\Models\CitizenReportCategory;
 use App\Models\CitizenReportStatus;
@@ -14,6 +16,9 @@ use App\Models\SearchIndex;
 use App\Models\Tender;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
@@ -45,6 +50,17 @@ function citizenReportAdmin(): User
     return $user;
 }
 
+it('renders the CivicLens public home from the root route', function (): void {
+    $this->get('/')
+        ->assertOk()
+        ->assertViewIs('public.home')
+        ->assertSee('CivicLens');
+
+    $this->get('/public')
+        ->assertOk()
+        ->assertViewIs('public.home');
+});
+
 it('shows only active public projects in the public project explorer', function (): void {
     Project::factory()->create(['name' => 'Public Bridge Upgrade', 'is_public' => true, 'is_active' => true]);
     Project::factory()->create(['name' => 'Internal Drainage Plan', 'is_public' => false, 'is_active' => true]);
@@ -61,6 +77,7 @@ it('renders public project detail without private procurement or document record
     Storage::fake('local');
 
     $project = Project::factory()->create(['name' => 'Public Ferry Terminal', 'is_public' => true, 'is_active' => true]);
+    $project->forceFill(['latitude' => '23.8103000', 'longitude' => '90.4125000'])->save();
     Tender::factory()->create(['project_id' => $project->id, 'agency_id' => $project->agency_id, 'title' => 'Public Jetty Tender', 'is_public' => true]);
     Tender::factory()->create(['project_id' => $project->id, 'agency_id' => $project->agency_id, 'title' => 'Private Evaluation Tender', 'is_public' => false]);
 
@@ -92,6 +109,7 @@ it('renders public project detail without private procurement or document record
     $this->get(route('public.projects.show', $project))
         ->assertOk()
         ->assertSee('Public Ferry Terminal')
+        ->assertSee('Location Map')
         ->assertSee('Public Jetty Tender')
         ->assertSee('Public Terminal Drawing')
         ->assertDontSee('Private Evaluation Tender')
@@ -165,6 +183,21 @@ it('restricts public search results to public indexed records', function (): voi
         ->assertDontSee('Private School Works');
 });
 
+it('keeps authenticated citizens on the public-safe search and dashboard', function (): void {
+    $citizen = citizenUser();
+
+    $this->actingAs($citizen)
+        ->get(route('public.search', ['q' => 'school']))
+        ->assertOk()
+        ->assertViewIs('public.search.index');
+
+    $this->actingAs($citizen)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertViewIs('citizen.dashboard')
+        ->assertDontSee('Executive Command Center');
+});
+
 it('requires authentication for citizen report submission and tracks by public uuid', function (): void {
     $category = CitizenReportCategory::factory()->create(['name' => 'Safety Concern', 'slug' => 'safety-concern']);
     CitizenReportStatus::factory()->create(['name' => 'Submitted', 'slug' => 'submitted', 'is_default' => true]);
@@ -185,6 +218,17 @@ it('requires authentication for citizen report submission and tracks by public u
 
     $report = CitizenReport::query()->where('title', 'Broken culvert near school')->firstOrFail();
 
+    $this->assertDatabaseHas('citizen_reports', ['id' => $report->id, 'submitter_id' => $citizen->id]);
+    $this->actingAs($citizen)->get(route('citizen.reports.index', ['submitted' => $report->id]))
+        ->assertOk()
+        ->assertSee('Broken culvert near school')
+        ->assertSee('Newly submitted');
+
+    $admin = citizenReportAdmin();
+    $this->actingAs($admin)->get(route('admin.citizen-reports.index'))
+        ->assertOk()
+        ->assertSee('Broken culvert near school');
+
     expect($report->submitter_id)->toBe($citizen->id)
         ->and($report->public_uuid)->not->toBe((string) $report->id)
         ->and($report->activities()->where('event', 'submitted')->exists())->toBeTrue();
@@ -192,6 +236,69 @@ it('requires authentication for citizen report submission and tracks by public u
     $this->get(route('public.reports.show', $report->public_uuid))
         ->assertOk()
         ->assertSee('Broken culvert near school');
+});
+
+it('queues an acknowledgement email after a citizen report is submitted', function (): void {
+    Queue::fake();
+    Mail::fake();
+
+    $category = CitizenReportCategory::factory()->create();
+    CitizenReportStatus::factory()->create(['is_default' => true]);
+    $citizen = citizenUser();
+
+    $this->actingAs($citizen)
+        ->post(route('public.reports.store'), [
+            'citizen_report_category_id' => $category->id,
+            'title' => 'Unsafe pedestrian crossing',
+            'description' => 'The crossing markings have faded and require an urgent safety review.',
+            'contact_preference' => 'email',
+        ])
+        ->assertRedirect();
+
+    $report = CitizenReport::query()->where('title', 'Unsafe pedestrian crossing')->firstOrFail();
+
+    Queue::assertPushed(NotifyCitizenReportSubmitted::class, function (NotifyCitizenReportSubmitted $job) use ($report): bool {
+        $job->handle();
+
+        return $job->report->is($report);
+    });
+
+    Mail::assertQueued(CitizenReportAcknowledgement::class, function (CitizenReportAcknowledgement $mail) use ($citizen, $report): bool {
+        return $mail->hasTo($citizen->email) && $mail->report->is($report);
+    });
+});
+
+it('protects citizen report attachments while allowing the submitter to download them', function (): void {
+    Storage::fake('local');
+
+    $category = CitizenReportCategory::factory()->create();
+    CitizenReportStatus::factory()->create(['is_default' => true]);
+    $citizen = citizenUser();
+
+    $this->actingAs($citizen)
+        ->post(route('public.reports.store'), [
+            'citizen_report_category_id' => $category->id,
+            'title' => 'Damaged drainage cover',
+            'description' => 'The drainage cover is damaged beside the market and needs replacement.',
+            'contact_preference' => 'email',
+            'attachment' => UploadedFile::fake()->image('drainage-cover.jpg'),
+        ])
+        ->assertRedirect();
+
+    $report = CitizenReport::query()->where('title', 'Damaged drainage cover')->firstOrFail();
+
+    expect($report->attachment_disk)->toBe('local')
+        ->and($report->attachment_path)->not->toBeNull();
+    Storage::disk('local')->assertExists($report->attachment_path);
+
+    $this->actingAs($citizen)
+        ->get(route('citizen.reports.attachment', $report))
+        ->assertOk()
+        ->assertDownload('drainage-cover.jpg');
+
+    $this->actingAs(citizenUser())
+        ->get(route('citizen.reports.attachment', $report))
+        ->assertForbidden();
 });
 
 it('protects citizen report moderation and records status activities', function (): void {

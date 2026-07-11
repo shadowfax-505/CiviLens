@@ -61,3 +61,15 @@ Report generation remains inside the Analytics module through `ReportBuilder`, w
 ## V2 Expansion Notes
 
 Add OCR workers, vector search, map services, and public API gateways behind clear interfaces.
+
+## Change-Request Governance and Citizen Safety
+
+Staff submit structured change proposals through the Change Request module; administrators remain the only users who mutate operational source records. A proposal can be reviewed and then marked as applied only after the administrator completes the normal source-record workflow. This marker writes an immutable proposal audit activity and never applies payload data automatically.
+
+Citizen dashboard and search requests remain on the public-safe read path. The citizen dashboard contains only the citizen's own reports and aggregate public counts. Authenticated administrators and staff retain their permission-aware internal search path.
+
+Project map editing is part of the Projects workflow at `/admin/projects/map`. Legacy Geography Project Map URLs redirect for compatibility, while Geography reference tables remain operational but are not primary navigation.
+
+Public detail maps use the same read-only Leaflet component as workspace views. Projects use their exact coordinates and otherwise fall back to assigned geography. Agencies can store direct coordinates and GeoJSON. Contractor maps prefer public headquarters coordinates and otherwise use active branch-office coordinates.
+
+Contractor detail maps may include multiple public-safe branch markers. Internal and public map views share the same component but receive only the locations authorized for their scope.

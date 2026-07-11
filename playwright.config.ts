@@ -9,7 +9,7 @@ const browserEnv = {
   DB_CONNECTION: 'sqlite',
   DB_DATABASE: browserDatabase,
   CACHE_STORE: 'array',
-  SESSION_DRIVER: 'file',
+  SESSION_DRIVER: 'database',
   QUEUE_CONNECTION: 'sync',
   MAIL_MAILER: 'array',
 };
@@ -44,7 +44,7 @@ export default defineConfig({
   webServer: {
     command: 'php artisan serve --host=127.0.0.1 --port=8000',
     url: 'http://127.0.0.1:8000/up',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
     env: browserEnv,
   },
