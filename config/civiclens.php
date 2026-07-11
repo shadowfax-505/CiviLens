@@ -34,6 +34,7 @@ return [
         'contractors_manage' => 'contractors.manage',
         'documents_manage' => 'documents.manage',
         'search_manage' => 'search.manage',
+        'change_requests_submit' => 'change_requests.submit',
         'analytics_view' => 'analytics.view',
         'analytics_manage' => 'analytics.manage',
         'intelligence_manage' => 'intelligence.manage',

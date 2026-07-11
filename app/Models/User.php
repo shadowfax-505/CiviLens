@@ -65,6 +65,11 @@ class User extends Authenticatable implements MustVerifyEmail
             ->exists();
     }
 
+    public function canManageUsers(): bool
+    {
+        return $this->hasRole(config('civiclens.roles.admin'));
+    }
+
     /**
      * @return HasMany<AccountActivity, $this>
      */

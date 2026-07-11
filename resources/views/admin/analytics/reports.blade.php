@@ -1,4 +1,8 @@
 <x-layouts.app title="Analytics Reports">
+    @php
+        $activeAnalyticsFilters = collect($filters->toArray())->except(['dashboard', 'period', 'format', 'metric'])->reject(fn ($value) => blank($value));
+    @endphp
+
     <section class="space-y-6">
         <div class="rounded-3xl bg-slate-950 p-8 text-white shadow-sm dark:bg-slate-900">
             <p class="text-sm font-semibold uppercase tracking-[0.24em] text-blue-300">Reporting</p>
@@ -7,13 +11,24 @@
         </div>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Generate Executive Summary</h2>
+            <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Generate {{ $dashboards[$selectedDashboard] ?? str($selectedDashboard)->headline() }} Summary</h2>
             <div class="mt-4 flex flex-wrap gap-3">
+                <form method="POST" action="{{ route('admin.analytics.reports.csv') }}">
+                    @csrf
+                    <input type="hidden" name="dashboard" value="{{ $selectedDashboard }}">
+                    @foreach ($activeAnalyticsFilters as $name => $value)
+                        <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                    @endforeach
+                    <button class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500">Download CSV Now</button>
+                </form>
                 @foreach (['csv' => 'CSV', 'xlsx' => 'Excel', 'pdf' => 'PDF'] as $format => $label)
                     <form method="POST" action="{{ route('admin.analytics.reports.store') }}">
                         @csrf
-                        <input type="hidden" name="dashboard" value="executive">
+                        <input type="hidden" name="dashboard" value="{{ $selectedDashboard }}">
                         <input type="hidden" name="format" value="{{ $format }}">
+                        @foreach ($activeAnalyticsFilters as $name => $value)
+                            <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                        @endforeach
                         <button class="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950">Queue {{ $label }}</button>
                     </form>
                 @endforeach

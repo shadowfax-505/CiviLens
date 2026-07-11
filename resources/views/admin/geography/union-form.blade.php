@@ -16,7 +16,7 @@
         </select>
         <input name="name" value="{{ old('name', $union->name) }}" placeholder="Name" class="rounded border px-3 py-2 text-slate-950">
         <input name="code" value="{{ old('code', $union->code) }}" placeholder="Code" class="rounded border px-3 py-2 text-slate-950">
+        <x-leaflet-coordinate-picker :lat="$union->latitude" :lng="$union->longitude" label="Union / municipality map pin" />
         <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save union</button>
     </form>
 </x-layouts.app>
-

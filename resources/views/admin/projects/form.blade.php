@@ -75,14 +75,15 @@
                 @endforeach
             </select>
         </label>
-        <label class="text-sm">Country
-            <select name="country_id" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
-                <option value="">No country</option>
-                @foreach ($countries as $country)
-                    <option value="{{ $country->id }}" @selected(old('country_id', $project->country_id) == $country->id)>{{ $country->name }}</option>
-                @endforeach
-            </select>
-        </label>
+        @include('admin.projects.partials.location-fields', [
+            'project' => $project,
+            'countries' => $countries,
+            'divisions' => $divisions,
+            'districts' => $districts,
+            'upazilas' => $upazilas,
+            'unions' => $unions,
+            'wards' => $wards,
+        ])
         <label class="text-sm">Progress percentage
             <input name="progress_percentage" value="{{ old('progress_percentage', $project->progress_percentage ?? 0) }}" type="number" min="0" max="100" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
         </label>
@@ -97,12 +98,6 @@
         </label>
         <label class="text-sm">Actual end
             <input name="actual_end_date" value="{{ old('actual_end_date', $project->actual_end_date?->format('Y-m-d')) }}" type="date" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
-        </label>
-        <label class="text-sm">Latitude
-            <input name="latitude" value="{{ old('latitude', $project->latitude) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
-        </label>
-        <label class="text-sm">Longitude
-            <input name="longitude" value="{{ old('longitude', $project->longitude) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
         </label>
         <label class="text-sm md:col-span-2">Featured image path
             <input name="featured_image_path" value="{{ old('featured_image_path', $project->featured_image_path) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">

@@ -130,8 +130,8 @@ class RuleExecutionService
     private function singleBidRisk(IntelligenceRule $rule, ?User $user): Collection
     {
         return Tender::query()
+            ->has('bidSubmissions', '=', 1)
             ->withCount('bidSubmissions')
-            ->having('bid_submissions_count', '<=', 1)
             ->limit(25)
             ->get()
             ->map(fn (Tender $tender): IntelligenceIndicator => $this->createIndicator(

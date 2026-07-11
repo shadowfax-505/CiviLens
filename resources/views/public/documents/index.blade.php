@@ -1,8 +1,10 @@
 <x-layouts.app title="Public Documents">
     <section class="space-y-6">
         <h1 class="text-3xl font-bold">Public Documents</h1>
-        <form method="GET" class="flex gap-3">
+        <form method="GET" class="grid gap-3 md:grid-cols-4">
             <input name="q" value="{{ $filters['q'] ?? '' }}" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-950" placeholder="Search documents">
+            <select name="document_type_id"><option value="">All types</option>@foreach ($types as $type)<option value="{{ $type->id }}" @selected(($filters['document_type_id'] ?? null) == $type->id)>{{ $type->name }}</option>@endforeach</select>
+            <select name="document_category_id"><option value="">All categories</option>@foreach ($categories as $category)<option value="{{ $category->id }}" @selected(($filters['document_category_id'] ?? null) == $category->id)>{{ $category->name }}</option>@endforeach</select>
             <button class="rounded-lg bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950">Search</button>
         </form>
         @forelse ($documents as $document)

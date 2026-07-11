@@ -4,16 +4,21 @@
             <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Tender Detail</p>
             <h1 class="text-3xl font-bold">{{ $tender->title }}</h1>
             <p class="mt-2 text-slate-600 dark:text-slate-300">{{ $tender->tender_number }} | {{ $tender->project?->name }} | {{ $tender->agency?->name }}</p>
+            @if (auth()->user()?->hasRole(config('civiclens.roles.staff')))
+                <a class="mt-4 inline-flex rounded-full border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950" href="{{ route('admin.change-requests.create', ['module' => 'procurement', 'subject_type' => App\Models\Tender::class, 'subject_id' => $tender->id, 'subject_label' => $tender->title, 'subject_url' => route('admin.procurement.tenders.show', $tender)]) }}">Request change</a>
+            @endif
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('admin.procurement.tenders.edit', $tender) }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Edit</a>
-            <form method="POST" action="{{ route('admin.procurement.tenders.publish', $tender) }}">@csrf @method('PATCH')<button class="rounded bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Publish</button></form>
-            <form method="POST" action="{{ route('admin.procurement.tenders.close', $tender) }}">@csrf @method('PATCH')<button class="rounded bg-slate-700 px-4 py-2 text-sm font-semibold text-white">Close</button></form>
-            @if ($tender->archived_at)
-                <form method="POST" action="{{ route('admin.procurement.tenders.restore', $tender) }}">@csrf @method('PATCH')<button class="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Restore</button></form>
-            @else
-                <form method="POST" action="{{ route('admin.procurement.tenders.archive', $tender) }}" onsubmit="return confirm('Archive this tender?')">@csrf @method('PATCH')<button class="rounded bg-amber-700 px-4 py-2 text-sm font-semibold text-white">Archive</button></form>
-            @endif
+            @can('update', $tender)
+                <a href="{{ route('admin.procurement.tenders.edit', $tender) }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Edit</a>
+                <form method="POST" action="{{ route('admin.procurement.tenders.publish', $tender) }}">@csrf @method('PATCH')<button class="rounded bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Publish</button></form>
+                <form method="POST" action="{{ route('admin.procurement.tenders.close', $tender) }}">@csrf @method('PATCH')<button class="rounded bg-slate-700 px-4 py-2 text-sm font-semibold text-white">Close</button></form>
+                @if ($tender->archived_at)
+                    <form method="POST" action="{{ route('admin.procurement.tenders.restore', $tender) }}">@csrf @method('PATCH')<button class="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Restore</button></form>
+                @else
+                    <form method="POST" action="{{ route('admin.procurement.tenders.archive', $tender) }}" onsubmit="return confirm('Archive this tender?')">@csrf @method('PATCH')<button class="rounded bg-amber-700 px-4 py-2 text-sm font-semibold text-white">Archive</button></form>
+                @endif
+            @endcan
         </div>
     </div>
 

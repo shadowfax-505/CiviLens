@@ -30,12 +30,24 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'email',
     'phone',
     'address',
+    'latitude',
+    'longitude',
+    'geojson',
     'status',
 ])]
 class Agency extends Model implements Searchable
 {
     /** @use HasFactory<AgencyFactory> */
     use HasFactory, SoftDeletes;
+
+    protected function casts(): array
+    {
+        return [
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
+            'geojson' => 'array',
+        ];
+    }
 
     public const STATUSES = ['active', 'inactive', 'archived'];
 
@@ -182,6 +194,11 @@ class Agency extends Model implements Searchable
         return route('admin.agencies.index', ['search' => $this->name], false);
     }
 
+    public function publicSearchUrl(): string
+    {
+        return route('public.agencies.show', $this, false);
+    }
+
     public function searchStatus(): ?string
     {
         return $this->status;
@@ -196,10 +213,12 @@ class Agency extends Model implements Searchable
     {
         return [
             'route_module' => 'agencies',
+            'slug' => $this->slug,
             'agency_type_id' => $this->agency_type_id,
             'country_id' => $this->country_id,
             'division_id' => $this->division_id,
             'district_id' => $this->district_id,
+            'public_url' => $this->publicSearchUrl(),
         ];
     }
 }

@@ -24,6 +24,8 @@ class PublicDocumentService
                         ->orWhere('original_filename', 'like', '%'.$query.'%');
                 });
             })
+            ->when($filters['document_type_id'] ?? null, fn ($builder, int $typeId) => $builder->where('document_type_id', $typeId))
+            ->when($filters['document_category_id'] ?? null, fn ($builder, int $categoryId) => $builder->where('document_category_id', $categoryId))
             ->latest()
             ->paginate(12)
             ->withQueryString();

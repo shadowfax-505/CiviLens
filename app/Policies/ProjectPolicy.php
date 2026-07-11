@@ -10,6 +10,7 @@ class ProjectPolicy
     public function viewAny(User $user): bool
     {
         return $user->hasRole(config('civiclens.roles.admin'))
+            || $user->hasRole(config('civiclens.roles.staff'))
             || $user->hasPermission(config('civiclens.permissions.projects_manage'));
     }
 
@@ -20,22 +21,22 @@ class ProjectPolicy
 
     public function create(User $user): bool
     {
-        return $this->viewAny($user);
+        return $user->hasRole(config('civiclens.roles.admin'));
     }
 
     public function update(User $user, Project $project): bool
     {
-        return $this->viewAny($user);
+        return $user->hasRole(config('civiclens.roles.admin'));
     }
 
     public function archive(User $user, Project $project): bool
     {
-        return $this->viewAny($user);
+        return $user->hasRole(config('civiclens.roles.admin'));
     }
 
     public function restore(User $user, Project $project): bool
     {
-        return $this->viewAny($user);
+        return $user->hasRole(config('civiclens.roles.admin'));
     }
 
     public function delete(User $user, Project $project): bool

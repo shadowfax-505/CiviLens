@@ -9,6 +9,7 @@ class ProcurementPlanPolicy
     public function viewAny(User $user): bool
     {
         return $user->hasRole(config('civiclens.roles.admin'))
+            || $user->hasRole(config('civiclens.roles.staff'))
             || $user->hasPermission(config('civiclens.permissions.procurements_manage'));
     }
 

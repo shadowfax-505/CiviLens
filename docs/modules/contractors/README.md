@@ -1,5 +1,9 @@
 # Contractor Intelligence Module
 
+## Change Proposal Governance
+
+Only administrators may create, update, archive, or restore contractor organizations. Staff use Change Requests to propose corrections, including structured payloads and optional attachments, without changing contractor source records directly.
+
 ## Purpose
 
 The Contractor Intelligence module stores normalized vendor identity, licensing, compliance, legal, performance, and lifecycle history for organizations participating in public projects.

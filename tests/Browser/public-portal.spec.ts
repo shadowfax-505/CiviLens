@@ -3,15 +3,15 @@ import { loginAsAdmin, registerCitizen } from './helpers';
 
 test('guest can browse public portal projects procurement documents and search', async ({ page }) => {
   await page.goto('/public');
-  await expect(page.getByRole('heading', { name: 'CivicLens Public Portal' })).toBeVisible();
+  await expect(page.getByText('Civic Intelligence Platform')).toBeVisible();
 
   await page.goto('/public/projects');
   await expect(page.getByRole('heading', { name: 'Public Projects' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'CivicLens Baseline Road Improvement' })).toBeVisible();
 
   await page.getByRole('link', { name: 'CivicLens Baseline Road Improvement' }).click();
-  await expect(page.getByRole('heading', { name: 'CivicLens Baseline Road Improvement' })).toBeVisible();
-  await expect(page.getByText('Procurement')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'CivicLens Baseline Road Improvement', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Procurement' })).toBeVisible();
 
   await page.goto('/public/procurement');
   await expect(page.getByRole('heading', { name: 'Public Procurement' })).toBeVisible();
@@ -36,7 +36,7 @@ test('registered citizen can submit and track a public report', async ({ page },
   await page.getByRole('button', { name: 'Submit' }).click();
 
   await expect(page.getByText('Your report was submitted for review.')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Browser safety concern report' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Browser safety concern report/ })).toBeVisible();
 
   await page.goto('/citizen/reports');
   await expect(page.getByRole('link', { name: /Browser safety concern report/ })).toBeVisible();

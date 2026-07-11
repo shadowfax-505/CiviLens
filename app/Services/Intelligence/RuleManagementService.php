@@ -116,8 +116,7 @@ class RuleManagementService
                 ->where('actual_expenditure', '<=', (float) data_get($thresholds, 'max_utilization', 10))
                 ->count(),
             'procurement-single-bid-risk' => Tender::query()
-                ->withCount('bidSubmissions')
-                ->having('bid_submissions_count', '<=', 1)
+                ->has('bidSubmissions', '=', 1)
                 ->count(),
             'contractor-compliance-expiry' => ComplianceRecord::query()
                 ->whereDate('next_review_date', '<=', now()->addDays(30)->toDateString())

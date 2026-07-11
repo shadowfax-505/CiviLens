@@ -30,6 +30,7 @@ COPY docker/production/supervisord.conf /etc/supervisord.conf
 COPY docker/production/entrypoint.sh /usr/local/bin/civiclens-entrypoint
 
 RUN rm -f bootstrap/cache/*.php \
+    && rm -f public/hot \
     && chmod +x /usr/local/bin/civiclens-entrypoint \
     && chown -R www-data:www-data storage bootstrap/cache
 
@@ -44,4 +45,5 @@ WORKDIR /var/www/html
 COPY --from=app /var/www/html/public ./public
 COPY docker/production/nginx.conf /etc/nginx/conf.d/default.conf
 
-RUN ln -sfn ../storage/app/public public/storage
+RUN rm -f public/hot \
+    && ln -sfn ../storage/app/public public/storage

@@ -31,16 +31,21 @@ class CivicIntegrityEngineService
             'threshold_snapshot' => $this->thresholdSnapshot($rules),
         ]);
 
+        $created = 0;
+        $executed = 0;
+        $currentRule = null;
+
         try {
-            $created = 0;
 
             foreach ($rules as $rule) {
                 if (! $rule instanceof IntelligenceRule) {
                     continue;
                 }
 
+                $currentRule = $rule;
                 $indicators = $this->rules->run($rule, $actor);
                 $created += $indicators->count();
+                $executed++;
 
                 $indicators->each(function (IntelligenceIndicator $indicator) use ($run, $rule): void {
                     $metadata = is_array($indicator->metadata) ? $indicator->metadata : [];
@@ -71,10 +76,21 @@ class CivicIntegrityEngineService
 
             return $run->refresh();
         } catch (Throwable $throwable) {
+            $failedRule = $currentRule instanceof IntelligenceRule ? $currentRule->slug : null;
+
             $run->forceFill([
                 'status' => 'failed',
                 'completed_at' => now(),
-                'notes' => $throwable->getMessage(),
+                'rules_executed' => $executed,
+                'indicators_created' => $created,
+                'notes' => $failedRule === null
+                    ? 'Civic Integrity Engine failed before rule execution.'
+                    : 'Civic Integrity Engine failed while executing rule '.$failedRule.'.',
+                'summary_payload' => [
+                    'failed_rule' => $failedRule,
+                    'error_class' => class_basename($throwable),
+                    'review_status' => 'technical_review_required',
+                ],
             ])->save();
 
             throw $throwable;

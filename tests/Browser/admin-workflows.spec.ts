@@ -9,7 +9,7 @@ test('administrator can create an agency through the browser', async ({ page }, 
   const suffix = `${testInfo.project.name}-${Date.now()}`.replace(/[^a-z0-9-]/gi, '-').toLowerCase();
   const agencyName = `Browser Works Agency ${suffix}`;
 
-  await page.goto('/admin/agencies/create');
+  await page.goto('/admin/agencies/create', { waitUntil: 'domcontentloaded' });
   await page.getByPlaceholder('Agency name').fill(agencyName);
   await page.getByPlaceholder('Short name').fill('BWA');
   await page.getByPlaceholder('agency-slug').fill(`browser-works-agency-${suffix}`);
@@ -82,7 +82,7 @@ test('administrator can upload search download archive and restore documents', a
   await expect(page.getByText('Version History')).toBeVisible();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('link', { name: 'Download' }).click();
+  await page.getByRole('link', { name: 'Download', exact: true }).first().click();
   await downloadPromise;
 
   await page.getByRole('button', { name: 'Archive' }).evaluate((button: HTMLButtonElement) => button.form?.requestSubmit());
