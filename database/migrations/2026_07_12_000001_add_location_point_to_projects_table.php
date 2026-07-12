@@ -15,7 +15,7 @@ return new class extends Migration
 
         Schema::table('projects', function (Blueprint $table): void {
             $table->geometry('location', 'point', 4326)->nullable()->after('longitude');
-            $table->spatialIndex('location');
+            $table->index(['latitude', 'longitude', 'id']);
         });
 
         DB::statement(
@@ -30,7 +30,7 @@ return new class extends Migration
         }
 
         Schema::table('projects', function (Blueprint $table): void {
-            $table->dropSpatialIndex(['location']);
+            $table->dropIndex(['latitude', 'longitude', 'id']);
             $table->dropColumn('location');
         });
     }

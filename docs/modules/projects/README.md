@@ -20,7 +20,7 @@ Manage civic project records, statuses, locations, timelines, and relationships 
 - Sprint 11 public project explorer and detail pages expose only active, public, unarchived projects through public-safe services.
 - Project detail views include a reusable Leaflet/OpenStreetMap map when coordinates or GeoJSON are present.
 - Public and authorized workspace portfolio maps use bounded viewport JSON data. Public markers are explicit allowlisted projections of published, active, unarchived projects with complete coordinate pairs; administrative markers remain policy-gated.
-- Latitude/longitude remain authoritative. MySQL deployments may store a synchronized nullable SRID 4326 `POINT` for spatial indexing while portable map queries use latitude/longitude.
+- Latitude/longitude remain authoritative. MySQL deployments may store a synchronized nullable SRID 4326 `POINT`; the portable map query uses the B-tree `(latitude, longitude, id)` index.
 
 ## V1 Tables
 

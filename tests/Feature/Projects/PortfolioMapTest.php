@@ -100,5 +100,8 @@ it('backfills only complete coordinate pairs in the MySQL point migration', func
     expect($migration)
         ->toContain("Schema::getConnection()->getDriverName() !== 'mysql'")
         ->toContain('WHERE latitude IS NOT NULL AND longitude IS NOT NULL')
-        ->toContain('ST_SRID(POINT(longitude, latitude), 4326)');
+        ->toContain('ST_SRID(POINT(longitude, latitude), 4326)')
+        ->toContain("index(['latitude', 'longitude', 'id'])")
+        ->not->toContain("spatialIndex('location')")
+        ->not->toContain("dropSpatialIndex(['location'])");
 });
