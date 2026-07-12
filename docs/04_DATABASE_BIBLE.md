@@ -94,7 +94,7 @@ Project indexes support common filters:
 
 Sprint 04 removes project-owned financial amount usage. Budget amount filtering belongs to the Finance module.
 
-Portfolio GIS keeps `projects.latitude` and `projects.longitude` as the authoritative location facts. A later additive migration creates nullable `projects.location` as an SRID 4326 MySQL `POINT` with a spatial index; SQLite and other portable test/runtime drivers retain the latitude/longitude query path. The `POINT` is synchronized from a complete coordinate pair and is never used to fabricate a location.
+Portfolio GIS keeps `projects.latitude` and `projects.longitude` as the authoritative location facts. A later additive migration creates nullable `projects.location` as an SRID 4326 MySQL `POINT` and a B-tree `(latitude, longitude, id)` index; SQLite and other portable test/runtime drivers retain the latitude/longitude query path. The `POINT` is synchronized from a complete coordinate pair and is never used to fabricate a location.
 
 ## Implemented in Sprint 04
 
