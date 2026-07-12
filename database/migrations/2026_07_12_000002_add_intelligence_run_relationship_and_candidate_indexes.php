@@ -53,8 +53,8 @@ return new class extends Migration
         });
 
         Schema::table('intelligence_indicators', function (Blueprint $table): void {
-            $table->dropIndex('intel_indicators_run_severity_detected_idx');
             $table->dropForeign(['civic_intelligence_run_id']);
+            $table->dropIndex('intel_indicators_run_severity_detected_idx');
             $table->dropColumn('civic_intelligence_run_id');
         });
     }

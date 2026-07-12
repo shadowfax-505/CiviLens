@@ -36,10 +36,15 @@ class RuleManagementService
      */
     public function dryRun(IntelligenceRule $rule): array
     {
+        $estimatedMatches = $this->estimateMatches($rule);
+
         return [
             'rule' => $rule->only(['id', 'name', 'slug', 'module', 'category', 'severity_default', 'version']),
             'dry_run' => true,
-            'estimated_matches' => $this->estimateMatches($rule),
+            'estimated_matches' => $estimatedMatches,
+            'execution_limit' => IntelligenceCandidateQueryService::EXECUTION_LIMIT,
+            'execution_candidate_count' => min($estimatedMatches, IntelligenceCandidateQueryService::EXECUTION_LIMIT),
+            'execution_candidate_count_truncated' => $estimatedMatches > IntelligenceCandidateQueryService::EXECUTION_LIMIT,
             'thresholds' => $rule->thresholds ?? [],
             'configuration' => $rule->configuration ?? [],
             'explanation' => 'Dry run estimates source records that match the configured deterministic rule without creating indicators or evidence.',

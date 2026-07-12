@@ -55,6 +55,52 @@ it('consolidates low-utilization candidates and scores utilization risk determin
         ->and($indicator->detection_payload)->toMatchArray(['utilization_percentage' => 5.0]);
 });
 
+it('orders capped execution candidates by utilization with an identifier tie-breaker', function (): void {
+    $rule = IntelligenceRule::factory()->create([
+        'slug' => 'low-budget-utilization',
+        'module' => 'finance',
+        'thresholds' => ['max_utilization' => 30, 'warning' => 50, 'critical' => 90],
+    ]);
+    $project = Project::factory()->create();
+
+    $budgets = collect(range(26, 1))->map(fn (int $expenditure): Budget => Budget::factory()->create([
+        'project_id' => $project->id,
+        'current_allocation' => $expenditure * 10,
+        'actual_expenditure' => $expenditure,
+    ]));
+
+    $indicators = app(IntelligenceManager::class)->runRule($rule);
+
+    expect($indicators)->toHaveCount(25)
+        ->and($indicators->pluck('source_id')->all())->toBe(
+            $budgets->take(25)->pluck('id')->all(),
+        );
+});
+
+it('reports dry-run execution cap metadata without changing estimated matches', function (): void {
+    $rule = IntelligenceRule::factory()->create([
+        'slug' => 'low-budget-utilization',
+        'module' => 'finance',
+        'thresholds' => ['max_utilization' => 30, 'warning' => 50, 'critical' => 90],
+    ]);
+    $project = Project::factory()->create();
+
+    foreach (range(1, 26) as $expenditure) {
+        Budget::factory()->create([
+            'project_id' => $project->id,
+            'current_allocation' => 100,
+            'actual_expenditure' => $expenditure,
+        ]);
+    }
+
+    $dryRun = app(RuleManagementService::class)->dryRun($rule);
+
+    expect($dryRun['estimated_matches'])->toBe(26)
+        ->and(data_get($dryRun, 'execution_limit'))->toBe(25)
+        ->and(data_get($dryRun, 'execution_candidate_count'))->toBe(25)
+        ->and(data_get($dryRun, 'execution_candidate_count_truncated'))->toBeTrue();
+});
+
 it('rejects unordered and out-of-range deterministic rule thresholds', function (): void {
     $admin = intelligenceDatabaseAdmin();
     $rule = IntelligenceRule::factory()->create();
