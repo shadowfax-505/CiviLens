@@ -13,6 +13,7 @@ Implemented capabilities:
 - Configurable intelligence rule types and rules.
 - Reproducible Civic Integrity Engine runs with engine version, threshold snapshots, run status, and generated-indicator counts.
 - Audited rule management for active state, priority, weight, thresholds, severity, descriptions, documentation URLs, execution frequency, dry-run estimates, and latest execution metadata.
+- Shared candidate queries for execution and dry-run estimates, with finite non-negative threshold validation, ordered warning/critical thresholds, and bounded percentage thresholds.
 - Advisory indicators with severity, confidence, source references, and rule versions.
 - Evidence records linked to source data through polymorphic references.
 - Human review workflow for pending, in-review, accepted, dismissed, and needs-more-evidence states.
@@ -30,7 +31,7 @@ New deterministic rule slugs:
 - `procurement-repeat-winner-concentration` identifies bidders with concentrated approved-award counts above configured thresholds.
 - `citizen-report-cluster` identifies projects with unresolved citizen-report clusters above configured thresholds.
 
-Both rules store detection payloads, evidence links, rule versions, and threshold context for review. They identify review signals only and do not make legal conclusions.
+Both rules store detection payloads, evidence links, rule versions, and threshold context for review. They identify review signals only and do not make legal conclusions. Low budget utilization is calculated as expenditure divided by current allocation; lower utilization produces a higher deterministic risk score without changing the stored utilization payload.
 
 ## Operations
 
