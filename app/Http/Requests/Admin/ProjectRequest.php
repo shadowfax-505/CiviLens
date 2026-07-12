@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Http\Requests\Concerns\ValidatesProjectLocation;
 use App\Models\Project;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class ProjectRequest extends FormRequest
 {
+    use ValidatesProjectLocation;
+
     public function authorize(): bool
     {
         $project = $this->route('project');
