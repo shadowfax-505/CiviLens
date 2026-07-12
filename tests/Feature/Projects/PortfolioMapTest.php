@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Country;
+use App\Models\District;
 use App\Models\Division;
 use App\Models\Project;
 use App\Models\Role;
@@ -75,4 +76,29 @@ it('rejects partial coordinate pairs and mismatched project geography', function
         'division_id' => $division->id,
         'latitude' => '23.8103000',
     ])->assertSessionHasErrors(['latitude', 'longitude', 'division_id']);
+});
+
+it('validates a partial geography update against the projects existing hierarchy', function (): void {
+    $admin = portfolioMapAdmin();
+    $country = Country::factory()->create();
+    $division = Division::factory()->for($country)->create();
+    $otherCountry = Country::factory()->create();
+    $otherDivision = Division::factory()->for($otherCountry)->create();
+    $district = District::factory()->for($otherDivision)->create();
+    $project = Project::factory()->create(['country_id' => $country->id, 'division_id' => $division->id, 'district_id' => null]);
+
+    $this->actingAs($admin)->patch('/admin/projects/map/'.$project->id, [
+        'district_id' => $district->id,
+    ])->assertSessionHasErrors('district_id');
+
+    expect($project->fresh()->district_id)->toBeNull();
+});
+
+it('backfills only complete coordinate pairs in the MySQL point migration', function (): void {
+    $migration = file_get_contents(database_path('migrations/2026_07_12_000001_add_location_point_to_projects_table.php'));
+
+    expect($migration)
+        ->toContain("Schema::getConnection()->getDriverName() !== 'mysql'")
+        ->toContain('WHERE latitude IS NOT NULL AND longitude IS NOT NULL')
+        ->toContain('ST_SRID(POINT(longitude, latitude), 4326)');
 });
