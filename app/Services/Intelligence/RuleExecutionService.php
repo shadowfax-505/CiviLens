@@ -27,6 +27,7 @@ class RuleExecutionService
         private readonly EvidenceBuilder $evidence,
         private readonly IndicatorScoringService $scoring,
         private readonly RuleManagementService $management,
+        private readonly IntelligenceCandidateQueryService $candidates,
     ) {}
 
     /**
@@ -62,12 +63,7 @@ class RuleExecutionService
      */
     private function projectDelayRisk(IntelligenceRule $rule, ?User $user): Collection
     {
-        $thresholds = $rule->thresholds ?? [];
-        $maxProgress = (int) ($thresholds['max_progress'] ?? 90);
-
-        return Project::query()
-            ->whereDate('planned_end_date', '<', now()->toDateString())
-            ->where('progress_percentage', '<', $maxProgress)
+        return $this->candidates->apply($rule, Project::query())
             ->limit(25)
             ->get()
             ->map(fn (Project $project): IntelligenceIndicator => $this->createIndicator(
@@ -86,8 +82,7 @@ class RuleExecutionService
      */
     private function budgetOverrunRisk(IntelligenceRule $rule, ?User $user): Collection
     {
-        return Budget::query()
-            ->whereColumn('actual_expenditure', '>', 'current_allocation')
+        return $this->candidates->apply($rule, Budget::query())
             ->limit(25)
             ->get()
             ->map(fn (Budget $budget): IntelligenceIndicator => $this->createIndicator(
@@ -106,11 +101,7 @@ class RuleExecutionService
      */
     private function lowBudgetUtilization(IntelligenceRule $rule, ?User $user): Collection
     {
-        $maxUtilization = (float) (($rule->thresholds ?? [])['max_utilization'] ?? 10);
-
-        return Budget::query()
-            ->where('current_allocation', '>', 0)
-            ->where('actual_expenditure', '<=', $maxUtilization)
+        return $this->candidates->apply($rule, Budget::query())
             ->limit(25)
             ->get()
             ->map(fn (Budget $budget): IntelligenceIndicator => $this->createIndicator(
@@ -118,7 +109,7 @@ class RuleExecutionService
                 $budget,
                 'Low budget utilization detected',
                 'Budget spending is low relative to allocation.',
-                50,
+                100 - (float) $budget->utilization_percentage,
                 ['utilization_percentage' => $budget->utilization_percentage],
                 $user,
             ));
@@ -129,9 +120,7 @@ class RuleExecutionService
      */
     private function singleBidRisk(IntelligenceRule $rule, ?User $user): Collection
     {
-        return Tender::query()
-            ->has('bidSubmissions', '=', 1)
-            ->withCount('bidSubmissions')
+        return $this->candidates->apply($rule, Tender::query())
             ->limit(25)
             ->get()
             ->map(fn (Tender $tender): IntelligenceIndicator => $this->createIndicator(
@@ -150,8 +139,7 @@ class RuleExecutionService
      */
     private function complianceExpiry(IntelligenceRule $rule, ?User $user): Collection
     {
-        return ComplianceRecord::query()
-            ->whereDate('next_review_date', '<=', now()->addDays(30)->toDateString())
+        return $this->candidates->apply($rule, ComplianceRecord::query())
             ->limit(25)
             ->get()
             ->map(fn (ComplianceRecord $record): IntelligenceIndicator => $this->createIndicator(
@@ -170,10 +158,7 @@ class RuleExecutionService
      */
     private function documentMissingMetadata(IntelligenceRule $rule, ?User $user): Collection
     {
-        return Document::query()
-            ->where(function ($query): void {
-                $query->whereNull('description')->orWhereNull('language');
-            })
+        return $this->candidates->apply($rule, Document::query())
             ->limit(25)
             ->get()
             ->map(fn (Document $document): IntelligenceIndicator => $this->createIndicator(
@@ -192,8 +177,7 @@ class RuleExecutionService
      */
     private function documentPendingOcr(IntelligenceRule $rule, ?User $user): Collection
     {
-        return Document::query()
-            ->where('ocr_status', 'pending')
+        return $this->candidates->apply($rule, Document::query())
             ->limit(25)
             ->get()
             ->map(fn (Document $document): IntelligenceIndicator => $this->createIndicator(
@@ -212,8 +196,7 @@ class RuleExecutionService
      */
     private function searchIndexingFailure(IntelligenceRule $rule, ?User $user): Collection
     {
-        return SearchJob::query()
-            ->where('status', 'failed')
+        return $this->candidates->apply($rule, SearchJob::query())
             ->limit(25)
             ->get()
             ->map(fn (SearchJob $job): IntelligenceIndicator => $this->createIndicator(
@@ -232,9 +215,7 @@ class RuleExecutionService
      */
     private function analyticsAlertEscalation(IntelligenceRule $rule, ?User $user): Collection
     {
-        return AnalyticsAlert::query()
-            ->whereIn('severity', ['warning', 'critical'])
-            ->where('status', 'open')
+        return $this->candidates->apply($rule, AnalyticsAlert::query())
             ->limit(25)
             ->get()
             ->map(fn (AnalyticsAlert $alert): IntelligenceIndicator => $this->createIndicator(
@@ -254,14 +235,8 @@ class RuleExecutionService
     private function repeatWinnerConcentration(IntelligenceRule $rule, ?User $user): Collection
     {
         $thresholds = is_array($rule->thresholds) ? $rule->thresholds : [];
-        $warning = (int) data_get($thresholds, 'warning', 3);
 
-        return Award::query()
-            ->join('bid_submissions', 'awards.bid_submission_id', '=', 'bid_submissions.id')
-            ->where('awards.status', 'approved')
-            ->selectRaw('bid_submissions.bidder_organization_id as bidder_id, count(*) as award_count')
-            ->groupBy('bid_submissions.bidder_organization_id')
-            ->havingRaw('count(*) >= ?', [$warning])
+        return $this->candidates->apply($rule, Award::query())
             ->limit(25)
             ->get()
             ->map(function (Award $row) use ($rule, $user, $thresholds): ?IntelligenceIndicator {
@@ -292,14 +267,8 @@ class RuleExecutionService
     private function citizenReportCluster(IntelligenceRule $rule, ?User $user): Collection
     {
         $thresholds = is_array($rule->thresholds) ? $rule->thresholds : [];
-        $warning = (int) data_get($thresholds, 'warning', 3);
 
-        return CitizenReport::query()
-            ->whereNull('resolved_at')
-            ->whereNotNull('project_id')
-            ->selectRaw('project_id, count(*) as report_count')
-            ->groupBy('project_id')
-            ->havingRaw('count(*) >= ?', [$warning])
+        return $this->candidates->apply($rule, CitizenReport::query())
             ->limit(25)
             ->get()
             ->map(function (CitizenReport $cluster) use ($rule, $user, $thresholds): ?IntelligenceIndicator {

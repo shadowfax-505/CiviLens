@@ -51,6 +51,7 @@ class CivicIntegrityEngineService
                     $metadata = is_array($indicator->metadata) ? $indicator->metadata : [];
 
                     $indicator->forceFill([
+                        'civic_intelligence_run_id' => $run->id,
                         'metadata' => array_merge($metadata, [
                             'engine' => 'civic_integrity',
                             'engine_run_id' => $run->id,
@@ -68,8 +69,8 @@ class CivicIntegrityEngineService
                 'indicators_created' => $created,
                 'summary_payload' => [
                     'modules' => $rules->pluck('module')->unique()->values()->all(),
-                    'critical' => IntelligenceIndicator::query()->where('metadata->engine_run_id', $run->id)->where('severity', 'critical')->count(),
-                    'warning' => IntelligenceIndicator::query()->where('metadata->engine_run_id', $run->id)->where('severity', 'warning')->count(),
+                    'critical' => $run->indicators()->where('severity', 'critical')->count(),
+                    'warning' => $run->indicators()->where('severity', 'warning')->count(),
                     'review_status' => 'human_review_required',
                 ],
             ])->save();
