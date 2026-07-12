@@ -304,7 +304,7 @@ Intelligence Readiness adds normalized, explainable, reviewable intelligence inf
 
 `intelligence_rules` stores deterministic rule definitions, thresholds, module scope, severity defaults, version, active state, creator/updater users, admin-managed priority, weight, execution frequency, documentation URL, description, and latest execution metadata.
 
-`intelligence_indicators` stores generated advisory signals with source polymorphic references, module, severity, confidence score, status, detected timestamp, rule version, detection payload, and metadata. Indicators reference source facts and do not replace them.
+`intelligence_indicators` stores generated advisory signals with source polymorphic references, module, severity, confidence score, status, detected timestamp, rule version, detection payload, and metadata. Indicators reference source facts and do not replace them. New engine-generated indicators may additionally reference `civic_intelligence_runs`; the relationship is nullable so historical indicators remain intact.
 
 `intelligence_evidence` links indicators to supporting source records. `intelligence_reviews` stores human review decisions. `intelligence_processing_jobs` stores preparation jobs for future OCR, AI review, and search synchronization without running real OCR or LLM processing. `intelligence_activities` stores append-only timeline events.
 
@@ -322,7 +322,7 @@ Civic Intelligence Engine run history adds a reproducibility and audit table:
 
 Engine runs do not duplicate source project, budget, procurement, contractor, document, citizen report, agency, geography, search, or analytics facts. Generated indicators continue to live in `intelligence_indicators` with source-linked evidence and human review state.
 
-Indexes support status filtering, engine-version filtering, started/completed timeline lookup, and UUID retrieval.
+Indexes support status filtering, engine-version filtering, started/completed timeline lookup, UUID retrieval, and run-scoped indicator severity timelines. Candidate indexes support delay, approved-award concentration, and unresolved citizen-report queries.
 
 ## Implemented in Sprint 13 Part 2
 

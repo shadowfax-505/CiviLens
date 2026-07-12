@@ -35,6 +35,11 @@ class IntelligenceIndicator extends Model implements Searchable
         return $this->belongsTo(IntelligenceRule::class, 'intelligence_rule_id');
     }
 
+    public function run(): BelongsTo
+    {
+        return $this->belongsTo(CivicIntelligenceRun::class, 'civic_intelligence_run_id');
+    }
+
     public function source(): MorphTo
     {
         return $this->morphTo();
