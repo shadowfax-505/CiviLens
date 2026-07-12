@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 class ProjectLifecycleService
 {
@@ -21,6 +22,7 @@ class ProjectLifecycleService
             'is_public' => (bool) ($data['is_public'] ?? false),
             'is_active' => (bool) ($data['is_active'] ?? true),
         ]));
+        $this->syncSpatialLocation($project);
 
         $this->log($project, 'created', $actor, $request, null, $project->only(['project_code', 'name']));
         ProjectCreated::dispatch($project, $actor);
@@ -58,6 +60,7 @@ class ProjectLifecycleService
         ]);
 
         $project->update($payload);
+        $this->syncSpatialLocation($project);
 
         $this->log($project, 'updated', $actor, $request, $original, $project->only($trackedFields));
 
@@ -128,5 +131,23 @@ class ProjectLifecycleService
             'ip_address' => $request?->ip(),
             'user_agent' => $request?->userAgent(),
         ]);
+    }
+
+    private function syncSpatialLocation(Project $project): void
+    {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
+        if ($project->latitude === null || $project->longitude === null) {
+            DB::table('projects')->where('id', $project->id)->update(['location' => null]);
+
+            return;
+        }
+
+        DB::statement(
+            'UPDATE projects SET location = ST_SRID(POINT(?, ?), 4326) WHERE id = ?',
+            [(float) $project->longitude, (float) $project->latitude, $project->id],
+        );
     }
 }

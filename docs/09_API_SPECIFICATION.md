@@ -82,6 +82,7 @@ The Laravel app currently implements web identity routes for:
 - `PUT /admin/agencies/{agency}`
 - `DELETE /admin/agencies/{agency}`
 - `GET /admin/projects`
+- `GET /admin/projects/map-data` returns bounded, authorized project location markers for the active map viewport.
 - `GET /admin/projects/archived`
 - `POST /admin/projects`
 - `GET /admin/projects/{project}`
@@ -178,6 +179,8 @@ The Laravel app currently implements web identity routes for:
 - `GET /admin/intelligence/processing-jobs`
 - `POST /admin/intelligence/processing-jobs`
 - `GET /admin/system/metrics`
+
+Public project-map data is available at `GET /public/projects/map-data`. It accepts a complete `south`, `west`, `north`, `east` viewport (or no viewport), validates coordinate ordering and configured span caps, and returns no more than the configured marker limit. Its marker schema is intentionally allowlisted to project name, authoritative latitude/longitude, public agency/status labels, and the public project URL; internal descriptions, identifiers, visibility flags, and source fields are not returned.
 - `GET /public`
 - `GET /public/projects`
 - `GET /public/projects/{project:slug}`

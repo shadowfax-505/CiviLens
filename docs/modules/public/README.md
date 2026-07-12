@@ -9,6 +9,7 @@ The Public module exposes approved civic information to guests and citizens whil
 - About-first public landing page, project explorer, agency profiles, procurement summaries, document library, and public search.
 - Public procurement award notices for approved awards with public disclosure status.
 - Public project detail pages composed through public-safe services, including map display when project coordinates exist.
+- Public portfolio map markers are read-only, capped, viewport-validated, and explicitly allowlisted; unpublished, inactive, archived, and incompletely located projects are excluded.
 - Public document downloads through Laravel application routes only.
 - Role-aware shared navigation/search handoff plus staff/admin change-request entry points for projects, agencies, contractors, procurement, and documents.
 - Authenticated citizen report submission with queued acknowledgement emails, UUID-based status tracking, and a detailed citizen report dashboard.

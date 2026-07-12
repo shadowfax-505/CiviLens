@@ -257,8 +257,88 @@ function initializeLeafletStaticMaps() {
     });
 }
 
+function initializeProjectPortfolioMaps() {
+    document.querySelectorAll('[data-project-portfolio-map]').forEach((element) => {
+        if (element.dataset.initialized === 'true') {
+            return;
+        }
+
+        element.dataset.initialized = 'true';
+        const canvas = element.querySelector('[data-portfolio-map-canvas]');
+        const status = element.querySelector('[data-portfolio-map-status]');
+        const endpoint = element.dataset.endpoint;
+
+        if (!canvas || !endpoint) {
+            return;
+        }
+
+        const fallback = [Number.parseFloat(element.dataset.lat || '23.685'), Number.parseFloat(element.dataset.lng || '90.3563')];
+        const map = L.map(canvas, { scrollWheelZoom: false }).setView(fallback, 7);
+        L.tileLayer(element.dataset.tileUrl || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: element.dataset.tileAttribution || '&copy; OpenStreetMap contributors',
+            maxZoom: 19,
+        }).addTo(map);
+
+        const markers = L.layerGroup().addTo(map);
+        let requestId = 0;
+
+        const popup = (marker) => {
+            const wrapper = document.createElement('div');
+            const title = document.createElement('strong');
+            title.textContent = marker.name;
+            wrapper.append(title);
+            if (marker.agency) {
+                const agency = document.createElement('div');
+                agency.textContent = marker.agency;
+                wrapper.append(agency);
+            }
+            const link = document.createElement('a');
+            link.href = marker.url;
+            link.textContent = 'View project';
+            wrapper.append(link);
+
+            return wrapper;
+        };
+
+        const loadMarkers = async () => {
+            const bounds = map.getBounds();
+            const params = new URLSearchParams({
+                south: bounds.getSouth().toFixed(6),
+                west: bounds.getWest().toFixed(6),
+                north: bounds.getNorth().toFixed(6),
+                east: bounds.getEast().toFixed(6),
+            });
+            const currentRequest = ++requestId;
+            status.textContent = 'Loading mapped projects…';
+
+            try {
+                const response = await fetch(`${endpoint}?${params.toString()}`, { headers: { Accept: 'application/json' } });
+                if (!response.ok) {
+                    throw new Error('Map data is unavailable.');
+                }
+                const payload = await response.json();
+                if (currentRequest !== requestId) {
+                    return;
+                }
+                markers.clearLayers();
+                payload.data.forEach((marker) => L.marker([marker.latitude, marker.longitude]).addTo(markers).bindPopup(popup(marker)));
+                status.textContent = payload.meta.capped ? `Showing the first ${payload.meta.count} mapped projects in this area.` : `${payload.meta.count} mapped projects in this area.`;
+            } catch {
+                if (currentRequest === requestId) {
+                    status.textContent = 'Map data is unavailable. Project results remain available below.';
+                }
+            }
+        };
+
+        map.on('moveend', loadMarkers);
+        loadMarkers();
+        setTimeout(() => map.invalidateSize(), 0);
+    });
+}
+
 ready(() => {
     initializeUploadZones();
     initializeLeafletPickers();
     initializeLeafletStaticMaps();
+    initializeProjectPortfolioMaps();
 });
