@@ -5,7 +5,7 @@ test('guest can browse public portal projects procurement documents and search',
   await page.goto('/public');
   await expect(page.getByText('Civic Intelligence Platform')).toBeVisible();
 
-  await page.goto('/public/projects');
+  await page.goto('/public/projects', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Public Projects' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'CivicLens Baseline Road Improvement' })).toBeVisible();
 
@@ -26,7 +26,7 @@ test('guest can browse public portal projects procurement documents and search',
 });
 
 test('guest can access the resilient published-project portfolio map', async ({ page }) => {
-  await page.goto('/public/projects');
+  await page.goto('/public/projects', { waitUntil: 'domcontentloaded' });
 
   await expect(page.getByRole('region', { name: 'Published project locations' })).toBeVisible();
   await expect(page.locator('[data-portfolio-map-canvas]')).toBeVisible();

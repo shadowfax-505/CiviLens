@@ -5,11 +5,6 @@ services:
       target: app
     env_file:
       - .env.production
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     environment:
       CIVICLENS_RUNTIME_ROLE: web
     volumes:
@@ -77,17 +72,20 @@ services:
       context: .
       target: app
     env_file:
-      - .env.production
+      - path: .env.release
+        required: false
     command: ["php", "artisan", "migrate", "--force", "--no-interaction"]
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     environment:
       CIVICLENS_RUNTIME_ROLE: release
-    volumes:
-      - civic_storage:/var/www/html/storage
+      APP_ENV: production
+      APP_DEBUG: "false"
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      FILESYSTEM_DISK: local
+      MAIL_MAILER: log
+      LOG_CHANNEL: stderr
+    user: www-data
     profiles: ["release"]
     restart: "no"
 
@@ -103,7 +101,7 @@ services:
     volumes:
       - civic_storage:/var/www/html/storage:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1/healthz"]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1/nginx-healthz"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -113,10 +111,10 @@ services:
   mysql:
     image: mysql:8.4
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-civiclens}
-      MYSQL_USER: ${MYSQL_USER:-civiclens}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -126,19 +124,23 @@ services:
       retries: 10
       start_period: 30s
     restart: unless-stopped
+    profiles: ["bundled"]
 
   redis:
     image: redis:7.4-alpine
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ["sh", "-ec", "test -n \"$$REDIS_PASSWORD\" && exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 10s
     restart: unless-stopped
+    profiles: ["bundled"]
 
 volumes:
   civic_storage:
