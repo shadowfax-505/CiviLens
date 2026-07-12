@@ -64,7 +64,7 @@ class RuleExecutionService
     private function projectDelayRisk(IntelligenceRule $rule, ?User $user): Collection
     {
         return $this->candidates->apply($rule, Project::query())
-            ->limit(25)
+            ->limit(IntelligenceCandidateQueryService::EXECUTION_LIMIT)
             ->get()
             ->map(fn (Project $project): IntelligenceIndicator => $this->createIndicator(
                 $rule,
@@ -83,7 +83,7 @@ class RuleExecutionService
     private function budgetOverrunRisk(IntelligenceRule $rule, ?User $user): Collection
     {
         return $this->candidates->apply($rule, Budget::query())
-            ->limit(25)
+            ->limit(IntelligenceCandidateQueryService::EXECUTION_LIMIT)
             ->get()
             ->map(fn (Budget $budget): IntelligenceIndicator => $this->createIndicator(
                 $rule,
@@ -102,7 +102,7 @@ class RuleExecutionService
     private function lowBudgetUtilization(IntelligenceRule $rule, ?User $user): Collection
     {
         return $this->candidates->apply($rule, Budget::query())
-            ->limit(25)
+            ->limit(IntelligenceCandidateQueryService::EXECUTION_LIMIT)
             ->get()
             ->map(fn (Budget $budget): IntelligenceIndicator => $this->createIndicator(
                 $rule,
@@ -121,7 +121,7 @@ class RuleExecutionService
     private function singleBidRisk(IntelligenceRule $rule, ?User $user): Collection
     {
         return $this->candidates->apply($rule, Tender::query())
-            ->limit(25)
+            ->limit(IntelligenceCandidateQueryService::EXECUTION_LIMIT)
             ->get()
             ->map(fn (Tender $tender): IntelligenceIndicator => $this->createIndicator(
                 $rule,
@@ -140,7 +140,7 @@ class RuleExecutionService
     private function complianceExpiry(IntelligenceRule $rule, ?User $user): Collection
     {
         return $this->candidates->apply($rule, ComplianceRecord::query())
-            ->limit(25)
+            ->limit(IntelligenceCandidateQueryService::EXECUTION_LIMIT)
             ->get()
             ->map(fn (ComplianceRecord $record): IntelligenceIndicator => $this->createIndicator(
                 $rule,
@@ -159,7 +159,7 @@ class RuleExecutionService
     private function documentMissingMetadata(IntelligenceRule $rule, ?User $user): Collection
     {
         return $this->candidates->apply($rule, Document::query())
-            ->limit(25)
+            ->limit(IntelligenceCandidateQueryService::EXECUTION_LIMIT)
             ->get()
             ->map(fn (Document $document): IntelligenceIndicator => $this->createIndicator(
                 $rule,
@@ -178,7 +178,7 @@ class RuleExecutionService
     private function documentPendingOcr(IntelligenceRule $rule, ?User $user): Collection
     {
         return $this->candidates->apply($rule, Document::query())
-            ->limit(25)
+            ->limit(IntelligenceCandidateQueryService::EXECUTION_LIMIT)
             ->get()
             ->map(fn (Document $document): IntelligenceIndicator => $this->createIndicator(
                 $rule,
@@ -197,7 +197,7 @@ class RuleExecutionService
     private function searchIndexingFailure(IntelligenceRule $rule, ?User $user): Collection
     {
         return $this->candidates->apply($rule, SearchJob::query())
-            ->limit(25)
+            ->limit(IntelligenceCandidateQueryService::EXECUTION_LIMIT)
             ->get()
             ->map(fn (SearchJob $job): IntelligenceIndicator => $this->createIndicator(
                 $rule,
@@ -216,7 +216,7 @@ class RuleExecutionService
     private function analyticsAlertEscalation(IntelligenceRule $rule, ?User $user): Collection
     {
         return $this->candidates->apply($rule, AnalyticsAlert::query())
-            ->limit(25)
+            ->limit(IntelligenceCandidateQueryService::EXECUTION_LIMIT)
             ->get()
             ->map(fn (AnalyticsAlert $alert): IntelligenceIndicator => $this->createIndicator(
                 $rule,
@@ -237,7 +237,7 @@ class RuleExecutionService
         $thresholds = is_array($rule->thresholds) ? $rule->thresholds : [];
 
         return $this->candidates->apply($rule, Award::query())
-            ->limit(25)
+            ->limit(IntelligenceCandidateQueryService::EXECUTION_LIMIT)
             ->get()
             ->map(function (Award $row) use ($rule, $user, $thresholds): ?IntelligenceIndicator {
                 $bidderId = $row->getAttribute('bidder_id');
@@ -269,7 +269,7 @@ class RuleExecutionService
         $thresholds = is_array($rule->thresholds) ? $rule->thresholds : [];
 
         return $this->candidates->apply($rule, CitizenReport::query())
-            ->limit(25)
+            ->limit(IntelligenceCandidateQueryService::EXECUTION_LIMIT)
             ->get()
             ->map(function (CitizenReport $cluster) use ($rule, $user, $thresholds): ?IntelligenceIndicator {
                 $project = Project::query()->find($cluster->project_id);

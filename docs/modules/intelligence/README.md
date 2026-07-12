@@ -37,7 +37,7 @@ Both rules store detection payloads, evidence links, rule versions, and threshol
 
 `POST /admin/intelligence/engine/run` lets authorized administrators run the engine manually. The `civiclens:integrity-run` Artisan command is scheduled daily for production. Dashboard summaries show engine run counts, latest run status, integrity timelines, rule execution history, indicator distribution, agency/contractor/project/budget/document/citizen-report/geography rankings, and performance metrics.
 
-`/admin/intelligence/rules` is the production rule-management console. Updates are validated and written through `RuleManagementService`, then recorded in `intelligence_rule_audits`. Dry-runs estimate matching source records without creating indicators, evidence, reviews, or activities; HTML dry-runs return a visible status message while JSON requests return structured dry-run payloads.
+`/admin/intelligence/rules` is the production rule-management console. Updates are validated and written through `RuleManagementService`, then recorded in `intelligence_rule_audits`. Candidate execution is capped at 25 stably ordered records per rule. Dry-runs estimate matching source records without creating indicators, evidence, reviews, or activities; their structured payload retains the full estimate and adds the execution cap, capped candidate count, and truncation state. HTML dry-runs retain the existing visible status message.
 
 Engine web runs record failed run metadata safely and return user-safe feedback instead of leaking raw database or stack-trace details.
 
