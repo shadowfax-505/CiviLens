@@ -33,6 +33,8 @@ New deterministic rule slugs:
 
 Both rules store detection payloads, evidence links, rule versions, and threshold context for review. They identify review signals only and do not make legal conclusions. Low budget utilization is calculated as expenditure divided by current allocation; lower utilization produces a higher deterministic risk score without changing the stored utilization payload.
 
+Grouped candidate queries exclude soft-deleted projects and bidder organizations before counting, ordering, or applying the execution cap. This keeps dry-run estimates aligned with executable source targets while preserving existing source-row lifecycle semantics.
+
 ## Operations
 
 `POST /admin/intelligence/engine/run` lets authorized administrators run the engine manually. The `civiclens:integrity-run` Artisan command is scheduled daily for production. Dashboard summaries show engine run counts, latest run status, integrity timelines, rule execution history, indicator distribution, agency/contractor/project/budget/document/citizen-report/geography rankings, and performance metrics.

@@ -84,7 +84,9 @@ class IntelligenceCandidateQueryService
                 ->orderBy('id'),
             'procurement-repeat-winner-concentration' => $query
                 ->join('bid_submissions', 'awards.bid_submission_id', '=', 'bid_submissions.id')
+                ->join('bidder_organizations', 'bid_submissions.bidder_organization_id', '=', 'bidder_organizations.id')
                 ->where('awards.status', 'approved')
+                ->whereNull('bidder_organizations.deleted_at')
                 ->selectRaw('bid_submissions.bidder_organization_id as bidder_id, count(*) as award_count')
                 ->groupBy('bid_submissions.bidder_organization_id')
                 ->havingRaw('count(*) >= ?', [(int) data_get($thresholds, 'warning', 3)])
@@ -93,11 +95,13 @@ class IntelligenceCandidateQueryService
             'citizen-report-cluster' => $query
                 ->whereNull('resolved_at')
                 ->whereNotNull('project_id')
-                ->selectRaw('project_id, count(*) as report_count')
-                ->groupBy('project_id')
+                ->join('projects', 'citizen_reports.project_id', '=', 'projects.id')
+                ->whereNull('projects.deleted_at')
+                ->selectRaw('citizen_reports.project_id, count(*) as report_count')
+                ->groupBy('citizen_reports.project_id')
                 ->havingRaw('count(*) >= ?', [(int) data_get($thresholds, 'warning', 3)])
                 ->orderByDesc('report_count')
-                ->orderBy('project_id'),
+                ->orderBy('citizen_reports.project_id'),
             default => $query->whereRaw('1 = 0')->orderBy('id'),
         };
     }

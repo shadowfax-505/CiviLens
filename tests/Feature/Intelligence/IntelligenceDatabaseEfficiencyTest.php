@@ -1,10 +1,15 @@
 <?php
 
+use App\Models\Award;
+use App\Models\BidderOrganization;
+use App\Models\BidSubmission;
 use App\Models\Budget;
+use App\Models\CitizenReport;
 use App\Models\IntelligenceIndicator;
 use App\Models\IntelligenceRule;
 use App\Models\Project;
 use App\Models\Role;
+use App\Models\Tender;
 use App\Models\User;
 use App\Services\Intelligence\CivicIntegrityEngineService;
 use App\Services\Intelligence\IntelligenceCandidateQueryService;
@@ -99,6 +104,73 @@ it('reports dry-run execution cap metadata without changing estimated matches', 
         ->and(data_get($dryRun, 'execution_limit'))->toBe(25)
         ->and(data_get($dryRun, 'execution_candidate_count'))->toBe(25)
         ->and(data_get($dryRun, 'execution_candidate_count_truncated'))->toBeTrue();
+});
+
+it('excludes soft-deleted projects from citizen report cluster candidates', function (): void {
+    $rule = IntelligenceRule::factory()->create([
+        'slug' => 'citizen-report-cluster',
+        'module' => 'public',
+        'thresholds' => ['warning' => 2, 'critical' => 4],
+    ]);
+    $activeProject = Project::factory()->create();
+    $deletedProject = Project::factory()->create();
+
+    CitizenReport::factory()->count(2)->create(['project_id' => $activeProject->id, 'agency_id' => $activeProject->agency_id]);
+    CitizenReport::factory()->count(2)->create(['project_id' => $deletedProject->id, 'agency_id' => $deletedProject->agency_id]);
+    $deletedProject->delete();
+
+    $dryRun = app(RuleManagementService::class)->dryRun($rule);
+    $indicators = app(IntelligenceManager::class)->runRule($rule);
+
+    expect($dryRun['estimated_matches'])->toBe(1)
+        ->and($dryRun['execution_candidate_count'])->toBe(1)
+        ->and($indicators)->toHaveCount(1)
+        ->and($indicators->sole()->source_id)->toBe($activeProject->id);
+});
+
+it('excludes soft-deleted organizations from repeat winner candidates', function (): void {
+    $rule = IntelligenceRule::factory()->create([
+        'slug' => 'procurement-repeat-winner-concentration',
+        'module' => 'procurement',
+        'thresholds' => ['warning' => 2, 'critical' => 4],
+    ]);
+    $activeBidder = BidderOrganization::query()->create([
+        'name' => 'Active review bidder',
+        'slug' => 'active-review-bidder',
+        'status' => 'active',
+    ]);
+    $deletedBidder = BidderOrganization::query()->create([
+        'name' => 'Deleted review bidder',
+        'slug' => 'deleted-review-bidder',
+        'status' => 'active',
+    ]);
+    $tender = Tender::factory()->create();
+
+    foreach (range(1, 2) as $index) {
+        $activeBid = BidSubmission::query()->create([
+            'tender_id' => $tender->id,
+            'bidder_organization_id' => $activeBidder->id,
+            'reference_number' => 'ACTIVE-BID-'.$index,
+            'submitted_at' => now(),
+        ]);
+        $deletedBid = BidSubmission::query()->create([
+            'tender_id' => $tender->id,
+            'bidder_organization_id' => $deletedBidder->id,
+            'reference_number' => 'DELETED-BID-'.$index,
+            'submitted_at' => now(),
+        ]);
+        Award::query()->create(['tender_id' => $tender->id, 'bid_submission_id' => $activeBid->id, 'status' => 'approved']);
+        Award::query()->create(['tender_id' => $tender->id, 'bid_submission_id' => $deletedBid->id, 'status' => 'approved']);
+    }
+    $deletedBidder->delete();
+
+    $dryRun = app(RuleManagementService::class)->dryRun($rule);
+    $indicators = app(IntelligenceManager::class)->runRule($rule);
+
+    expect($dryRun['estimated_matches'])->toBe(1)
+        ->and($dryRun['execution_candidate_count'])->toBe(1)
+        ->and($indicators)->toHaveCount(1)
+        ->and($indicators->sole()->source_id)->toBe($activeBidder->id);
 });
 
 it('rejects unordered and out-of-range deterministic rule thresholds', function (): void {
