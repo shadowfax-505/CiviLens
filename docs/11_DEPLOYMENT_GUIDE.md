@@ -9,9 +9,9 @@ Use Docker or Laravel Sail for PHP, MySQL, Redis, Meilisearch, and mail testing.
 Sprint 13 part 1 adds a production-oriented Docker scaffold:
 
 - `Dockerfile` builds Composer dependencies, Vite assets, a PHP 8.4 PHP-FPM runtime with the Redis extension, and an Nginx runtime stage with the same immutable public assets.
-- `docker-compose.production.yml` defines app, worker, image-backed Nginx, MySQL, and Redis services.
+- `docker-compose.production.yml` defines independently deployable web, worker, scheduler, image-backed Nginx, MySQL, and Redis services. The release migration role is opt-in and never starts with the long-running stack.
 - `docker/production/nginx.conf` serves public assets from the release image and forwards PHP requests to PHP-FPM.
-- `docker/production/supervisord.conf` runs queue workers and the Laravel scheduler loop.
+- The web role owns PHP-FPM, the worker role runs `queue:work`, and the scheduler role runs `schedule:work`. Workers and the scheduler receive a two-minute graceful-stop window so Laravel can finish an in-flight job or scheduler tick.
 - `docker/production/php.ini` sets production PHP limits and disables error display.
 - `.env.production.example` documents required production environment variables.
 
@@ -24,6 +24,32 @@ docker compose --env-file .env.production -f docker-compose.production.yml up -d
 ```
 
 Keep `DB_*` and `MYSQL_*` credentials synchronized. Laravel reads `DB_*`; the MySQL container reads `MYSQL_*`.
+
+Run migrations as a controlled, one-shot release step after the database and Redis services are healthy, before starting a new application release:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml --profile release run --rm release
+```
+
+The release role runs only `php artisan migrate --force --no-interaction`; it does not start queue workers or the scheduler and is configured not to restart. Do not run migrations automatically from the web container entrypoint.
+
+## Container Roles And Health Checks
+
+- `app` runs PHP-FPM and warms Laravel caches only for the web role. It is healthy when PHP-FPM accepts connections.
+- `worker` runs one Laravel `queue:work` process as PID 1. Docker sends it `SIGTERM`; Laravel receives that signal directly and the Compose grace period allows an active job to finish.
+- `scheduler` runs one Laravel `schedule:work` process as PID 1 with the same graceful-stop window.
+- `nginx` waits for the app health check and probes the public-safe `/healthz` endpoint.
+- MySQL and Redis publish native readiness checks. App, worker, scheduler, Nginx, and the release role wait on the dependencies they require.
+
+CI validates both the normal and `release` Compose profiles using the committed example environment only; it never builds or starts the production stack.
+
+## Production Map Configuration
+
+Set the following values in `.env.production` for public and administrative map behavior. The supplied values are Bangladesh-wide defaults and OpenStreetMap attribution; adjust the center, viewport caps, tile provider, and attribution for the deployed jurisdiction and provider terms.
+
+- `MAP_PUBLIC_MARKER_LIMIT` and `MAP_ADMIN_MARKER_LIMIT` bound map response sizes.
+- `MAP_DEFAULT_LATITUDE`, `MAP_DEFAULT_LONGITUDE`, `MAP_MAX_VIEWPORT_LATITUDE_SPAN`, and `MAP_MAX_VIEWPORT_LONGITUDE_SPAN` control the initial map and viewport limits.
+- `MAP_TILE_URL` and `MAP_TILE_ATTRIBUTION` configure the basemap without changing application code.
 
 ## Deployment Principles
 

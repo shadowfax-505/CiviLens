@@ -74,6 +74,13 @@ jobs:
       - name: Build frontend assets
         run: npm run build
 
+      - name: Validate production Compose configuration
+        run: |
+          cp .env.production.example .env.production
+          trap 'rm -f .env.production' EXIT
+          docker compose --env-file .env.production -f docker-compose.production.yml config --quiet
+          docker compose --env-file .env.production -f docker-compose.production.yml --profile release config --quiet
+
       - name: Run PHP tests
         run: composer test
 

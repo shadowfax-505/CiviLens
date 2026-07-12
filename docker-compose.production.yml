@@ -6,10 +6,22 @@ services:
     env_file:
       - .env.production
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      CIVICLENS_RUNTIME_ROLE: web
     volumes:
       - civic_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD-SHELL", "php -r '$$socket = @stream_socket_client(\"tcp://127.0.0.1:9000\", $$errno, $$errstr, 2); exit($$socket ? 0 : 1);'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    stop_signal: SIGQUIT
+    stop_grace_period: 30s
     restart: unless-stopped
 
   worker:
@@ -18,25 +30,84 @@ services:
       target: app
     env_file:
       - .env.production
-    command: ["supervisord", "-c", "/etc/supervisord.conf"]
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--timeout=90", "--max-time=3600", "--no-interaction"]
     depends_on:
-      - app
-      - mysql
-      - redis
+      app:
+        condition: service_healthy
+    environment:
+      CIVICLENS_RUNTIME_ROLE: worker
+    user: www-data
     volumes:
       - civic_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD-SHELL", "grep -aq '[q]ueue:work' /proc/1/cmdline"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    stop_grace_period: 2m
     restart: unless-stopped
+
+  scheduler:
+    build:
+      context: .
+      target: app
+    env_file:
+      - .env.production
+    command: ["php", "artisan", "schedule:work", "--no-interaction"]
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      CIVICLENS_RUNTIME_ROLE: scheduler
+    user: www-data
+    volumes:
+      - civic_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD-SHELL", "grep -aq '[s]chedule:work' /proc/1/cmdline"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    stop_grace_period: 2m
+    restart: unless-stopped
+
+  release:
+    build:
+      context: .
+      target: app
+    env_file:
+      - .env.production
+    command: ["php", "artisan", "migrate", "--force", "--no-interaction"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      CIVICLENS_RUNTIME_ROLE: release
+    volumes:
+      - civic_storage:/var/www/html/storage
+    profiles: ["release"]
+    restart: "no"
 
   nginx:
     build:
       context: .
       target: nginx
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     ports:
       - "8080:80"
     volumes:
       - civic_storage:/var/www/html/storage:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
 
   mysql:
@@ -48,6 +119,12 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-root}
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
 
   redis:
@@ -55,6 +132,12 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     restart: unless-stopped
 
 volumes:
