@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Admin\Geography;
 
+use App\Http\Requests\Concerns\ValidatesProjectLocation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateProjectLocationRequest extends FormRequest
 {
+    use ValidatesProjectLocation;
+
     public function authorize(): bool
     {
         return $this->user()?->can('update', $this->route('project')) ?? false;

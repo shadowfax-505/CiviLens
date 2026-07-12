@@ -25,6 +25,14 @@ test('guest can browse public portal projects procurement documents and search',
   await expect(page.getByText('CivicLens Baseline Road Improvement')).toBeVisible();
 });
 
+test('guest can access the resilient published-project portfolio map', async ({ page }) => {
+  await page.goto('/public/projects');
+
+  await expect(page.getByRole('region', { name: 'Published project locations' })).toBeVisible();
+  await expect(page.locator('[data-portfolio-map-canvas]')).toBeVisible();
+  await expect(page.getByRole('status')).toContainText(/mapped projects|Loading mapped projects|unavailable/i);
+});
+
 test('registered citizen can submit and track a public report', async ({ page }, testInfo) => {
   const email = `public-citizen-${testInfo.project.name}-${Date.now()}@example.com`;
 

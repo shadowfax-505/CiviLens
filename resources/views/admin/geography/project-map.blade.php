@@ -10,6 +10,8 @@
             </div>
         </div>
 
+        <x-project-portfolio-map :endpoint="route('admin.projects.map-data')" label="Project location coverage" />
+
         <div class="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
             <div class="space-y-4">
                 <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">

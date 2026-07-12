@@ -48,6 +48,17 @@ return [
         'allowed_extensions' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'txt'],
     ],
 
+    'maps' => [
+        'public_marker_limit' => (int) env('MAP_PUBLIC_MARKER_LIMIT', 250),
+        'admin_marker_limit' => (int) env('MAP_ADMIN_MARKER_LIMIT', 500),
+        'default_latitude' => (float) env('MAP_DEFAULT_LATITUDE', 23.685),
+        'default_longitude' => (float) env('MAP_DEFAULT_LONGITUDE', 90.3563),
+        'max_viewport_latitude_span' => (float) env('MAP_MAX_VIEWPORT_LATITUDE_SPAN', 30),
+        'max_viewport_longitude_span' => (float) env('MAP_MAX_VIEWPORT_LONGITUDE_SPAN', 30),
+        'tile_url' => env('MAP_TILE_URL', 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+        'tile_attribution' => env('MAP_TILE_ATTRIBUTION', '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'),
+    ],
+
     'search' => [
         'provider' => env('SEARCH_PROVIDER', 'database'),
         'cache_ttl_minutes' => (int) env('SEARCH_CACHE_TTL_MINUTES', 10),

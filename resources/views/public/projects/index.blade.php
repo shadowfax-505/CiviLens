@@ -7,6 +7,7 @@
             <select name="status_id"><option value="">All statuses</option>@foreach ($statuses as $status)<option value="{{ $status->id }}" @selected(($filters['status_id'] ?? null) == $status->id)>{{ $status->name }}</option>@endforeach</select>
             <button class="rounded-lg bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950">Search</button>
         </form>
+        <x-project-portfolio-map :endpoint="route('public.projects.map-data')" label="Published project locations" />
         <div class="grid gap-4 md:grid-cols-2">
             @forelse ($projects as $project)
                 <article class="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">

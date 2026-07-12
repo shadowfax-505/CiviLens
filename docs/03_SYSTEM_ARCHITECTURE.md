@@ -73,3 +73,5 @@ Project map editing is part of the Projects workflow at `/admin/projects/map`. L
 Public detail maps use the same read-only Leaflet component as workspace views. Projects use their exact coordinates and otherwise fall back to assigned geography. Agencies can store direct coordinates and GeoJSON. Contractor maps prefer public headquarters coordinates and otherwise use active branch-office coordinates.
 
 Contractor detail maps may include multiple public-safe branch markers. Internal and public map views share the same component but receive only the locations authorized for their scope.
+
+Portfolio map data is served by `ProjectMapQueryService` through bounded public and authorized admin JSON endpoints. The public response has an explicit property allowlist and includes only public, active, unarchived projects with complete authoritative latitude/longitude pairs. The portable latitude/longitude query path is authoritative across supported databases; a nullable, MySQL-only SRID 4326 `POINT` column and spatial index are synchronized as an additive optimization.

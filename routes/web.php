@@ -36,6 +36,7 @@ use App\Http\Controllers\Admin\Procurement\ProcurementPlanController;
 use App\Http\Controllers\Admin\Procurement\ProcurementWorkflowController;
 use App\Http\Controllers\Admin\Procurement\TenderController;
 use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\ProjectMapDataController;
 use App\Http\Controllers\Admin\SearchAnalyticsController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SearchKnowledgeController;
@@ -58,6 +59,7 @@ use App\Http\Controllers\PublicPortal\PublicDocumentController;
 use App\Http\Controllers\PublicPortal\PublicHomeController;
 use App\Http\Controllers\PublicPortal\PublicProcurementController;
 use App\Http\Controllers\PublicPortal\PublicProjectController;
+use App\Http\Controllers\PublicPortal\PublicProjectMapDataController;
 use App\Http\Controllers\PublicPortal\PublicSearchController;
 use App\Http\Controllers\VersionController;
 use App\Models\Project;
@@ -73,6 +75,7 @@ Route::get('/about', PublicHomeController::class)->name('public.about');
 Route::prefix('public')->name('public.')->group(function (): void {
     Route::get('/', PublicHomeController::class)->name('legacy-home');
     Route::get('/projects', [PublicProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects/map-data', PublicProjectMapDataController::class)->middleware('throttle:60,1')->name('projects.map-data');
     Route::get('/projects/{project:slug}', [PublicProjectController::class, 'show'])->name('projects.show');
     Route::get('/agencies', [PublicAgencyController::class, 'index'])->name('agencies.index');
     Route::get('/agencies/{agency:slug}', [PublicAgencyController::class, 'show'])->name('agencies.show');
@@ -232,6 +235,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
 
         Route::get('/projects/archived', [ProjectController::class, 'archived'])->name('projects.archived');
         Route::get('/projects/map', [ProjectMapController::class, 'index'])->name('projects.map');
+        Route::get('/projects/map-data', ProjectMapDataController::class)->middleware('throttle:120,1')->name('projects.map-data');
         Route::patch('/projects/map/{project}', [ProjectMapController::class, 'update'])->name('projects.map.update');
         Route::patch('/projects/{project}/archive', [ProjectController::class, 'archive'])->name('projects.archive');
         Route::patch('/projects/{project}/restore', [ProjectController::class, 'restore'])->name('projects.restore');
