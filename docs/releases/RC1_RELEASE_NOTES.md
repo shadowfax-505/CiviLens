@@ -1,10 +1,10 @@
-# CivicLens v1.0.0-RC1 Release Notes
+# CivicLens v1.0.0 Release Notes
 
 ## Highlights
 
-- CivicLens v1.0 is feature complete for RC1 validation.
-- Production deployment scaffold includes Docker, Nginx, PHP-FPM, Supervisor, MySQL, Redis, queue workers, scheduler loop, and production PHP settings.
-- RC1 local production-style validation exercised the Docker image with MySQL 8.4, Redis 7.4, Nginx, PHP-FPM, supervised workers, scheduler, health/version/metrics endpoints, authentication, search, analytics, procurement, public portal, queue processing, and an integrity engine run.
+- CivicLens v1.0 is feature complete for stable v1.0.0.
+- Production deployment scaffold includes Docker, Nginx, PHP-FPM, MySQL, Redis, dedicated queue workers, scheduler, release migrations, and production PHP settings.
+- Local production-style validation exercised the Docker image with MySQL 8.4, Redis 7.4, Nginx, PHP-FPM, worker/scheduler roles, health/version/metrics endpoints, authentication, search, analytics, procurement, public portal, queue processing, and an integrity engine run.
 - The Executive Command Center provides authenticated operational visibility across projects, budgets, procurement, contractors, citizen reports, documents, analytics, search, and integrity runs.
 - The Civic Integrity Engine remains deterministic, evidence-backed, reproducible, and human-reviewed.
 - Rule management is audited through `intelligence_rule_audits`.
@@ -67,7 +67,7 @@ No intentional breaking application changes are introduced in RC1.
 
 ## Migration Notes
 
-- Set `APP_VERSION=v1.0.0-RC1`.
+- Set `APP_VERSION=v1.0.0`.
 - Set `APP_COMMIT` to the deployed commit SHA or release artifact identifier.
 - Run all pending migrations before caching routes/config/views.
 - RC1 requires PHP `^8.4.1`; the production image uses PHP 8.4 and includes the Redis extension.

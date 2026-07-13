@@ -6,7 +6,7 @@ Release Candidate 1: Production Readiness Validation
 
 ## Goal
 
-Validate CivicLens v1.0 as `v1.0.0-RC1` for first production deployment. This pass does not add new business features and does not implement OCR, LLMs, embeddings, vector databases, semantic search, AI agents, machine learning, recommendation systems, or automated legal conclusions.
+Finalize CivicLens v1.0.0 for first production deployment. This pass does not add new business features and does not implement OCR, LLMs, embeddings, vector databases, semantic search, AI agents, machine learning, recommendation systems, or automated legal conclusions.
 
 ## Active Tasks
 

@@ -32,7 +32,7 @@ it('exposes public safe version and enriched health readiness data', function ()
         ->assertHeader('X-Content-Type-Options', 'nosniff')
         ->assertHeader('X-Frame-Options', 'DENY')
         ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
-        ->assertJsonPath('version', 'v1.0.0-RC1')
+        ->assertJsonPath('version', 'v1.0.0')
         ->assertJsonStructure(['app', 'version', 'environment', 'commit', 'generated_at'])
         ->assertJsonMissingPath('app_key');
 
