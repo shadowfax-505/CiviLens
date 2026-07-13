@@ -23,6 +23,7 @@ class PublicAgencyService
                         ->orWhere('description', 'like', '%'.$query.'%');
                 });
             })
+            ->when($filters['agency_type_id'] ?? null, fn ($builder, int $typeId) => $builder->where('agency_type_id', $typeId))
             ->orderBy('name')
             ->paginate(12)
             ->withQueryString();
@@ -36,7 +37,7 @@ class PublicAgencyService
         abort_unless($agency->status === 'active', 404);
 
         return [
-            'agency' => $agency->load('type'),
+            'agency' => $agency->load(['type', 'country', 'division', 'district', 'upazila', 'union', 'ward', 'children']),
             'projects' => $agency->projects()->where('is_public', true)->where('is_active', true)->whereNull('archived_at')->latest()->limit(8)->get(),
             'tenders' => $agency->tenders()->where('is_public', true)->where('is_active', true)->whereNull('archived_at')->latest()->limit(8)->get(),
         ];

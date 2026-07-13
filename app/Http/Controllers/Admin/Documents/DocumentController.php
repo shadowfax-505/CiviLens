@@ -116,7 +116,21 @@ class DocumentController extends Controller
 
         $service->recordDownload($document, AuthenticatedUser::from($request));
 
-        return Storage::disk($document->storage_disk)->download($document->storage_path, $document->original_filename);
+        $disk = Storage::disk($document->storage_disk);
+
+        abort_unless($disk->exists($document->storage_path), 404, 'Document file is unavailable.');
+
+        return response()->streamDownload(function () use ($disk, $document): void {
+            $stream = $disk->readStream($document->storage_path);
+
+            if (! is_resource($stream)) {
+                abort(404, 'Document file is unavailable.');
+            }
+
+            fpassthru($stream);
+
+            fclose($stream);
+        }, $document->original_filename);
     }
 
     public function preview(Request $request, Document $document): View

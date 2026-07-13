@@ -21,3 +21,7 @@ Continued RC1 deployment validation after Docker became available. Built `civicl
 ## 2026-07-05
 
 Resolved the RC1 production asset drift risk by making Nginx image-backed from the same Docker release artifact as PHP-FPM and excluding host `public/build` from Docker build context drift. Created Figma design file `https://www.figma.com/design/sV9RRgSjm1MB9OM6grywgN` and implemented its shared shell/authentication polish in Blade/Tailwind with responsive, dark-mode, focus, and error-state improvements.
+
+## 2026-07-09
+
+Enabled Stitch MCP and confirmed project listing works, but Stitch screen generation requires additional OAuth credentials. Continued implementation with the same constrained design brief: deploy-safe Blade/Tailwind shell, global UI tokens, profile appearance controls, and frontend customization documentation without changing backend or Docker contracts.

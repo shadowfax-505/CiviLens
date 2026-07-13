@@ -19,7 +19,7 @@ class UpazilaController extends Controller
         abort_unless($request->user()?->can('viewAny', Upazila::class) === true, 403);
 
         return view('admin.geography.index', [
-            'title' => 'Upazilas / Counties',
+            'title' => 'Upazilas / Cities',
             'resourceName' => 'upazilas',
             'records' => $service->paginate($request, Upazila::class, ['name', 'code'], ['district_id' => 'district_id'], ['name', 'code', 'created_at'], ['district.division']),
             'columns' => ['name' => 'Name', 'code' => 'Code'],

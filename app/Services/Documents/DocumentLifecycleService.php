@@ -32,6 +32,7 @@ use App\Models\User;
 use App\Models\Ward;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
@@ -157,9 +158,14 @@ class DocumentLifecycleService
      */
     public function bulkTag(array $documentIds, array $tagIds, User $actor): void
     {
-        Document::query()->whereIn('id', $documentIds)->get()->each(function (Document $document) use ($tagIds, $actor): void {
-            $document->tags()->syncWithoutDetaching($tagIds);
-            $this->recordActivity($document, 'document.bulk_tagged', 'Document tags updated in bulk.', $actor, null, ['tag_ids' => $tagIds]);
+        DB::transaction(function () use ($documentIds, $tagIds, $actor): void {
+            $documents = Document::query()->whereIn('id', $documentIds)->get();
+
+            $documents->each(fn (Document $document) => Gate::forUser($actor)->authorize('update', $document));
+            $documents->each(function (Document $document) use ($tagIds, $actor): void {
+                $document->tags()->syncWithoutDetaching($tagIds);
+                $this->recordActivity($document, 'document.bulk_tagged', 'Document tags updated in bulk.', $actor, null, ['tag_ids' => $tagIds]);
+            });
         });
     }
 
@@ -168,7 +174,12 @@ class DocumentLifecycleService
      */
     public function bulkArchive(array $documentIds, User $actor): void
     {
-        Document::query()->whereIn('id', $documentIds)->get()->each(fn (Document $document) => $this->archive($document, $actor));
+        DB::transaction(function () use ($documentIds, $actor): void {
+            $documents = Document::query()->whereIn('id', $documentIds)->get();
+
+            $documents->each(fn (Document $document) => Gate::forUser($actor)->authorize('archive', $document));
+            $documents->each(fn (Document $document) => $this->archive($document, $actor));
+        });
     }
 
     /**

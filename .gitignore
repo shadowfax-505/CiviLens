@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+!.env.production.example
+!.env.release.example
 
 # Laravel / PHP
 /vendor/
@@ -48,6 +50,15 @@ pnpm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+/.opencode/
+/.playwright-mcp/
+
+# Local visual review artifacts
+/about-page.png
+/civiclens-*-refreshed.png
+
+# Framework views published only for local comparison
+/resources/views/vendor/pagination/
 
 # Local files
 *.sqlite

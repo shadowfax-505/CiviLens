@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin\Intelligence;
 use App\Models\IntelligenceIndicator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateIntelligenceRuleRequest extends FormRequest
 {
@@ -28,6 +29,46 @@ class UpdateIntelligenceRuleRequest extends FormRequest
             'documentation_url' => ['nullable', 'url', 'max:500'],
             'execution_frequency' => ['required', Rule::in(['manual', 'hourly', 'daily', 'weekly', 'monthly'])],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $thresholds = json_decode((string) $this->input('thresholds'), true);
+
+            if (! is_array($thresholds) || array_is_list($thresholds)) {
+                $validator->errors()->add('thresholds', 'Thresholds must be a JSON object.');
+
+                return;
+            }
+
+            foreach ($thresholds as $key => $value) {
+                if (! is_numeric($value) || ! is_finite((float) $value) || (float) $value < 0) {
+                    $validator->errors()->add('thresholds', 'Each threshold must be a finite non-negative number.');
+
+                    return;
+                }
+
+                if (in_array($key, ['max_utilization', 'max_progress'], true) && (float) $value > 100) {
+                    $validator->errors()->add('thresholds', 'Percentage thresholds must be between 0 and 100.');
+
+                    return;
+                }
+            }
+
+            $hasWarning = array_key_exists('warning', $thresholds);
+            $hasCritical = array_key_exists('critical', $thresholds);
+
+            if ($hasWarning !== $hasCritical) {
+                $validator->errors()->add('thresholds', 'Warning and critical thresholds must be configured together.');
+
+                return;
+            }
+
+            if ($hasWarning && (float) $thresholds['warning'] > (float) $thresholds['critical']) {
+                $validator->errors()->add('thresholds', 'The warning threshold cannot exceed the critical threshold.');
+            }
+        });
     }
 
     /**

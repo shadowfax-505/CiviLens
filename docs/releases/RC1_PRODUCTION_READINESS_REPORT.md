@@ -1,8 +1,8 @@
-# CivicLens v1.0.0-RC1 Production Readiness Report
+# CivicLens v1.0.0 Production Readiness Report
 
 ## Summary
 
-RC1 validation completed for `v1.0.0-RC1` without adding new business features or v2 AI infrastructure. The release pass focused on stability, security headers, deploy metadata, analyzer reliability, cache safety, browser coverage, documentation synchronization, and release artifacts.
+The v1.0.0 validation pass completed without adding new business features or v2 AI infrastructure. The release pass focused on stability, security headers, deploy metadata, analyzer reliability, cache safety, browser coverage, documentation synchronization, and release artifacts.
 
 ## Quality Gates
 
@@ -54,12 +54,12 @@ Validated services:
 - MySQL 8.4 source-of-truth database.
 - Redis 7.4 cache.
 - Nginx 1.29 edge container.
-- Supervisor-managed database queue workers and scheduler loop.
+- Dedicated database queue-worker and scheduler roles.
 
 Smoke evidence:
 
 - `/healthz` returned `ok`.
-- `/version` returned `v1.0.0-RC1`, `production`, and deploy-safe commit metadata.
+- `/version` returned `v1.0.0`, `production`, and deploy-safe commit metadata.
 - `/admin/system/metrics` redirected unauthenticated users and returned JSON for the seeded administrator.
 - Authenticated dashboard, procurement, analytics, search, intelligence, reports, public procurement, and public search routes returned 200.
 - A queued `RefreshIntelligenceDashboard` job drained from 1 pending job to 0 pending jobs with 0 failed jobs.
@@ -107,11 +107,11 @@ These are not RC blockers because they are bounded parsing/workflow constructors
 
 ## Deployment Notes
 
-RC1 expects production deployments to set:
+v1.0.0 expects production deployments to set:
 
 - `APP_ENV=production`
 - `APP_DEBUG=false`
-- `APP_VERSION=v1.0.0-RC1`
+- `APP_VERSION=v1.0.0`
 - `APP_COMMIT=<deployed commit sha>`
 
 Before live deployment, the host-specific backup and restore checklist in `RC1_CHECKLIST.md` must be completed against the target infrastructure. Local Docker validation does not satisfy public HTTPS, DNS, external monitoring, managed backup, or durable storage requirements by itself.

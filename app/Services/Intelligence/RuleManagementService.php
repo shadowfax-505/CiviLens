@@ -2,23 +2,14 @@
 
 namespace App\Services\Intelligence;
 
-use App\Models\AnalyticsAlert;
-use App\Models\Award;
-use App\Models\Budget;
-use App\Models\CitizenReport;
-use App\Models\ComplianceRecord;
-use App\Models\Document;
 use App\Models\IntelligenceRule;
 use App\Models\IntelligenceRuleAudit;
-use App\Models\Project;
-use App\Models\SearchJob;
-use App\Models\Tender;
 use App\Models\User;
-use Illuminate\Database\Query\Builder as QueryBuilder;
-use Illuminate\Support\Facades\DB;
 
 class RuleManagementService
 {
+    public function __construct(private readonly IntelligenceCandidateQueryService $candidates) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -45,10 +36,15 @@ class RuleManagementService
      */
     public function dryRun(IntelligenceRule $rule): array
     {
+        $estimatedMatches = $this->estimateMatches($rule);
+
         return [
             'rule' => $rule->only(['id', 'name', 'slug', 'module', 'category', 'severity_default', 'version']),
             'dry_run' => true,
-            'estimated_matches' => $this->estimateMatches($rule),
+            'estimated_matches' => $estimatedMatches,
+            'execution_limit' => IntelligenceCandidateQueryService::EXECUTION_LIMIT,
+            'execution_candidate_count' => min($estimatedMatches, IntelligenceCandidateQueryService::EXECUTION_LIMIT),
+            'execution_candidate_count_truncated' => $estimatedMatches > IntelligenceCandidateQueryService::EXECUTION_LIMIT,
             'thresholds' => $rule->thresholds ?? [],
             'configuration' => $rule->configuration ?? [],
             'explanation' => 'Dry run estimates source records that match the configured deterministic rule without creating indicators or evidence.',
@@ -101,64 +97,6 @@ class RuleManagementService
 
     private function estimateMatches(IntelligenceRule $rule): int
     {
-        $thresholds = is_array($rule->thresholds) ? $rule->thresholds : [];
-
-        return match ($rule->slug) {
-            'project-delay-risk' => Project::query()
-                ->whereDate('planned_end_date', '<', now()->toDateString())
-                ->where('progress_percentage', '<', (int) data_get($thresholds, 'max_progress', 90))
-                ->count(),
-            'budget-overrun-risk' => Budget::query()
-                ->whereColumn('actual_expenditure', '>', 'current_allocation')
-                ->count(),
-            'low-budget-utilization' => Budget::query()
-                ->where('current_allocation', '>', 0)
-                ->where('actual_expenditure', '<=', (float) data_get($thresholds, 'max_utilization', 10))
-                ->count(),
-            'procurement-single-bid-risk' => Tender::query()
-                ->withCount('bidSubmissions')
-                ->having('bid_submissions_count', '<=', 1)
-                ->count(),
-            'contractor-compliance-expiry' => ComplianceRecord::query()
-                ->whereDate('next_review_date', '<=', now()->addDays(30)->toDateString())
-                ->count(),
-            'document-missing-metadata' => Document::query()
-                ->where(fn ($query) => $query->whereNull('description')->orWhereNull('language'))
-                ->count(),
-            'document-pending-ocr-readiness' => Document::query()
-                ->where('ocr_status', 'pending')
-                ->count(),
-            'search-indexing-failure' => SearchJob::query()
-                ->where('status', 'failed')
-                ->count(),
-            'analytics-alert-escalation' => AnalyticsAlert::query()
-                ->whereIn('severity', ['warning', 'critical'])
-                ->where('status', 'open')
-                ->count(),
-            'procurement-repeat-winner-concentration' => $this->countGrouped(
-                Award::query()
-                    ->join('bid_submissions', 'awards.bid_submission_id', '=', 'bid_submissions.id')
-                    ->where('awards.status', 'approved')
-                    ->selectRaw('bid_submissions.bidder_organization_id, count(*) as award_count')
-                    ->groupBy('bid_submissions.bidder_organization_id')
-                    ->havingRaw('count(*) >= ?', [(int) data_get($thresholds, 'warning', 3)])
-                    ->toBase()
-            ),
-            'citizen-report-cluster' => $this->countGrouped(
-                CitizenReport::query()
-                    ->whereNull('resolved_at')
-                    ->whereNotNull('project_id')
-                    ->selectRaw('project_id, count(*) as report_count')
-                    ->groupBy('project_id')
-                    ->havingRaw('count(*) >= ?', [(int) data_get($thresholds, 'warning', 3)])
-                    ->toBase()
-            ),
-            default => 0,
-        };
-    }
-
-    private function countGrouped(QueryBuilder $query): int
-    {
-        return DB::query()->fromSub($query, 'grouped_rule_matches')->count();
+        return $this->candidates->count($rule);
     }
 }

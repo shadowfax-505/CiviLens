@@ -41,6 +41,9 @@ class OrganizationRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:64'],
             'headquarters_address' => ['nullable', 'string'],
+            'headquarters_latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'headquarters_longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'headquarters_geojson' => ['nullable', 'array'],
             'status' => ['required', 'string', Rule::in(['active', 'inactive', 'suspended', 'archived'])],
             'established_date' => ['nullable', 'date'],
         ];

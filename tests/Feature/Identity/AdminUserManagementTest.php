@@ -19,6 +19,13 @@ it('restricts user administration to administrators', function (): void {
     $user = User::factory()->create();
 
     $this->actingAs($user)->get('/admin/users')->assertForbidden();
+    $this->actingAs($user)->get('/admin/users/create')->assertForbidden();
+    $this->actingAs($user)->post('/admin/users', [
+        'name' => 'Denied User',
+        'email' => 'denied@example.com',
+        'password' => 'SecurePass123!',
+        'password_confirmation' => 'SecurePass123!',
+    ])->assertForbidden();
 });
 
 it('lets administrators search filter sort and paginate users', function (): void {
@@ -51,6 +58,28 @@ it('lets administrators activate deactivate lock users and manage roles', functi
         'roles' => [$staffRole->id],
     ])->assertRedirect();
     expect($user->fresh()->hasRole('staff'))->toBeTrue();
+});
+
+it('lets administrators create an unverified administrator account', function (): void {
+    $admin = createAdminUser();
+    $administratorRole = Role::query()->where('slug', 'admin')->firstOrFail();
+
+    $response = $this->actingAs($admin)->post('/admin/users', [
+        'name' => 'New Admin',
+        'email' => 'new.admin@example.com',
+        'password' => 'TempSecurePass123!',
+        'password_confirmation' => 'TempSecurePass123!',
+        'is_active' => '1',
+        'roles' => [$administratorRole->id],
+    ]);
+
+    $response->assertRedirect();
+
+    $user = User::query()->where('email', 'new.admin@example.com')->firstOrFail();
+
+    expect($user->email_verified_at)->toBeNull()
+        ->and($user->hasRole('admin'))->toBeTrue()
+        ->and($user->is_active)->toBeTrue();
 });
 
 it('lets administrators set a temporary password', function (): void {

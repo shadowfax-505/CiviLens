@@ -34,6 +34,7 @@ return [
         'contractors_manage' => 'contractors.manage',
         'documents_manage' => 'documents.manage',
         'search_manage' => 'search.manage',
+        'change_requests_submit' => 'change_requests.submit',
         'analytics_view' => 'analytics.view',
         'analytics_manage' => 'analytics.manage',
         'intelligence_manage' => 'intelligence.manage',
@@ -45,6 +46,17 @@ return [
         'disk' => env('DOCUMENT_STORAGE_DISK', env('FILESYSTEM_DISK', 'local')),
         'max_upload_kb' => (int) env('DOCUMENT_MAX_UPLOAD_KB', 20480),
         'allowed_extensions' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'txt'],
+    ],
+
+    'maps' => [
+        'public_marker_limit' => (int) env('MAP_PUBLIC_MARKER_LIMIT', 250),
+        'admin_marker_limit' => (int) env('MAP_ADMIN_MARKER_LIMIT', 500),
+        'default_latitude' => (float) env('MAP_DEFAULT_LATITUDE', 23.685),
+        'default_longitude' => (float) env('MAP_DEFAULT_LONGITUDE', 90.3563),
+        'max_viewport_latitude_span' => (float) env('MAP_MAX_VIEWPORT_LATITUDE_SPAN', 30),
+        'max_viewport_longitude_span' => (float) env('MAP_MAX_VIEWPORT_LONGITUDE_SPAN', 30),
+        'tile_url' => env('MAP_TILE_URL', 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+        'tile_attribution' => env('MAP_TILE_ATTRIBUTION', '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'),
     ],
 
     'search' => [

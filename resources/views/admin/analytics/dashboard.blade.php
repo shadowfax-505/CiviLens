@@ -1,4 +1,8 @@
 <x-layouts.app title="CivicLens Analytics">
+    @php
+        $activeAnalyticsFilters = collect($filters->toArray())->except(['dashboard', 'period', 'format', 'metric'])->reject(fn ($value) => blank($value));
+    @endphp
+
     <section class="space-y-8">
         <div class="rounded-3xl bg-slate-950 p-8 text-white shadow-sm dark:bg-slate-900">
             <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -8,17 +12,22 @@
                     <p class="mt-3 max-w-3xl text-slate-300">Reusable analytics generated from normalized CivicLens source records, with snapshots, reports, alerts, and chart-ready definitions.</p>
                 </div>
                 <div class="flex flex-wrap gap-3">
-                    <form method="POST" action="{{ route('admin.analytics.snapshots.store') }}">
+                    <form method="POST" action="{{ route('admin.analytics.snapshots.realtime') }}">
                         @csrf
                         <input type="hidden" name="dashboard" value="{{ $payload['dashboard'] }}">
                         <input type="hidden" name="period" value="daily">
-                        <button class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-blue-50">Queue Snapshot</button>
+                        @foreach ($activeAnalyticsFilters as $name => $value)
+                            <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                        @endforeach
+                        <button class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-blue-50">Generate Snapshot Now</button>
                     </form>
-                    <form method="POST" action="{{ route('admin.analytics.reports.store') }}">
+                    <form method="POST" action="{{ route('admin.analytics.reports.csv') }}">
                         @csrf
                         <input type="hidden" name="dashboard" value="{{ $payload['dashboard'] }}">
-                        <input type="hidden" name="format" value="csv">
-                        <button class="rounded-full bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400">Queue CSV Report</button>
+                        @foreach ($activeAnalyticsFilters as $name => $value)
+                            <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                        @endforeach
+                        <button class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-blue-50">Download CSV Now</button>
                     </form>
                 </div>
             </div>

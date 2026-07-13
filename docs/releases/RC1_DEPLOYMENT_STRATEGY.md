@@ -1,4 +1,4 @@
-# CivicLens RC1 Deployment Strategy
+# CivicLens v1.0.0 Deployment Strategy
 
 ## Environment Discovery
 
@@ -37,12 +37,11 @@ The repository already contains production-oriented deployment assets:
 - `Dockerfile`
 - `docker-compose.production.yml`
 - `docker/production/nginx.conf`
-- `docker/production/supervisord.conf`
 - `docker/production/php.ini`
 - `docker/production/entrypoint.sh`
 - `.env.production.example`
 
-These assets define the intended runtime: PHP-FPM Laravel app, image-backed Nginx serving the same immutable Vite build as the app image, MySQL, Redis, database-backed queue fallback, supervised workers, scheduler loop, and persistent storage.
+These assets define the intended runtime: PHP-FPM Laravel app, image-backed Nginx serving the same immutable Vite build as the app image, managed MySQL and Redis by default, direct queue-worker and scheduler roles, and persistent storage.
 
 ## Deployment Target Decision
 
@@ -60,9 +59,9 @@ These assets define the intended runtime: PHP-FPM Laravel app, image-backed Ngin
 
 ### Selected Strategy
 
-The selected production strategy is a Dockerized Laravel deployment on a managed VPS/container host with managed MySQL, managed Redis where possible, durable object/file storage, HTTPS termination, supervised workers, scheduler, backups, and external log/metrics collection.
+The selected production strategy is a Dockerized Laravel deployment on a managed VPS/container host with managed MySQL, managed Redis where possible, durable object/file storage, HTTPS termination, dedicated worker and scheduler roles, backups, and external log/metrics collection.
 
-External production deployment is currently blocked because no Laravel-capable production provider, host, cluster, registry, managed database, managed Redis, durable storage, DNS, TLS, or monitoring credentials are connected in this environment. The application container stack was validated locally with Docker using manually started MySQL, Redis, PHP-FPM, Supervisor, and Nginx containers.
+External production deployment is currently blocked because no Laravel-capable production provider, host, cluster, registry, managed database, managed Redis, durable storage, DNS, TLS, or monitoring credentials are connected in this environment. The application container stack was validated locally with Docker using disposable MySQL/Redis services, PHP-FPM, direct worker/scheduler roles, and Nginx.
 
 ## Infrastructure Diagram
 
@@ -74,7 +73,7 @@ flowchart TD
     APP --> DB["Managed MySQL 8.x"]
     APP --> REDIS["Redis Cache / Queue Backend"]
     APP --> STORAGE["Persistent Document Storage"]
-    WORKER["Supervisor Queue Workers"] --> DB
+    WORKER["Queue Worker Role"] --> DB
     WORKER --> REDIS
     WORKER --> STORAGE
     SCHED["Scheduler Loop"] --> APP
@@ -88,7 +87,7 @@ flowchart TD
 
 ## Deployment Flow
 
-1. Build release from the RC1 branch or tag.
+1. Build release from the v1.0.0 branch or tag.
 2. Run CI quality gates.
 3. Build the Docker image from `Dockerfile`.
 4. Push the image to the chosen registry.
@@ -107,7 +106,7 @@ flowchart TD
 - Nginx serves `public/build` from the release image, not a host bind mount, so Blade-rendered Vite asset paths and edge-served files cannot drift.
 - `APP_DEBUG=false`.
 - `APP_ENV=production`.
-- `APP_VERSION=v1.0.0-RC1`.
+- `APP_VERSION=v1.0.0`.
 - `APP_COMMIT=<release sha>`.
 
 ## Database Architecture
@@ -125,7 +124,7 @@ flowchart TD
 
 ## Queue Architecture
 
-- Queue workers run under Supervisor or the host platform's worker process manager.
+- Queue workers run as dedicated container roles or under the host platform's worker process manager.
 - `queue:work --sleep=3 --tries=3 --max-time=3600` is the current worker command.
 - Failed jobs must be observable through Laravel's failed-jobs storage.
 - Workers must restart after every deployment.
@@ -138,7 +137,7 @@ flowchart TD
 
 ## Storage Architecture
 
-- RC1 defaults to local document storage.
+- Local validation defaults to local document storage.
 - Production should mount durable storage or configure an S3-compatible disk before accepting user uploads.
 - Storage backups must be coordinated with database backups.
 
@@ -193,7 +192,7 @@ After deployment, verify:
 - `/healthz`, `/version`, and `/admin/system/metrics`.
 - Cookies, CSRF behavior, secure session flags, and HTTPS redirect behavior.
 
-## RC1 Local Production-Style Validation
+## Historical RC1 Local Production-Style Validation
 
 On July 4, 2026, the RC1 image and runtime stack were validated locally with Docker because Docker became available after initial discovery. Services were started manually on an isolated `civiclens-rc1` network with named volumes. Docker Compose was later confirmed available as v5.1.4; production config rendering still requires an operator-provided `.env.production` file with real secrets.
 
@@ -222,9 +221,9 @@ RC1 hardening fixes from this validation:
 - Changed analytics metric caching to store arrays instead of serialized PHP objects.
 - Added Supervisor control socket configuration for operator status checks.
 
-## Current Deployment Decision
+## Current v1.0.0 Deployment Decision
 
-CivicLens RC1 is validated for a Dockerized Laravel runtime, but do not mark public production deployment complete from this environment yet. The remaining blocker is external infrastructure: no public HTTPS host, DNS, managed database, durable storage, backup service, or monitoring provider is connected.
+CivicLens v1.0.0 is validated for a Dockerized Laravel runtime, but do not mark public production deployment complete from this environment yet. The remaining blocker is external infrastructure: no public HTTPS host, DNS, managed database, durable storage, backup service, or monitoring provider is connected.
 
 Minimum remediation before production deployment:
 
@@ -232,4 +231,4 @@ Minimum remediation before production deployment:
 2. Provide production MySQL, Redis, durable storage, DNS, TLS, and monitoring configuration.
 3. Configure GitHub Actions or host-native deployment secrets.
 4. Start/enable a Docker-compatible build environment or use provider-native image builds.
-5. Re-run the RC1 release checklist against the target environment.
+5. Re-run the v1.0.0 release checklist against the target environment.

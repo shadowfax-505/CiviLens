@@ -70,6 +70,8 @@ Jobs:
 - `GenerateAnalyticsSnapshot`
 - `GenerateAnalyticsReport`
 
+Queue-ready snapshot/report jobs remain available for heavier workloads. The admin analytics dashboard also supports realtime snapshot generation and immediate CSV download for lightweight, filter-aware exports.
+
 ## UI
 
 Admin routes provide an executive dashboard, dashboard tabs, filters, KPI cards, chart-ready panels, rule-based alerts, report listing, report generation controls, and alert listing. Chart payloads are emitted through `data-chart-definition` attributes so Chart.js or another chart library can be attached later without changing analytics services.

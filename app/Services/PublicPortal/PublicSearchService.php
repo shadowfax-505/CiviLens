@@ -2,9 +2,15 @@
 
 namespace App\Services\PublicPortal;
 
+use App\Models\Agency;
+use App\Models\Document;
+use App\Models\Organization;
+use App\Models\Project;
 use App\Models\SearchIndex;
+use App\Models\Tender;
 use App\Support\Search\SearchResult;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 
 class PublicSearchService
@@ -15,7 +21,7 @@ class PublicSearchService
      */
     public function search(array $input): LengthAwarePaginator
     {
-        $query = trim((string) ($input['q'] ?? ''));
+        $query = mb_substr(trim((string) ($input['q'] ?? '')), 0, 120);
         $module = filled($input['module'] ?? null) ? (string) $input['module'] : null;
         $page = max(1, (int) ($input['page'] ?? 1));
 
@@ -32,8 +38,10 @@ class PublicSearchService
             });
         }
 
-        $results = $builder->latest('indexed_at')->get()
-            ->filter(fn (SearchIndex $index): bool => $index->source() !== null)
+        $visibility = app(PublicVisibilityService::class);
+
+        $results = $builder->latest('indexed_at')->limit(1000)->get()
+            ->filter(fn (SearchIndex $index): bool => $this->sourceIsPublic($index->source(), $visibility))
             ->map(fn (SearchIndex $index): SearchResult => SearchResult::fromIndex($index, 1.0, $query))
             ->values();
 
@@ -44,5 +52,17 @@ class PublicSearchService
             currentPage: $page,
             options: ['path' => request()->url(), 'query' => request()->query()],
         );
+    }
+
+    private function sourceIsPublic(?Model $source, PublicVisibilityService $visibility): bool
+    {
+        return match (true) {
+            $source instanceof Project => $visibility->projectIsPublic($source),
+            $source instanceof Agency => $visibility->agencyIsPublic($source),
+            $source instanceof Organization => $visibility->organizationIsPublic($source),
+            $source instanceof Tender => $visibility->tenderIsPublic($source),
+            $source instanceof Document => $visibility->documentIsPublic($source),
+            default => false,
+        };
     }
 }

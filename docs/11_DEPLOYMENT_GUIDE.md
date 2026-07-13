@@ -9,19 +9,57 @@ Use Docker or Laravel Sail for PHP, MySQL, Redis, Meilisearch, and mail testing.
 Sprint 13 part 1 adds a production-oriented Docker scaffold:
 
 - `Dockerfile` builds Composer dependencies, Vite assets, a PHP 8.4 PHP-FPM runtime with the Redis extension, and an Nginx runtime stage with the same immutable public assets.
-- `docker-compose.production.yml` defines app, worker, image-backed Nginx, MySQL, and Redis services.
+- `docker-compose.production.yml` defines independently deployable web, worker, scheduler, image-backed Nginx, and an opt-in migration release role. MySQL and Redis are opt-in bundled validation services; normal production deployments inject managed service hosts and credentials.
 - `docker/production/nginx.conf` serves public assets from the release image and forwards PHP requests to PHP-FPM.
-- `docker/production/supervisord.conf` runs queue workers and the Laravel scheduler loop.
+- The web role owns PHP-FPM, the worker role runs `queue:work`, and the scheduler role runs `schedule:work`. Workers and the scheduler receive a two-minute graceful-stop window so Laravel can finish an in-flight job or scheduler tick.
 - `docker/production/php.ini` sets production PHP limits and disables error display.
-- `.env.production.example` documents required production environment variables.
+- `.env.production.example` documents runtime variables, including durable object storage. `.env.release.example` documents the separate migration-only database principal.
 
 Use this scaffold as a deployable baseline. Production secrets must be injected through the hosting environment, not committed.
+
+For Docker Compose deployments, copy `.env.production.example` to `.env.production`, set a real `APP_KEY`, replace all database credentials, and run Compose with the production environment file:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
+```
+
+Use managed MySQL and Redis by default. To run the bundled services only for local production-style validation, set `MYSQL_*` and `REDIS_PASSWORD` and add `--profile bundled`.
+
+Run migrations as a controlled, one-shot release step with a migration-only database principal. Copy `.env.release.example` to `.env.release`, grant that principal only the schema privileges required for migrations, then run:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml --profile release run --rm release
+```
+
+The release role runs only `php artisan migrate --force --no-interaction` as `www-data`; it does not receive runtime mail, cache, queue, object-storage, or application database credentials. Do not run migrations automatically from the web container entrypoint.
+
+## Container Roles And Health Checks
+
+- `app` runs PHP-FPM and warms Laravel caches only for the web role. It is healthy when PHP-FPM accepts connections.
+- `worker` runs one Laravel `queue:work` process as PID 1. Docker sends it `SIGTERM`; Laravel receives that signal directly and the Compose grace period allows an active job to finish.
+- `scheduler` runs one Laravel `schedule:work` process as PID 1 with the same graceful-stop window.
+- `nginx` waits for the app health check and probes its own `/nginx-healthz` ingress path. This prevents a queue or integrity metric from draining healthy HTTP traffic.
+- MySQL and Redis publish native readiness checks only in the opt-in bundled profile. Monitor worker/scheduler process health and authenticated `/admin/system/metrics` separately from ingress readiness.
+
+CI validates both the normal and `release` Compose profiles using the committed example environment only; it never builds or starts the production stack.
+
+## Production Map Configuration
+
+Set the following values in `.env.production` for public and administrative map behavior. The supplied values are Bangladesh-wide defaults and OpenStreetMap attribution; adjust the center, viewport caps, tile provider, and attribution for the deployed jurisdiction and provider terms.
+
+- `MAP_PUBLIC_MARKER_LIMIT` and `MAP_ADMIN_MARKER_LIMIT` bound map response sizes.
+- `MAP_DEFAULT_LATITUDE`, `MAP_DEFAULT_LONGITUDE`, `MAP_MAX_VIEWPORT_LATITUDE_SPAN`, and `MAP_MAX_VIEWPORT_LONGITUDE_SPAN` control the initial map and viewport limits.
+- `MAP_TILE_URL` and `MAP_TILE_ATTRIBUTION` configure the basemap without changing application code.
+
+## Durable Object Storage
+
+For production uploads, set `FILESYSTEM_DISK`, `DOCUMENT_STORAGE_DISK`, and `FILESYSTEM_CLOUD` to `s3` together with `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, `AWS_BUCKET`, and the optional `AWS_URL`, `AWS_ENDPOINT`, and `AWS_USE_PATH_STYLE_ENDPOINT` values for S3-compatible storage. Keep credentials in the deployment secret manager, never in the repository.
 
 ## Deployment Principles
 
 - Environment variables configure services.
 - Database migrations run during controlled releases.
-- Queue workers are supervised.
+- Queue workers and the scheduler run as separate supervised/container process roles.
 - Storage is backed up.
 - Uploaded files must use Laravel Storage disks rather than hardcoded provider paths.
 - CI must pass Composer validation, tests, Pint, PHPStan/Larastan, Rector dry-run, frontend build, browser tests, and cache checks before deployment.
@@ -44,23 +82,25 @@ When mounting persistent storage volumes, the production entrypoint repairs `sto
 
 Do not bind-mount the application checkout into the production Nginx container. The Nginx image stage must serve the same `public/build` manifest and assets that the Laravel image was built with; otherwise Blade-rendered Vite paths can drift from the files served at the edge.
 
+Frontend customization is deploy-safe when it stays inside Blade views, shared components, `resources/css/app.css`, and `resources/js/app.js` while preserving route names, form fields, policies, and the Vite manifest pipeline. See `docs/31_FRONTEND_CUSTOMIZATION_GUIDE.md`.
+
 Rollback plan:
 
 - Restore the previous container image or release artifact.
 - Restore the last verified database backup if migrations are not backward-compatible.
 - Run `php artisan optimize:clear`, then rebuild config, route, and view caches.
-- Restart Supervisor-managed queue workers and scheduler loop.
+- Restart the worker and scheduler roles.
 - Verify `/healthz`, `/version`, and the latest `civic_intelligence_runs` status.
 
 ## Health Checks
 
-Use `GET /healthz` for load balancer and uptime checks. The endpoint reports app, database, cache, storage, and queue readiness without exposing secrets or internal paths.
+Use `/nginx-healthz` for container ingress readiness and `GET /healthz` for public-safe application dependency diagnostics. A degraded `/healthz` does not prove that Nginx or PHP-FPM is unavailable; authenticated operations monitoring must also inspect queue, scheduler, and integrity status.
 
 Use `GET /version` during release verification to confirm deployed application version, environment label, and commit metadata. Authenticated operators can use `GET /admin/system/metrics` to review queue, scheduler, database, cache, storage, and integrity-run metrics.
 
-For Release Candidate 1, `APP_VERSION` must be `v1.0.0-RC1` and `APP_COMMIT` must match the deployed Git SHA or release artifact identifier.
+For stable v1.0.0, `APP_VERSION` must be `v1.0.0` and `APP_COMMIT` must match the deployed Git SHA or release artifact identifier.
 
-RC1 Docker validation used manual containers. Docker Compose is available for operator deployments, but `docker-compose.production.yml` requires a real `.env.production` file. A real production deployment should use the Compose stack or host-native equivalents with HTTPS, durable storage, backups, and external monitoring.
+Historical RC1 Docker validation used production image targets and an isolated Docker Compose smoke stack. Runtime services require a real `.env.production`; the one-shot release role also requires `.env.release` with its migration-only principal. A real production deployment should use the Compose stack or host-native equivalents with HTTPS, durable storage, backups, and external monitoring.
 
 ## Scheduler
 

@@ -1,7 +1,10 @@
 <?php
 
+use App\Models\AdministrativeUnion;
 use App\Models\Agency;
 use App\Models\Country;
+use App\Models\District;
+use App\Models\Division;
 use App\Models\FiscalYear;
 use App\Models\FundingSource;
 use App\Models\Project;
@@ -10,7 +13,9 @@ use App\Models\ProjectCategory;
 use App\Models\ProjectPriority;
 use App\Models\ProjectStatus;
 use App\Models\Role;
+use App\Models\Upazila;
 use App\Models\User;
+use App\Models\Ward;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -27,6 +32,11 @@ function projectAdmin(): User
 function projectPayload(array $overrides = []): array
 {
     $country = Country::factory()->create();
+    $division = Division::factory()->for($country)->create(['name' => 'Dhaka']);
+    $district = District::factory()->for($division)->create(['name' => 'Dhaka District']);
+    $upazila = Upazila::factory()->for($district)->create(['name' => 'Savar']);
+    $union = AdministrativeUnion::factory()->for($upazila, 'upazila')->create(['name' => 'Birulia']);
+    $ward = Ward::factory()->for($union, 'union')->create(['name' => 'Ward 1']);
     $agency = Agency::factory()->for($country)->create();
     $category = ProjectCategory::factory()->create(['name' => 'Transport', 'slug' => 'transport']);
     $status = ProjectStatus::factory()->create(['name' => 'Planning', 'slug' => 'planning']);
@@ -47,6 +57,11 @@ function projectPayload(array $overrides = []): array
         'funding_source_id' => $fundingSource->id,
         'fiscal_year_id' => $fiscalYear->id,
         'country_id' => $country->id,
+        'division_id' => $division->id,
+        'district_id' => $district->id,
+        'upazila_id' => $upazila->id,
+        'union_id' => $union->id,
+        'ward_id' => $ward->id,
         'progress_percentage' => 15,
         'planned_start_date' => '2026-01-01',
         'planned_end_date' => '2026-12-31',
@@ -73,12 +88,19 @@ it('lets administrators create view update archive restore and delete projects',
     $project = Project::query()->where('project_code', 'CVL-2026-001')->firstOrFail();
 
     expect($project->created_by)->toBe($admin->id)
+        ->and($project->country_id)->toBe($payload['country_id'])
+        ->and($project->division_id)->toBe($payload['division_id'])
+        ->and($project->district_id)->toBe($payload['district_id'])
+        ->and($project->upazila_id)->toBe($payload['upazila_id'])
+        ->and($project->union_id)->toBe($payload['union_id'])
+        ->and($project->ward_id)->toBe($payload['ward_id'])
         ->and(ProjectActivity::query()->where('project_id', $project->id)->where('event', 'created')->exists())->toBeTrue();
 
     $this->actingAs($admin)->get("/admin/projects/{$project->id}")
         ->assertOk()
         ->assertSee('Dhaka Road Improvement')
-        ->assertSee('Planning');
+        ->assertSee('Planning')
+        ->assertSee('Location Map');
 
     $newStatus = ProjectStatus::factory()->create(['name' => 'In Progress', 'slug' => 'in-progress']);
 
@@ -102,6 +124,21 @@ it('lets administrators create view update archive restore and delete projects',
     $this->actingAs($admin)->delete("/admin/projects/{$project->id}")->assertRedirect();
     expect(Project::query()->find($project->id))->toBeNull()
         ->and(Project::withTrashed()->find($project->id)?->trashed())->toBeTrue();
+});
+
+it('shows the geographic location section on project create and edit forms', function (): void {
+    $admin = projectAdmin();
+    $project = Project::factory()->create();
+
+    $this->actingAs($admin)->get('/admin/projects/create')
+        ->assertOk()
+        ->assertSee('Geographical Location')
+        ->assertSee('Project map pin');
+
+    $this->actingAs($admin)->get('/admin/projects/'.$project->id.'/edit')
+        ->assertOk()
+        ->assertSee('Geographical Location')
+        ->assertSee('Project map pin');
 });
 
 it('supports advanced project search filters sorting and pagination', function (): void {

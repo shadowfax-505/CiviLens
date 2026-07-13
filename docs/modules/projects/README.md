@@ -12,11 +12,15 @@ Manage civic project records, statuses, locations, timelines, and relationships 
 - Normalized lookup tables for categories, statuses, priorities, funding sources, and fiscal years.
 - Agency and geography assignment using Sprint 02 canonical tables.
 - Timeline, progress, public visibility, active status, latitude/longitude, GeoJSON placeholder, and featured image path fields.
+- Create/edit forms include an embedded geographic location section for assigning hierarchy and map coordinates.
 - Project financial values are owned by the Finance module and related through budgets.
 - Lifecycle audit events through `project_activities`.
 - Admin/staff project authorization through the existing custom role and permission system.
 - Pest coverage for CRUD, authorization, validation, search/filter/sort/pagination, relationships, soft deletes, factories, seeders, and policy enforcement.
 - Sprint 11 public project explorer and detail pages expose only active, public, unarchived projects through public-safe services.
+- Project detail views include a reusable Leaflet/OpenStreetMap map when coordinates or GeoJSON are present.
+- Public and authorized workspace portfolio maps use bounded viewport JSON data. Public markers are explicit allowlisted projections of published, active, unarchived projects with complete coordinate pairs; administrative markers remain policy-gated.
+- Latitude/longitude remain authoritative. MySQL deployments may store a synchronized nullable SRID 4326 `POINT`; the portable map query uses the B-tree `(latitude, longitude, id)` index.
 
 ## V1 Tables
 
@@ -46,3 +50,6 @@ Sprint 03 uses indexed database filtering as the authoritative v1 search path. `
 ## V2 Notes
 
 Add public status feeds, map layers, and delay indicators.
+# Change proposal governance
+
+Only administrators may create, update, archive, restore, or delete project records. Staff retain read access and submit proposed changes through the Change Requests queue, where an administrator records the review decision.

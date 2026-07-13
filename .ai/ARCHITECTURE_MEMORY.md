@@ -38,7 +38,7 @@ Enterprise Procurement extends the Sprint 05 lifecycle with procurement plans, p
 
 ## Sprint 13 Part 1 Foundation
 
-Production readiness is implemented through additive deployment files: Dockerfile, production compose, Nginx, PHP-FPM, Supervisor, queue worker, scheduler loop, production PHP settings, `.env.production.example`, and `/healthz`.
+Production readiness is implemented through additive deployment files: Dockerfile, production Compose, Nginx, PHP-FPM, direct queue-worker and scheduler roles, production PHP settings, `.env.production.example`, `.env.release.example`, and `/healthz`.
 
 The Civic Integrity Engine is deterministic and built on the Sprint 10 Intelligence module. `CivicIntegrityEngineService` runs active `IntelligenceRule` records through `RuleExecutionService`, stores reproducible run metadata in `civic_intelligence_runs`, snapshots thresholds/configuration, and tags generated indicators with engine metadata. New rules detect repeat approved-award concentration and unresolved citizen-report clusters. The engine never makes corruption, fraud, guilt, or legal conclusions.
 

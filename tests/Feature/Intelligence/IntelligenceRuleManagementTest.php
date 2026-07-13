@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\BidSubmission;
 use App\Models\IntelligenceRule;
 use App\Models\Role;
+use App\Models\Tender;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -75,4 +77,28 @@ it('dry-runs a rule without persisting generated indicators', function (): void 
         ->assertJsonPath('rule.slug', 'project-delay-risk')
         ->assertJsonPath('dry_run', true)
         ->assertJsonStructure(['estimated_matches', 'thresholds', 'explanation']);
+});
+
+it('dry-runs single bid procurement rules with portable relationship counts', function (): void {
+    $admin = sprint13RuleAdmin();
+    $rule = IntelligenceRule::factory()->create([
+        'name' => 'Single bid procurement signal',
+        'slug' => 'procurement-single-bid-risk',
+        'module' => 'procurement',
+    ]);
+    Tender::factory()->create(['title' => 'Zero bid tender']);
+    $singleBidTender = Tender::factory()->create(['title' => 'Single bid tender']);
+    $multiBidTender = Tender::factory()->create(['title' => 'Multi bid tender']);
+
+    BidSubmission::factory()->create(['tender_id' => $singleBidTender->id]);
+    BidSubmission::factory()->count(2)->create(['tender_id' => $multiBidTender->id]);
+
+    $this->actingAs($admin)->postJson("/admin/intelligence/rules/{$rule->id}/dry-run")
+        ->assertOk()
+        ->assertJsonPath('rule.slug', 'procurement-single-bid-risk')
+        ->assertJsonPath('estimated_matches', 1);
+
+    $this->actingAs($admin)->post("/admin/intelligence/rules/{$rule->id}/dry-run")
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Dry run for Single bid procurement signal estimated 1 matching source record(s).');
 });

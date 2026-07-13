@@ -41,4 +41,12 @@ class Country extends Model implements Searchable
     {
         return $this->hasMany(Agency::class);
     }
+
+    /**
+     * @return HasMany<Project, $this>
+     */
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
 }
