@@ -4,6 +4,7 @@ All notable changes to CivicLens are tracked here.
 
 ## [Unreleased]
 
+- Changed public search pagination to stream the bounded indexed result window, preserving visibility filtering without materializing the full window in memory.
 - Added role-aware shared navigation/search, safer document downloads, and a staff change-request workflow for projects, documents, contractors, procurement, and agencies.
 - Added admin user creation with temporary passwords, role assignment, and unverified-by-default accounts that are routed to email verification.
 - Refined the change-request flow so staff submit requests and admins review them while editing records directly.

@@ -226,6 +226,48 @@ it('restricts public search results to public indexed records', function (): voi
         ->assertDontSee('Private School Works');
 });
 
+it('keeps public search pagination bounded while preserving result totals', function (): void {
+    $template = Project::factory()->create([
+        'is_public' => true,
+        'is_active' => true,
+        'name' => 'Streamed Search Project 1',
+    ]);
+
+    for ($index = 1; $index <= 24; $index++) {
+        $project = $index === 1 ? $template : $template->replicate();
+
+        if ($index > 1) {
+            $project->forceFill([
+                'project_code' => 'STREAM-'.$index,
+                'name' => 'Streamed Search Project '.$index,
+                'short_name' => 'STREAM '.$index,
+                'slug' => 'streamed-search-project-'.$index,
+                'is_public' => true,
+                'is_active' => true,
+            ])->save();
+        }
+
+        SearchIndex::query()->create([
+            'searchable_type' => Project::class,
+            'searchable_id' => $project->id,
+            'module' => 'projects',
+            'title' => 'Streamed Search Project '.$index,
+            'description' => 'Bounded public search result.',
+            'url' => '/public/projects/'.$project->slug,
+            'visibility' => 'public',
+            'status' => 'active',
+            'search_text' => 'Streamed Search Project '.$index,
+            'metadata' => ['route_module' => 'projects'],
+            'indexed_at' => now()->subSeconds($index),
+        ]);
+    }
+
+    $this->get(route('public.search', ['q' => 'Streamed', 'page' => 2]))
+        ->assertOk()
+        ->assertViewHas('results', fn ($results): bool => $results->count() === 12 && $results->total() === 24)
+        ->assertSee('Streamed Search Project 13');
+});
+
 it('keeps authenticated citizens on the public-safe search and dashboard', function (): void {
     $citizen = citizenUser();
 
