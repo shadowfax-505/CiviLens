@@ -4,7 +4,11 @@
             <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Organization Registry</p>
             <h1 class="text-3xl font-bold">Government Agencies</h1>
         </div>
-        <a href="{{ route('admin.agencies.create') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create agency</a>
+        @can('create', App\Models\Agency::class)
+            <a href="{{ route('admin.agencies.create') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create agency</a>
+        @else
+            <a href="{{ route('admin.change-requests.create', ['module' => 'agencies', 'operation' => 'create', 'subject_label' => 'New government agency']) }}" class="rounded border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">Propose agency</a>
+        @endcan
     </div>
 
     <form method="GET" class="mt-6 grid gap-3 md:grid-cols-5">
@@ -43,7 +47,14 @@
             <tbody>
                 @forelse ($agencies as $agency)
                     <tr class="border-t dark:border-slate-800">
-                        <td class="px-4 py-3"><a class="font-semibold text-blue-700 dark:text-blue-300" href="{{ route('admin.agencies.edit', $agency) }}">{{ $agency->name }}</a></td>
+                        <td class="px-4 py-3">
+                            @can('update', $agency)
+                                <a class="font-semibold text-blue-700 dark:text-blue-300" href="{{ route('admin.agencies.edit', $agency) }}">{{ $agency->name }}</a>
+                            @else
+                                <span class="font-semibold">{{ $agency->name }}</span>
+                                <a class="ml-2 text-xs font-semibold text-emerald-700 underline dark:text-emerald-300" href="{{ route('admin.change-requests.create', ['module' => 'agencies', 'operation' => 'update', 'subject_type' => App\Models\Agency::class, 'subject_id' => $agency->id, 'subject_label' => $agency->name, 'subject_url' => route('admin.agencies.index', ['search' => $agency->name])]) }}">Propose change</a>
+                            @endcan
+                        </td>
                         <td class="px-4 py-3">{{ $agency->type?->name }}</td>
                         <td class="px-4 py-3">{{ str($agency->status)->headline() }}</td>
                         <td class="px-4 py-3">{{ $agency->country?->name }}</td>
@@ -58,4 +69,3 @@
 
     <div class="mt-6">{{ $agencies->links() }}</div>
 </x-layouts.app>
-

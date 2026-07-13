@@ -4,28 +4,46 @@
             <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Document Detail</p>
             <h1 class="text-3xl font-bold">{{ $document->title }}</h1>
             <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ $document->original_filename }} · v{{ $document->version_number }} · {{ $document->visibility?->name }}</p>
+            @if (auth()->user()?->hasRole(config('civiclens.roles.staff')))
+                <a class="mt-4 inline-flex rounded-full border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950" href="{{ route('admin.change-requests.create', ['module' => 'documents', 'subject_type' => App\Models\Document::class, 'subject_id' => $document->id, 'subject_label' => $document->title, 'subject_url' => route('admin.documents.show', $document)]) }}">Request change</a>
+            @endif
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('admin.documents.download', $document) }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Download</a>
-            <a href="{{ route('admin.documents.edit', $document) }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Edit metadata</a>
-            @if ($document->archived_at)
-                <form method="POST" action="{{ route('admin.documents.restore', $document) }}">@csrf @method('PATCH')<button class="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Restore</button></form>
-            @else
-                <form method="POST" action="{{ route('admin.documents.archive', $document) }}">@csrf @method('PATCH')<button class="rounded bg-amber-700 px-4 py-2 text-sm font-semibold text-white">Archive</button></form>
-            @endif
+            @can('update', $document)
+                <a href="{{ route('admin.documents.edit', $document) }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Edit metadata</a>
+                @if ($document->archived_at)
+                    <form method="POST" action="{{ route('admin.documents.restore', $document) }}">@csrf @method('PATCH')<button class="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Restore</button></form>
+                @else
+                    <form method="POST" action="{{ route('admin.documents.archive', $document) }}">@csrf @method('PATCH')<button class="rounded bg-amber-700 px-4 py-2 text-sm font-semibold text-white">Archive</button></form>
+                @endif
+            @endcan
         </div>
     </div>
+
+    @if ($document->storage_path)
+        <div class="mt-8 rounded-xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h2 class="mb-4 text-xl font-semibold">Preview</h2>
+            @if (str_starts_with($document->mime_type ?? '', 'image/'))
+                <img src="{{ route('admin.documents.download', $document) }}" alt="{{ $document->original_filename }}" class="max-h-96 w-full rounded object-contain">
+            @elseif (str_starts_with($document->mime_type ?? '', 'application/pdf'))
+                <iframe src="{{ route('admin.documents.download', $document) }}" class="h-96 w-full rounded border dark:border-slate-700"></iframe>
+            @else
+                <p class="text-sm text-slate-500">Preview not available for this file type. Use the download button above to view the file.</p>
+            @endif
+        </div>
+    @endif
 
     <div class="mt-8 grid gap-4 md:grid-cols-4">
         @foreach ([
             'Type' => $document->type?->name,
             'Category' => $document->category?->name ?? 'Uncategorized',
             'Status' => $document->status?->name,
-            'Size' => number_format($document->file_size / 1024, 1).' KB',
+            'Size' => $document->file_size ? number_format($document->file_size / 1024, 1).' KB' : '—',
             'OCR' => ucfirst($document->ocr_status),
             'Index' => ucfirst($document->index_status),
             'Preview' => ucfirst($document->preview_status),
-            'Checksum' => substr($document->checksum, 0, 12),
+            'Checksum' => $document->checksum ? substr($document->checksum, 0, 12) : '—',
         ] as $label => $value)
             <div class="rounded-xl border bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $label }}</div>
@@ -34,23 +52,39 @@
         @endforeach
     </div>
 
+    @can('update', $document)
     <section class="mt-8 rounded-xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h2 class="text-xl font-semibold">Replace File</h2>
         <form method="POST" enctype="multipart/form-data" action="{{ route('admin.documents.versions.store', $document) }}" class="mt-4 grid gap-3 md:grid-cols-3">
             @csrf
-            <input name="file" type="file" class="rounded border px-3 py-2">
+            <x-upload-zone
+                name="file"
+                :accept="config('civiclens.documents.allowed_extensions')"
+                label="Choose replacement file"
+                hint="Accepted: {{ \App\Support\Http\MimeMapper::describe(config('civiclens.documents.allowed_extensions')) }} up to {{ number_format(config('civiclens.documents.max_upload_kb') / 1024, 1) }} MB."
+                required
+                class="md:col-span-2"
+            />
             <input name="reason" class="rounded border px-3 py-2 text-slate-950" placeholder="Version reason">
-            <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create version</button>
+            <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950 md:col-span-3">Create version</button>
         </form>
     </section>
+    @endcan
 
     <section class="mt-8 rounded-xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h2 class="text-xl font-semibold">Version History</h2>
         <div class="mt-4 space-y-3">
             @foreach ($document->versions->sortByDesc('version_number') as $version)
                 <div class="rounded border p-3 text-sm dark:border-slate-800">
-                    <div class="font-semibold">Version {{ $version->version_number }} {{ $version->is_current ? '(current)' : '' }}</div>
-                    <div class="text-slate-500">{{ $version->original_filename }} · {{ $version->created_at->format('Y-m-d H:i') }} · {{ $version->reason }}</div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-semibold">Version {{ $version->version_number }} {{ $version->is_current ? '(current)' : '' }}</div>
+                            <div class="text-slate-500">{{ $version->original_filename }} · {{ $version->created_at->format('Y-m-d H:i') }} · {{ $version->reason }}</div>
+                        </div>
+                        @if ($version->storage_path)
+                            <a href="{{ route('admin.documents.versions.download', [$document, $version]) }}" class="shrink-0 rounded border px-3 py-1 text-xs font-semibold dark:border-slate-700">Download</a>
+                        @endif
+                    </div>
                 </div>
             @endforeach
         </div>

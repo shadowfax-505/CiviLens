@@ -112,6 +112,33 @@ it('runs deterministic civic integrity analysis with evidence and reproducible r
         ->and($indicator->detection_payload)->toHaveKeys(['award_count', 'thresholds']);
 });
 
+it('runs the single bid rule without sqlite having clause failures', function (): void {
+    $admin = civicIntegrityAdmin();
+    $rule = IntelligenceRule::factory()->create([
+        'slug' => 'procurement-single-bid-risk',
+        'name' => 'Single bid procurement signal',
+        'module' => 'procurement',
+        'version' => '13.1.0',
+    ]);
+    $tender = Tender::factory()->create(['title' => 'Single bidder tender']);
+    BidSubmission::factory()->create(['tender_id' => $tender->id]);
+
+    $this->actingAs($admin)->post('/admin/intelligence/engine/run')
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $run = CivicIntelligenceRun::query()->latest()->firstOrFail();
+
+    expect($run->status)->toBe('completed')
+        ->and($run->rules_executed)->toBe(1)
+        ->and($run->indicators_created)->toBe(1);
+
+    $this->assertDatabaseHas('intelligence_indicators', [
+        'intelligence_rule_id' => $rule->id,
+        'source_id' => $tender->id,
+    ]);
+});
+
 it('exposes a production health endpoint without leaking sensitive configuration', function (): void {
     $this->getJson('/healthz')
         ->assertOk()

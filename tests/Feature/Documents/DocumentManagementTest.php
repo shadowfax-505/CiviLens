@@ -129,6 +129,30 @@ it('supports document search filters sorting pagination and bulk actions', funct
     expect($document->tags()->whereKey($tag->id)->exists())->toBeTrue();
 });
 
+it('denies staff bulk mutations before changing any selected document', function (): void {
+    Storage::fake('local');
+
+    $staffRole = Role::query()->create(['name' => 'Government Staff', 'slug' => config('civiclens.roles.staff')]);
+    $staff = User::factory()->create();
+    $staff->roles()->attach($staffRole);
+    $document = Document::factory()->create(['archived_at' => null]);
+    $tag = DocumentTag::factory()->create(['name' => 'Restricted', 'slug' => 'restricted']);
+
+    $this->actingAs($staff)->post('/admin/documents/bulk', [
+        'action' => 'archive',
+        'document_ids' => [$document->id],
+    ])->assertForbidden();
+
+    $this->actingAs($staff)->post('/admin/documents/bulk', [
+        'action' => 'tag',
+        'document_ids' => [$document->id],
+        'tag_ids' => [$tag->id],
+    ])->assertForbidden();
+
+    expect($document->fresh()->archived_at)->toBeNull()
+        ->and($document->tags()->whereKey($tag->id)->exists())->toBeFalse();
+});
+
 it('validates secure uploads and required relationships', function (): void {
     $admin = documentAdmin();
 

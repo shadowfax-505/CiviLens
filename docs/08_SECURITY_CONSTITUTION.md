@@ -53,6 +53,12 @@ Release Candidate 1 adds baseline defensive response headers on all application 
 - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
 - `Strict-Transport-Security` in production environments
 
+## V1.0.0 Deep Scan Remediation
+
+The final deep review confirmed and remediated seven medium/P2 paths without changing public route names: bulk document actions now authorize every selected document atomically; citizen report tracking requires the submitter/moderator policy and streams attachments through the protected route; public tender documents reuse the public visibility query; project budgets and contractor profiles enforce child publication/lifecycle state; public search is throttled and bounded to a 120-character query and 1,000 indexed rows.
+
+Thirteen additional candidates remain explicit follow-up items in the scan coverage (cross-tender foreign-key binding, final-administrator races, cookie/HTTPS provider configuration, analytics retention, metrics permissions, health metadata, and change-request upload deployment preconditions). They were not silently suppressed or promoted without the fixture or deployment evidence required to validate them safely.
+
 ## V2 Expansion Notes
 
 Add threat modeling for public APIs, rate limiting by tier, data provenance signatures, and model governance controls.

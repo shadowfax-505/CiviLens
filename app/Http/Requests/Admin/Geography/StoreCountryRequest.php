@@ -26,6 +26,8 @@ class StoreCountryRequest extends FormRequest
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'geojson' => ['nullable', 'array'],
+            'project_ids' => ['nullable', 'array'],
+            'project_ids.*' => ['integer', 'exists:projects,id'],
         ];
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\Analytics\AnalyticsDashboardController;
 use App\Http\Controllers\Admin\Analytics\AnalyticsMetricController;
 use App\Http\Controllers\Admin\Analytics\AnalyticsReportController;
 use App\Http\Controllers\Admin\Analytics\AnalyticsSnapshotController;
+use App\Http\Controllers\Admin\ChangeRequestController;
 use App\Http\Controllers\Admin\CitizenReports\CitizenReportModerationController;
 use App\Http\Controllers\Admin\Contractors\ContractorProfileController;
 use App\Http\Controllers\Admin\Contractors\OrganizationController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Admin\Finance\BudgetTransactionController;
 use App\Http\Controllers\Admin\Geography\CountryController;
 use App\Http\Controllers\Admin\Geography\DistrictController;
 use App\Http\Controllers\Admin\Geography\DivisionController;
+use App\Http\Controllers\Admin\Geography\ProjectMapController;
 use App\Http\Controllers\Admin\Geography\UnionController;
 use App\Http\Controllers\Admin\Geography\UpazilaController;
 use App\Http\Controllers\Admin\Geography\WardController;
@@ -34,6 +36,7 @@ use App\Http\Controllers\Admin\Procurement\ProcurementPlanController;
 use App\Http\Controllers\Admin\Procurement\ProcurementWorkflowController;
 use App\Http\Controllers\Admin\Procurement\TenderController;
 use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\ProjectMapDataController;
 use App\Http\Controllers\Admin\SearchAnalyticsController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SearchKnowledgeController;
@@ -56,29 +59,33 @@ use App\Http\Controllers\PublicPortal\PublicDocumentController;
 use App\Http\Controllers\PublicPortal\PublicHomeController;
 use App\Http\Controllers\PublicPortal\PublicProcurementController;
 use App\Http\Controllers\PublicPortal\PublicProjectController;
+use App\Http\Controllers\PublicPortal\PublicProjectMapDataController;
 use App\Http\Controllers\PublicPortal\PublicSearchController;
 use App\Http\Controllers\VersionController;
+use App\Models\Project;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', PublicHomeController::class)->name('public.home');
 
 Route::get('/healthz', HealthCheckController::class)->name('healthz');
 Route::get('/version', VersionController::class)->name('version');
+Route::get('/about', PublicHomeController::class)->name('public.about');
 
 Route::prefix('public')->name('public.')->group(function (): void {
-    Route::get('/', PublicHomeController::class)->name('home');
+    Route::get('/', PublicHomeController::class)->name('legacy-home');
     Route::get('/projects', [PublicProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects/map-data', PublicProjectMapDataController::class)->middleware('throttle:60,1')->name('projects.map-data');
     Route::get('/projects/{project:slug}', [PublicProjectController::class, 'show'])->name('projects.show');
     Route::get('/agencies', [PublicAgencyController::class, 'index'])->name('agencies.index');
     Route::get('/agencies/{agency:slug}', [PublicAgencyController::class, 'show'])->name('agencies.show');
     Route::get('/procurement', PublicProcurementController::class)->name('procurement.index');
+    Route::get('/procurement/{tender:slug}', [PublicProcurementController::class, 'show'])->name('procurement.show');
     Route::get('/contractors', [PublicContractorController::class, 'index'])->name('contractors.index');
     Route::get('/contractors/{organization}', [PublicContractorController::class, 'show'])->name('contractors.show');
     Route::get('/documents', [PublicDocumentController::class, 'index'])->name('documents.index');
     Route::get('/documents/{document}/download', [PublicDocumentController::class, 'download'])->name('documents.download');
-    Route::get('/search', PublicSearchController::class)->name('search');
+    Route::get('/search', PublicSearchController::class)->middleware('throttle:60,1')->name('search');
     Route::get('/reports/{uuid}', [CitizenReportController::class, 'show'])->whereUuid('uuid')->name('reports.show');
 });
 
@@ -106,32 +113,40 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::post('/email/verification-notification', [EmailVerificationController::class, 'send'])
         ->middleware('throttle:6,1')
         ->name('verification.send');
+    Route::post('/verify-email/otp', [EmailVerificationController::class, 'verifyOtp'])
+        ->middleware('throttle:5,10')
+        ->name('verification.otp');
 
     Route::get('/confirm-password', [ConfirmablePasswordController::class, 'show'])->name('password.confirm');
     Route::post('/confirm-password', [ConfirmablePasswordController::class, 'store']);
 
     Route::get('/dashboard', ExecutiveDashboardController::class)->name('dashboard');
 
-    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::get('/settings', [ProfileController::class, 'show'])->name('settings.show');
+    Route::match(['GET', 'HEAD'], '/profile', fn () => redirect('/settings', 302))->name('profile.show');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
     Route::put('/profile/notifications', [ProfileController::class, 'updateNotifications'])->name('profile.notifications');
 
-    Route::middleware('throttle:6,1')->group(function (): void {
-        Route::get('/public/reports/create', [CitizenReportController::class, 'create'])->name('public.reports.create');
-        Route::post('/public/reports', [CitizenReportController::class, 'store'])->name('public.reports.store');
-    });
+    Route::get('/public/reports/create', [CitizenReportController::class, 'create'])->name('public.reports.create');
+    Route::post('/public/reports', [CitizenReportController::class, 'store'])
+        ->middleware('throttle:10,10')
+        ->name('public.reports.store');
 
     Route::prefix('citizen')->name('citizen.')->group(function (): void {
         Route::get('/reports', [CitizenReportDashboardController::class, 'index'])->name('reports.index');
         Route::get('/reports/{report}', [CitizenReportDashboardController::class, 'show'])->name('reports.show');
+        Route::get('/reports/{report}/attachment', [CitizenReportController::class, 'downloadAttachment'])->name('reports.attachment');
     });
 
     Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::get('/system/metrics', SystemMetricsController::class)->name('system.metrics');
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::patch('/users/{user}/status', [UserController::class, 'updateStatus'])->name('users.status');
         Route::patch('/users/{user}/lock', [UserController::class, 'updateLock'])->name('users.lock');
         Route::put('/users/{user}/roles', [UserRoleController::class, 'update'])->name('users.roles');
@@ -143,6 +158,17 @@ Route::middleware(['auth', 'active'])->group(function (): void {
             Route::patch('/{report}/status', [CitizenReportModerationController::class, 'status'])->name('status');
             Route::patch('/{report}/archive', [CitizenReportModerationController::class, 'archive'])->name('archive');
             Route::patch('/{report}/restore', [CitizenReportModerationController::class, 'restore'])->name('restore');
+            Route::post('/{report}/acknowledgement', [CitizenReportModerationController::class, 'resendAcknowledgement'])->name('acknowledgement.resend');
+        });
+
+        Route::prefix('change-requests')->name('change-requests.')->group(function (): void {
+            Route::get('/', [ChangeRequestController::class, 'index'])->name('index');
+            Route::get('/create', [ChangeRequestController::class, 'create'])->name('create');
+            Route::post('/', [ChangeRequestController::class, 'store'])->name('store');
+            Route::get('/{changeRequest}', [ChangeRequestController::class, 'show'])->name('show');
+            Route::get('/{changeRequest}/attachment', [ChangeRequestController::class, 'downloadAttachment'])->name('attachment.download');
+            Route::patch('/{changeRequest}', [ChangeRequestController::class, 'update'])->name('update');
+            Route::post('/{changeRequest}/applied', [ChangeRequestController::class, 'markApplied'])->name('applied');
         });
 
         Route::resource('agencies', AgencyController::class)->except('show');
@@ -168,8 +194,10 @@ Route::middleware(['auth', 'active'])->group(function (): void {
             Route::get('/', AnalyticsDashboardController::class)->name('index');
             Route::get('/metrics', AnalyticsMetricController::class)->name('metrics');
             Route::post('/snapshots', [AnalyticsSnapshotController::class, 'store'])->name('snapshots.store');
+            Route::post('/snapshots/realtime', [AnalyticsSnapshotController::class, 'realtime'])->name('snapshots.realtime');
             Route::get('/reports', [AnalyticsReportController::class, 'index'])->name('reports.index');
             Route::post('/reports', [AnalyticsReportController::class, 'store'])->name('reports.store');
+            Route::post('/reports/csv', [AnalyticsReportController::class, 'csv'])->name('reports.csv');
             Route::get('/reports/{report}/download', [AnalyticsReportController::class, 'download'])->name('reports.download');
             Route::get('/alerts', AnalyticsAlertController::class)->name('alerts');
         });
@@ -189,6 +217,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
             Route::get('/archived', [DocumentController::class, 'archived'])->name('archived');
             Route::post('/bulk', [DocumentBulkActionController::class, 'store'])->name('bulk');
             Route::post('/{document}/versions', [DocumentVersionController::class, 'store'])->name('versions.store');
+            Route::get('/{document}/versions/{version}/download', [DocumentVersionController::class, 'download'])->name('versions.download');
             Route::get('/{document}/download', [DocumentController::class, 'download'])->name('download');
             Route::get('/{document}/preview', [DocumentController::class, 'preview'])->name('preview');
             Route::patch('/{document}/archive', [DocumentController::class, 'archive'])->name('archive');
@@ -205,6 +234,9 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         });
 
         Route::get('/projects/archived', [ProjectController::class, 'archived'])->name('projects.archived');
+        Route::get('/projects/map', [ProjectMapController::class, 'index'])->name('projects.map');
+        Route::get('/projects/map-data', ProjectMapDataController::class)->middleware('throttle:120,1')->name('projects.map-data');
+        Route::patch('/projects/map/{project}', [ProjectMapController::class, 'update'])->name('projects.map.update');
         Route::patch('/projects/{project}/archive', [ProjectController::class, 'archive'])->name('projects.archive');
         Route::patch('/projects/{project}/restore', [ProjectController::class, 'restore'])->name('projects.restore');
         Route::resource('projects', ProjectController::class);
@@ -247,6 +279,12 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         });
 
         Route::prefix('geography')->name('geography.')->group(function (): void {
+            Route::get('/project-map', function (Request $request) {
+                abort_unless($request->user()?->can('viewAny', Project::class) === true, 403);
+
+                return redirect()->route('admin.projects.map');
+            })->name('project-map.index');
+            Route::patch('/project-map/{project}', fn (Project $project) => redirect()->route('admin.projects.map', ['project_id' => $project->id], 307))->name('project-map.update');
             Route::resource('countries', CountryController::class)->except('show');
             Route::resource('divisions', DivisionController::class)->except('show');
             Route::resource('districts', DistrictController::class)->except('show');

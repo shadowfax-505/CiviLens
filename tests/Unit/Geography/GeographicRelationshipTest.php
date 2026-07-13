@@ -15,7 +15,7 @@ it('walks the normalized geographic hierarchy from ward to country', function ()
     $division = Division::factory()->for($country)->create(['name' => 'Dhaka']);
     $district = District::factory()->for($division)->create(['name' => 'Dhaka District']);
     $upazila = Upazila::factory()->for($district)->create(['name' => 'Savar']);
-    $union = AdministrativeUnion::factory()->for($upazila)->create(['name' => 'Birulia']);
+    $union = AdministrativeUnion::factory()->for($upazila, 'upazila')->create(['name' => 'Birulia']);
     $ward = Ward::factory()->for($union, 'union')->create(['name' => 'Ward 1']);
 
     expect($ward->union->upazila->district->division->country->is($country))->toBeTrue()

@@ -19,6 +19,7 @@ class UpdateNotificationPreferencesRequest extends FormRequest
         return [
             'email_reports' => ['nullable', 'boolean'],
             'security_alerts' => ['nullable', 'boolean'],
+            'appearance' => ['nullable', 'in:system,light,dark'],
         ];
     }
 }

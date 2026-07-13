@@ -12,7 +12,7 @@
         </select>
         <input name="name" value="{{ old('name', $division->name) }}" placeholder="Division name" class="rounded border px-3 py-2 text-slate-950">
         <input name="code" value="{{ old('code', $division->code) }}" placeholder="Code" class="rounded border px-3 py-2 text-slate-950">
-        <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950">Save division</button>
+        <x-leaflet-coordinate-picker :lat="$division->latitude" :lng="$division->longitude" label="Division / state map pin" />
+        <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save division</button>
     </form>
 </x-layouts.app>
-

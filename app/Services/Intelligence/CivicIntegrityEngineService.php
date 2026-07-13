@@ -31,21 +31,27 @@ class CivicIntegrityEngineService
             'threshold_snapshot' => $this->thresholdSnapshot($rules),
         ]);
 
+        $created = 0;
+        $executed = 0;
+        $currentRule = null;
+
         try {
-            $created = 0;
 
             foreach ($rules as $rule) {
                 if (! $rule instanceof IntelligenceRule) {
                     continue;
                 }
 
+                $currentRule = $rule;
                 $indicators = $this->rules->run($rule, $actor);
                 $created += $indicators->count();
+                $executed++;
 
                 $indicators->each(function (IntelligenceIndicator $indicator) use ($run, $rule): void {
                     $metadata = is_array($indicator->metadata) ? $indicator->metadata : [];
 
                     $indicator->forceFill([
+                        'civic_intelligence_run_id' => $run->id,
                         'metadata' => array_merge($metadata, [
                             'engine' => 'civic_integrity',
                             'engine_run_id' => $run->id,
@@ -63,18 +69,29 @@ class CivicIntegrityEngineService
                 'indicators_created' => $created,
                 'summary_payload' => [
                     'modules' => $rules->pluck('module')->unique()->values()->all(),
-                    'critical' => IntelligenceIndicator::query()->where('metadata->engine_run_id', $run->id)->where('severity', 'critical')->count(),
-                    'warning' => IntelligenceIndicator::query()->where('metadata->engine_run_id', $run->id)->where('severity', 'warning')->count(),
+                    'critical' => $run->indicators()->where('severity', 'critical')->count(),
+                    'warning' => $run->indicators()->where('severity', 'warning')->count(),
                     'review_status' => 'human_review_required',
                 ],
             ])->save();
 
             return $run->refresh();
         } catch (Throwable $throwable) {
+            $failedRule = $currentRule instanceof IntelligenceRule ? $currentRule->slug : null;
+
             $run->forceFill([
                 'status' => 'failed',
                 'completed_at' => now(),
-                'notes' => $throwable->getMessage(),
+                'rules_executed' => $executed,
+                'indicators_created' => $created,
+                'notes' => $failedRule === null
+                    ? 'Civic Integrity Engine failed before rule execution.'
+                    : 'Civic Integrity Engine failed while executing rule '.$failedRule.'.',
+                'summary_payload' => [
+                    'failed_rule' => $failedRule,
+                    'error_class' => class_basename($throwable),
+                    'review_status' => 'technical_review_required',
+                ],
             ])->save();
 
             throw $throwable;

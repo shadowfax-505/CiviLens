@@ -64,10 +64,17 @@
                 </select>
             </label>
             @unless ($document->exists)
-                <label class="text-sm md:col-span-2">File
-                    <input name="file" type="file" class="mt-1 w-full rounded border px-3 py-2">
+                <label class="text-sm md:col-span-2">File</label>
+                <div class="md:col-span-2">
+                    <x-upload-zone
+                        name="file"
+                        :accept="config('civiclens.documents.allowed_extensions')"
+                        label="Choose document file"
+                        hint="Accepted: {{ \App\Support\Http\MimeMapper::describe(config('civiclens.documents.allowed_extensions')) }} up to {{ number_format(config('civiclens.documents.max_upload_kb') / 1024, 1) }} MB."
+                        required
+                    />
                     @error('file') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
-                </label>
+                </div>
             @endunless
             <label class="text-sm md:col-span-2">Description
                 <textarea name="description" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">{{ old('description', $document->description) }}</textarea>

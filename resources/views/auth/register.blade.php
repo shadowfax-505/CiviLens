@@ -1,7 +1,7 @@
 <x-layouts.app title="Register - CivicLens">
     <section class="grid gap-8 lg:grid-cols-[1fr_500px] lg:items-stretch">
         <div class="rounded-lg bg-blue-950 p-8 text-white shadow-xl shadow-slate-900/10 lg:p-10">
-            <p class="text-sm font-semibold uppercase tracking-wider text-blue-200">CivicLens RC1</p>
+            <p class="text-sm font-semibold uppercase tracking-wider text-blue-200">CivicLens v1.0.0</p>
             <h1 class="mt-4 max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">Public data, procurement, and integrity signals in one accountable workspace.</h1>
             <p class="mt-5 max-w-xl text-base leading-7 text-blue-100">Create an operator account for auditable workflows, permission-aware records, and deterministic civic intelligence review.</p>
             <div class="mt-8 grid gap-3 text-sm font-semibold text-blue-50">

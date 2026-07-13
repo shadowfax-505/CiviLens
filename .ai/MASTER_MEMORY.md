@@ -30,7 +30,7 @@ Enterprise Procurement extends the existing tender core with procurement plannin
 
 ## Sprint 13 Part 1 Memory
 
-Production readiness adds Docker, production compose, Nginx, PHP-FPM, Supervisor, queue worker, scheduler loop, production PHP configuration, `.env.production.example`, and a public-safe `/healthz` endpoint. The Civic Integrity Engine remains deterministic: active rules run through existing intelligence services, `civic_intelligence_runs` stores reproducible threshold snapshots and run summaries, and generated indicators require human review. V1 still excludes OCR, LLMs, embeddings, vector databases, semantic search, AI agents, and legal conclusions.
+Production readiness adds Docker, production Compose, Nginx, PHP-FPM, dedicated queue-worker and scheduler roles, production PHP configuration, `.env.production.example`, `.env.release.example`, and public-safe `/healthz` plus ingress `/nginx-healthz` endpoints. The Civic Integrity Engine remains deterministic: active rules run through existing intelligence services, `civic_intelligence_runs` stores reproducible threshold snapshots and run summaries, and generated indicators require human review. V1 still excludes OCR, LLMs, embeddings, vector databases, semantic search, AI agents, and legal conclusions.
 
 ## Sprint 13 Part 2 Memory
 
@@ -38,7 +38,7 @@ Production hardening extends, rather than rebuilds, Sprint 13 part 1. `/dashboar
 
 ## RC1 Memory
 
-Release Candidate 1 validates CivicLens v1.0 as `v1.0.0-RC1`. RC hardening may change version metadata, defensive headers, documentation, release notes, checklists, and low-risk stability fixes only. It must not introduce new business modules, public API expansion, v2 AI infrastructure, OCR, LLMs, embeddings, vector search, semantic search, machine learning, recommendation systems, microservices, GraphQL, or experimental packages.
+Stable v1.0.0 finalizes CivicLens without adding new business modules, public API expansion, v2 AI infrastructure, OCR, LLMs, embeddings, vector search, semantic search, machine learning, recommendation systems, microservices, GraphQL, or experimental packages.
 
 ## Required Reading
 

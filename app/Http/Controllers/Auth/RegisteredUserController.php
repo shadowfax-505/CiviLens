@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Identity\AccountActivityLogger;
+use App\Services\Identity\EmailVerificationOtpService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +20,7 @@ class RegisteredUserController extends Controller
         return view('auth.register');
     }
 
-    public function store(RegisterRequest $request, AccountActivityLogger $activityLogger): RedirectResponse
+    public function store(RegisterRequest $request, AccountActivityLogger $activityLogger, EmailVerificationOtpService $otp): RedirectResponse
     {
         $user = User::query()->create($request->safe()->only(['name', 'email', 'password']));
 
@@ -29,10 +30,11 @@ class RegisteredUserController extends Controller
         }
 
         event(new Registered($user));
+        $otp->send($user);
 
         Auth::login($user);
         $activityLogger->log($user, 'registered', $request, $user);
 
-        return redirect()->route('dashboard');
+        return redirect()->route('verification.notice');
     }
 }

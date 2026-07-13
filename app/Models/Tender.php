@@ -160,6 +160,11 @@ class Tender extends Model implements Searchable
         return route('admin.procurement.tenders.show', $this, false);
     }
 
+    public function publicSearchUrl(): string
+    {
+        return route('public.procurement.show', ['tender' => $this->slug], false);
+    }
+
     public function searchStatus(): ?string
     {
         return $this->status?->slug;
@@ -174,11 +179,13 @@ class Tender extends Model implements Searchable
     {
         return [
             'route_module' => 'tenders',
+            'slug' => $this->slug,
             'tender_number' => $this->tender_number,
             'project_id' => $this->project_id,
             'budget_id' => $this->budget_id,
             'agency_id' => $this->agency_id,
             'closing_at' => $this->closing_at?->toDateTimeString(),
+            'public_url' => $this->publicSearchUrl(),
         ];
     }
 }

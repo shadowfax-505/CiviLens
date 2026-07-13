@@ -1,15 +1,15 @@
-# CivicLens v1.0.0-RC1 Release Checklist
+# CivicLens v1.0.0 Release Checklist
 
 ## Deployment
 
-- [ ] Build release artifact from the RC1 branch.
-- [ ] Set `APP_ENV=production`, `APP_DEBUG=false`, `APP_VERSION=v1.0.0-RC1`, and `APP_COMMIT` to the deployed Git SHA.
+- [ ] Build release artifact from the v1.0.0 branch.
+- [ ] Set `APP_ENV=production`, `APP_DEBUG=false`, `APP_VERSION=v1.0.0`, and `APP_COMMIT` to the deployed Git SHA.
 - [ ] Inject production secrets through the hosting environment.
 - [ ] Run `composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader`.
 - [ ] Run `npm ci` and `npm run build`.
 - [ ] Run controlled migrations.
 - [ ] Run `php artisan config:cache`, `php artisan route:cache`, and `php artisan view:cache`.
-- [ ] Restart Supervisor-managed workers after deployment.
+- [ ] Restart the dedicated worker and scheduler roles after deployment.
 
 ## Rollback
 
@@ -34,7 +34,7 @@
 ## Smoke Tests
 
 - [ ] `/healthz` returns public-safe readiness checks.
-- [ ] `/version` returns `v1.0.0-RC1` and deploy metadata without secrets.
+- [ ] `/version` returns `v1.0.0` and deploy metadata without secrets.
 - [ ] `/dashboard` renders for authenticated users.
 - [ ] `/admin/intelligence` renders for authorized administrators.
 - [ ] `/admin/intelligence/rules` renders and dry-runs rules.
@@ -100,9 +100,9 @@
 
 ## Known Risks
 
-- [ ] Sanctum token APIs are not installed; RC1 ships web routes and selected JSON web endpoints only.
+- [ ] Sanctum token APIs are not installed; v1.0.0 ships web routes and selected JSON web endpoints only.
 - [ ] Search provider is database-backed until external search infrastructure is configured.
 - [ ] Report exports use lightweight built-in renderers; richer XLSX/PDF packages remain optional future hardening.
 - [ ] Browser tests require Chromium installation in CI or developer machines.
 - [ ] Public production hosting, HTTPS, DNS, durable storage, backups, and external monitoring still require provider credentials and target-environment validation.
-- [ ] No OCR, LLM, embeddings, vector database, semantic search, or AI-agent infrastructure is included in RC1.
+- [ ] No OCR, LLM, embeddings, vector database, semantic search, or AI-agent infrastructure is included in v1.0.0.

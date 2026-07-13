@@ -32,6 +32,7 @@ class StoreCitizenReportRequest extends FormRequest
             'description' => ['required', 'string', 'min:20', 'max:5000'],
             'location_text' => ['nullable', 'string', 'max:500'],
             'contact_preference' => ['required', 'in:email,phone,none'],
+            'attachment' => ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx,xls,xlsx,zip'],
         ];
     }
 }

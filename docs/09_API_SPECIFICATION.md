@@ -82,6 +82,7 @@ The Laravel app currently implements web identity routes for:
 - `PUT /admin/agencies/{agency}`
 - `DELETE /admin/agencies/{agency}`
 - `GET /admin/projects`
+- `GET /admin/projects/map-data` returns bounded, authorized project location markers for the active map viewport.
 - `GET /admin/projects/archived`
 - `POST /admin/projects`
 - `GET /admin/projects/{project}`
@@ -178,6 +179,8 @@ The Laravel app currently implements web identity routes for:
 - `GET /admin/intelligence/processing-jobs`
 - `POST /admin/intelligence/processing-jobs`
 - `GET /admin/system/metrics`
+
+Public project-map data is available at `GET /public/projects/map-data`. It accepts a complete `south`, `west`, `north`, `east` viewport (or no viewport), validates coordinate ordering and configured span caps, and returns no more than the configured marker limit. Its marker schema is intentionally allowlisted to project name, authoritative latitude/longitude, public agency/status labels, and the public project URL; internal descriptions, identifiers, visibility flags, and source fields are not returned.
 - `GET /public`
 - `GET /public/projects`
 - `GET /public/projects/{project:slug}`
@@ -199,6 +202,14 @@ The Laravel app currently implements web identity routes for:
 - `PATCH /admin/citizen-reports/{report}/status`
 - `PATCH /admin/citizen-reports/{report}/archive`
 - `PATCH /admin/citizen-reports/{report}/restore`
+- `POST /admin/citizen-reports/{report}/acknowledgement`
+- `GET /admin/change-requests`
+- `POST /admin/change-requests`
+- `GET /admin/change-requests/{changeRequest}`
+- `PATCH /admin/change-requests/{changeRequest}`
+- `POST /admin/change-requests/{changeRequest}/applied`
+- `GET /admin/projects/map`
+- `PATCH /admin/projects/map/{project}`
 - `GET /healthz`
 - `GET /version`
 
@@ -251,6 +262,16 @@ Processing jobs prepare future OCR, AI review, and search synchronization only. 
 ## Public Portal Endpoint Notes
 
 Sprint 11 public routes are web endpoints, not versioned public APIs. Public search is limited to indexed records with `visibility=public`; public document downloads stream through application routes and do not expose internal storage paths. Citizen report submission requires authentication and is rate-limited.
+
+Authenticated citizens remain on this public-safe search scope. They are not redirected to the internal admin search endpoints. Citizen report acknowledgement mail is queued on submission; administrators can queue a resend from the report detail screen, with a five-minute duplicate-send guard and activity record.
+
+## Change-Request Endpoint Notes
+
+Staff may submit change requests; administrators may review them. `POST /admin/change-requests/{changeRequest}/applied` records that an approved proposal was implemented through the source module's normal admin workflow. It does not apply payload data or otherwise mutate the source record.
+
+Citizen report submission is authenticated and submit-rate-limited only; loading the report form does not consume the submission allowance. Public search stays restricted to records whose current source remains public-safe, even if an older search-index record remains present.
+
+`POST /verify-email/otp` accepts an authenticated user's six-digit registration OTP. `POST /email/verification-notification` resends the OTP and Laravel signed-link fallback. OTP values are never returned by an endpoint.
 
 ## Analytics Filter Parameters
 

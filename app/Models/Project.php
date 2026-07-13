@@ -227,6 +227,11 @@ class Project extends Model implements Searchable
         return route('admin.projects.show', $this, false);
     }
 
+    public function publicSearchUrl(): string
+    {
+        return route('public.projects.show', $this, false);
+    }
+
     public function searchStatus(): ?string
     {
         return $this->status?->slug;
@@ -241,10 +246,12 @@ class Project extends Model implements Searchable
     {
         return [
             'route_module' => 'projects',
+            'slug' => $this->slug,
             'project_code' => $this->project_code,
             'progress_percentage' => $this->progress_percentage,
             'agency_id' => $this->agency_id,
             'fiscal_year_id' => $this->fiscal_year_id,
+            'public_url' => $this->publicSearchUrl(),
         ];
     }
 }
