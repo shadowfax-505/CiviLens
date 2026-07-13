@@ -7,7 +7,7 @@
                 <div>
                     <p class="cl-kicker text-cyan-100">Executive Command Center</p>
                     <h1 class="cl-page-title mt-3">CivicLens Dashboard</h1>
-                    <p class="cl-page-copy">CivicLens v1.0 RC1 is ready for production-readiness validation across delivery, finance, procurement, documents, citizen engagement, and deterministic integrity signals.</p>
+                    <p class="cl-page-copy">CivicLens v1.0.0 is ready for production use across delivery, finance, procurement, documents, citizen engagement, and deterministic integrity signals.</p>
                 </div>
                 <div class="rounded-2xl border border-white/20 bg-white/15 px-4 py-3 text-sm backdrop-blur">
                     <h2 class="font-semibold">System Health</h2>

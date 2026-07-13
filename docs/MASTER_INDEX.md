@@ -31,10 +31,10 @@ This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read t
 - [Open Data Policy](20_OPEN_DATA_POLICY.md) - public data release principles.
 - [Accessibility](21_ACCESSIBILITY.md) - WCAG and inclusive design requirements.
 - [Release Management](22_RELEASE_MANAGEMENT.md) - versioning and release process.
-- [RC1 Checklist](releases/RC1_CHECKLIST.md) - deployment, rollback, smoke test, data, queue, scheduler, health, metrics, logs, backup, restore, and known-risk checks.
-- [RC1 Release Notes](releases/RC1_RELEASE_NOTES.md) - release-candidate highlights, architecture, security, performance, testing, migration notes, limitations, and roadmap.
-- [RC1 Production Readiness Report](releases/RC1_PRODUCTION_READINESS_REPORT.md) - validation gates, database counts, browser coverage, benchmark notes, security status, and deployment caveats.
-- [RC1 Deployment Strategy](releases/RC1_DEPLOYMENT_STRATEGY.md) - provider discovery, target selection, infrastructure diagram, runtime/database/cache/queue/storage/logging/monitoring/backup/rollback/DR architecture, and deployment blocker.
+- [v1.0.0 Release Checklist](releases/RC1_CHECKLIST.md) - deployment, rollback, smoke test, data, queue, scheduler, health, metrics, logs, backup, restore, and known-risk checks.
+- [v1.0.0 Release Notes](releases/RC1_RELEASE_NOTES.md) - stable release highlights, architecture, security, performance, testing, migration notes, limitations, and roadmap.
+- [v1.0.0 Production Readiness Report](releases/RC1_PRODUCTION_READINESS_REPORT.md) - validation gates, database counts, browser coverage, benchmark notes, security status, and deployment caveats.
+- [v1.0.0 Deployment Strategy](releases/RC1_DEPLOYMENT_STRATEGY.md) - provider discovery, target selection, infrastructure diagram, runtime/database/cache/queue/storage/logging/monitoring/backup/rollback/DR architecture, and deployment blocker.
 - [Risk Register](23_RISK_REGISTER.md) - risks and mitigations.
 - [Project Roadmap](24_PROJECT_ROADMAP.md) - phased delivery plan.
 - [Contributing Guide](25_CONTRIBUTING_GUIDE.md) - contributor expectations.
