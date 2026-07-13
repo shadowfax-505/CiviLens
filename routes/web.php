@@ -85,7 +85,7 @@ Route::prefix('public')->name('public.')->group(function (): void {
     Route::get('/contractors/{organization}', [PublicContractorController::class, 'show'])->name('contractors.show');
     Route::get('/documents', [PublicDocumentController::class, 'index'])->name('documents.index');
     Route::get('/documents/{document}/download', [PublicDocumentController::class, 'download'])->name('documents.download');
-    Route::get('/search', PublicSearchController::class)->name('search');
+    Route::get('/search', PublicSearchController::class)->middleware('throttle:60,1')->name('search');
     Route::get('/reports/{uuid}', [CitizenReportController::class, 'show'])->whereUuid('uuid')->name('reports.show');
 });
 

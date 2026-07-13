@@ -21,7 +21,7 @@ class PublicSearchService
      */
     public function search(array $input): LengthAwarePaginator
     {
-        $query = trim((string) ($input['q'] ?? ''));
+        $query = mb_substr(trim((string) ($input['q'] ?? '')), 0, 120);
         $module = filled($input['module'] ?? null) ? (string) $input['module'] : null;
         $page = max(1, (int) ($input['page'] ?? 1));
 
@@ -40,7 +40,7 @@ class PublicSearchService
 
         $visibility = app(PublicVisibilityService::class);
 
-        $results = $builder->latest('indexed_at')->get()
+        $results = $builder->latest('indexed_at')->limit(1000)->get()
             ->filter(fn (SearchIndex $index): bool => $this->sourceIsPublic($index->source(), $visibility))
             ->map(fn (SearchIndex $index): SearchResult => SearchResult::fromIndex($index, 1.0, $query))
             ->values();

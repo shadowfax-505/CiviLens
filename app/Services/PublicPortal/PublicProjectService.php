@@ -43,7 +43,7 @@ class PublicProjectService
 
         return [
             'project' => $project,
-            'budgets' => $project->budgets()->with(['status', 'fiscalYear'])->latest()->limit(5)->get(),
+            'budgets' => $project->budgets()->with(['status', 'fiscalYear'])->where('is_active', true)->whereNull('archived_at')->latest()->limit(5)->get(),
             'tenders' => $project->tenders()->with(['status', 'method'])->where('is_public', true)->where('is_active', true)->whereNull('archived_at')->latest()->limit(6)->get(),
             'documents' => app(PublicDocumentService::class)->forProject($project),
             'activities' => $project->activities()->limit(8)->get(),

@@ -9,6 +9,15 @@ All notable changes to CivicLens are tracked here.
 - Refined the change-request flow so staff submit requests and admins review them while editing records directly.
 - Added project map assignment workflows, embedded geographic location sections on project create/edit forms, and reusable map display on project detail pages.
 
+## [1.0.0] - 2026-07-12
+
+- Finalized the deterministic CivicLens v1 release surface without adding v2 AI features.
+- Added bounded admin/public portfolio maps with filter parity, GeoJSON markers, clustering, coordinate-pair and geography-chain validation, and portable tile configuration.
+- Added additive MySQL 8.4 location and intelligence-run schema support with reversible indexes, deterministic candidate ordering, dry-run cap metadata, and corrected low-utilization scoring.
+- Hardened Docker deployment with separate web, worker, scheduler, and one-shot release roles, external managed-service support, authenticated bundled Redis, durable object-storage configuration, and separate ingress readiness.
+- Synchronized v1.0.0 documentation, release checklist, deployment strategy, and AI memory.
+- Remediated validated deep-scan findings with per-document bulk authorization, protected citizen-report access and attachments, public child-record filtering, bounded/throttled public search, and contractor profile visibility gates.
+
 ## [1.0.0-RC1] - 2026-07-04
 
 - Added About-first public navigation, avatar settings/logout menu, Leaflet/OpenStreetMap geography coordinate picking, document/avatar upload drop zones, relationship filters for countries, realtime analytics snapshot/CSV actions, and safer intelligence dry-run/engine behavior.

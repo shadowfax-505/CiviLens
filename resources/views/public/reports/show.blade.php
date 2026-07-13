@@ -28,7 +28,7 @@
             @if ($report->attachment_path)
                 <div class="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
                     <h2 class="text-xl font-semibold">Supporting File</h2>
-                    <a class="mt-4 inline-flex rounded border px-3 py-2 text-sm font-semibold dark:border-slate-700" href="{{ \Illuminate\Support\Facades\Storage::disk($report->attachment_disk ?? 'public')->url($report->attachment_path) }}" target="_blank" rel="noopener">
+                    <a class="mt-4 inline-flex rounded border px-3 py-2 text-sm font-semibold dark:border-slate-700" href="{{ route('citizen.reports.attachment', $report) }}">
                         {{ $report->attachment_original_filename ?? 'Download attachment' }}
                     </a>
                     <p class="mt-3 text-sm text-slate-500">{{ $report->attachment_mime_type ?? 'Uploaded file' }}</p>
@@ -39,7 +39,7 @@
         @if ($report->attachment_path)
             <div class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
                 <p class="text-xs uppercase text-slate-500">Supporting files</p>
-                <a class="mt-2 inline-flex rounded border px-3 py-2 text-sm font-semibold dark:border-slate-700" href="{{ \Illuminate\Support\Facades\Storage::disk($report->attachment_disk ?? 'public')->url($report->attachment_path) }}" target="_blank" rel="noopener">
+                <a class="mt-2 inline-flex rounded border px-3 py-2 text-sm font-semibold dark:border-slate-700" href="{{ route('citizen.reports.attachment', $report) }}">
                     {{ $report->attachment_original_filename ?? 'Download attachment' }}
                 </a>
             </div>
