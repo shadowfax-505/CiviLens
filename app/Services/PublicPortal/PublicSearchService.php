@@ -24,6 +24,9 @@ class PublicSearchService
         $query = mb_substr(trim((string) ($input['q'] ?? '')), 0, 120);
         $module = filled($input['module'] ?? null) ? (string) $input['module'] : null;
         $page = max(1, (int) ($input['page'] ?? 1));
+        $perPage = 12;
+        $firstResult = (($page - 1) * $perPage) + 1;
+        $lastResult = $firstResult + $perPage - 1;
 
         $builder = SearchIndex::query()
             ->where('visibility', 'public')
@@ -40,15 +43,25 @@ class PublicSearchService
 
         $visibility = app(PublicVisibilityService::class);
 
-        $results = $builder->latest('indexed_at')->limit(1000)->get()
-            ->filter(fn (SearchIndex $index): bool => $this->sourceIsPublic($index->source(), $visibility))
-            ->map(fn (SearchIndex $index): SearchResult => SearchResult::fromIndex($index, 1.0, $query))
-            ->values();
+        $items = [];
+        $total = 0;
+
+        foreach ($builder->orderByDesc('indexed_at')->orderByDesc('id')->limit(1000)->cursor() as $index) {
+            if (! $this->sourceIsPublic($index->source(), $visibility)) {
+                continue;
+            }
+
+            $total++;
+
+            if ($total >= $firstResult && $total <= $lastResult) {
+                $items[] = SearchResult::fromIndex($index, 1.0, $query);
+            }
+        }
 
         return new Paginator(
-            items: $results->forPage($page, 12)->values(),
-            total: $results->count(),
-            perPage: 12,
+            items: collect($items),
+            total: $total,
+            perPage: $perPage,
             currentPage: $page,
             options: ['path' => request()->url(), 'query' => request()->query()],
         );
