@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
-    "commit": "0f7bdf647145e29bdb1d8c99fcf5b847f1042e18",
-    "indexed_at": "2026-07-11T17:09:06Z",
+    "commit": "8bb6c25017b430e74054c551102ffd2d2b6d8e79",
+    "indexed_at": "2026-07-13T04:01:57Z",
     "project": "Users-muttakinrahman-Documents-New-OpenCode-Project-CivicLense",
-    "nodes": 4768,
-    "edges": 9880,
-    "original_size": 15007744,
-    "compressed_size": 1965302,
+    "nodes": 4817,
+    "edges": 10539,
+    "original_size": 15597568,
+    "compressed_size": 2045492,
     "compression_level": 3
 }
