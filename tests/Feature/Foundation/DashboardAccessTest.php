@@ -25,6 +25,6 @@ class DashboardAccessTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('CivicLens Dashboard');
-        $response->assertSee('v1.0.0-RC1');
+        $response->assertSee('v1.0.0');
     }
 }
