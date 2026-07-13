@@ -49,10 +49,13 @@ class CitizenReportController extends Controller
             ->with('status', 'Your report was submitted for review.');
     }
 
-    public function show(string $uuid): View
+    public function show(Request $request, string $uuid): View
     {
+        $report = CitizenReport::query()->with(['category', 'status', 'activities'])->where('public_uuid', $uuid)->firstOrFail();
+        abort_unless($request->user()?->can('view', $report) === true, 403);
+
         return view('public.reports.show', [
-            'report' => CitizenReport::query()->with(['category', 'status', 'activities'])->where('public_uuid', $uuid)->firstOrFail(),
+            'report' => $report,
         ]);
     }
 

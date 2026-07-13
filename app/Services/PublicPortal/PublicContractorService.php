@@ -2,6 +2,7 @@
 
 namespace App\Services\PublicPortal;
 
+use App\Models\ContractorProfile;
 use App\Models\Organization;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -35,6 +36,18 @@ class PublicContractorService
     {
         abort_unless($organization->status === 'active' && $organization->archived_at === null, 404);
 
-        return $organization->load(['companyType', 'industry', 'country', 'branches' => fn ($query) => $query->where('status', 'active'), 'profile.category', 'profile.classification', 'profile.registrationStatus']);
+        $organization->load(['companyType', 'industry', 'country', 'branches' => fn ($query) => $query->where('status', 'active'), 'profile.category', 'profile.classification', 'profile.registrationStatus']);
+
+        abort_unless(
+            $organization->profile instanceof ContractorProfile
+                && $organization->profile->is_public === true
+                && $organization->profile->is_active === true
+                && $organization->profile->is_suspended === false
+                && $organization->profile->is_blacklisted === false
+                && $organization->profile->archived_at === null,
+            404,
+        );
+
+        return $organization;
     }
 }

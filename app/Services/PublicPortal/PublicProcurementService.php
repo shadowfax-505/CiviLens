@@ -2,7 +2,6 @@
 
 namespace App\Services\PublicPortal;
 
-use App\Models\Documentable;
 use App\Models\Tender;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -67,17 +66,7 @@ class PublicProcurementService
             throw new ModelNotFoundException('Tender not found or not publicly accessible.');
         }
 
-        $tender->setRelation(
-            'documents',
-            Documentable::query()
-                ->where('documentable_type', (new Tender)->getMorphClass())
-                ->where('documentable_id', $tender->id)
-                ->with('document')
-                ->get()
-                ->pluck('document')
-                ->filter()
-                ->values()
-        );
+        $tender->setRelation('documents', app(PublicDocumentService::class)->forTender($tender));
 
         return $tender;
     }

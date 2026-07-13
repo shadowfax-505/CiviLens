@@ -2,12 +2,16 @@
 
 use App\Jobs\NotifyCitizenReportSubmitted;
 use App\Mail\CitizenReportAcknowledgement;
+use App\Models\Budget;
 use App\Models\CitizenReport;
 use App\Models\CitizenReportCategory;
 use App\Models\CitizenReportStatus;
+use App\Models\ContractorProfile;
 use App\Models\Document;
+use App\Models\Documentable;
 use App\Models\DocumentStatus;
 use App\Models\DocumentVisibility;
+use App\Models\Organization;
 use App\Models\Permission;
 use App\Models\PermissionGroup;
 use App\Models\Project;
@@ -115,6 +119,45 @@ it('renders public project detail without private procurement or document record
         ->assertDontSee('Private Evaluation Tender')
         ->assertDontSee('Internal Cost Review')
         ->assertDontSee('documents/public-terminal.pdf');
+});
+
+it('filters inactive project budgets and private tender document metadata from public pages', function (): void {
+    $project = Project::factory()->create(['is_public' => true, 'is_active' => true]);
+    $budget = Budget::factory()->create(['project_id' => $project->id, 'is_active' => false, 'archived_at' => now(), 'current_allocation' => 123456.78]);
+
+    $this->get(route('public.projects.show', $project))
+        ->assertOk()
+        ->assertDontSee('123,456.78');
+
+    $tender = Tender::factory()->create(['is_public' => true, 'is_active' => true]);
+    $privateVisibility = DocumentVisibility::factory()->create(['name' => 'Internal', 'slug' => 'internal']);
+    $status = DocumentStatus::factory()->create(['name' => 'Active', 'slug' => 'active']);
+    $document = Document::factory()->create([
+        'title' => 'Private Tender Evaluation',
+        'document_visibility_id' => $privateVisibility->id,
+        'document_status_id' => $status->id,
+    ]);
+    Documentable::query()->create([
+        'documentable_id' => $tender->id,
+        'document_id' => $document->id,
+        'documentable_type' => Tender::class,
+        'relationship_type' => 'supporting',
+    ]);
+
+    $this->get(route('public.procurement.show', $tender))
+        ->assertOk()
+        ->assertDontSee('Private Tender Evaluation');
+});
+
+it('does not render contractor profile fields when the profile is private or suspended', function (): void {
+    $organization = Organization::factory()->create(['status' => 'active']);
+    ContractorProfile::factory()->create([
+        'organization_id' => $organization->id,
+        'is_public' => false,
+        'is_suspended' => true,
+    ]);
+
+    $this->get(route('public.contractors.show', $organization))->assertNotFound();
 });
 
 it('lists and downloads only public documents through application routes', function (): void {
@@ -233,7 +276,9 @@ it('requires authentication for citizen report submission and tracks by public u
         ->and($report->public_uuid)->not->toBe((string) $report->id)
         ->and($report->activities()->where('event', 'submitted')->exists())->toBeTrue();
 
-    $this->get(route('public.reports.show', $report->public_uuid))
+    $this->app['auth']->guard()->logout();
+    $this->get(route('public.reports.show', $report->public_uuid))->assertForbidden();
+    $this->actingAs($citizen)->get(route('public.reports.show', $report->public_uuid))
         ->assertOk()
         ->assertSee('Broken culvert near school');
 });

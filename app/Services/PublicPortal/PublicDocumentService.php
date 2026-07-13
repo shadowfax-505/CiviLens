@@ -4,6 +4,7 @@ namespace App\Services\PublicPortal;
 
 use App\Models\Document;
 use App\Models\Project;
+use App\Models\Tender;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -49,6 +50,20 @@ class PublicDocumentService
             ->whereHas('documentables', fn ($builder) => $builder
                 ->where('documentable_type', Project::class)
                 ->where('documentable_id', $project->id))
+            ->latest()
+            ->limit(6)
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, Document>
+     */
+    public function forTender(Tender $tender): Collection
+    {
+        return $this->publicQuery()
+            ->whereHas('documentables', fn ($builder) => $builder
+                ->where('documentable_type', $tender->getMorphClass())
+                ->where('documentable_id', $tender->id))
             ->latest()
             ->limit(6)
             ->get();
