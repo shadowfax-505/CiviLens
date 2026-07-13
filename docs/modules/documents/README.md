@@ -1,5 +1,9 @@
 # Enterprise Document Management Module
 
+## Change Proposal Governance
+
+Only administrators may upload, modify, archive, or restore documents. Staff may read and download permitted documents, then submit a structured Change Request with optional supporting evidence for administrator review.
+
 ## Purpose
 
 The Document module is the enterprise document management system for CivicLens. It stores document metadata, secure storage references, immutable version history, permissions, activities, and processing metadata for every civic record uploaded to the platform.

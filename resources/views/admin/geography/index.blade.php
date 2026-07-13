@@ -1,24 +1,40 @@
 <x-layouts.app :title="$title.' - CivicLens'">
+    @php
+        $sortOptions = $sortOptions ?? ['name' => 'Name', 'code' => 'Code', 'created_at' => 'Created'];
+        $filterOptions = $filterOptions ?? [];
+    @endphp
+
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
             <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Geographic Foundation</p>
             <h1 class="text-3xl font-bold">{{ $title }}</h1>
         </div>
-        <a href="{{ $createRoute }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create {{ str($resourceName)->singular()->headline() }}</a>
+        @if (! empty($createRoute ?? null))
+            <a href="{{ $createRoute }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create {{ str($resourceName)->singular()->headline() }}</a>
+        @endif
     </div>
 
-    <form method="GET" class="mt-6 grid gap-3 md:grid-cols-4">
+    <form method="GET" class="mt-6 grid gap-3 md:grid-cols-4 lg:grid-cols-6">
         <input name="search" value="{{ request('search') }}" placeholder="Search {{ $resourceName }}" class="rounded border px-3 py-2 text-slate-950">
         <select name="sort" class="rounded border px-3 py-2 text-slate-950">
-            <option value="name" @selected(request('sort') === 'name')>Name</option>
-            <option value="code" @selected(request('sort') === 'code')>Code</option>
-            <option value="created_at" @selected(request('sort') === 'created_at')>Created</option>
+            @foreach ($sortOptions as $value => $label)
+                <option value="{{ $value }}" @selected(request('sort', 'name') === $value)>{{ $label }}</option>
+            @endforeach
         </select>
         <select name="direction" class="rounded border px-3 py-2 text-slate-950">
             <option value="asc" @selected(request('direction') !== 'desc')>Ascending</option>
             <option value="desc" @selected(request('direction') === 'desc')>Descending</option>
         </select>
+        @foreach ($filterOptions as $filter)
+            <select name="{{ $filter['name'] }}" class="rounded border px-3 py-2 text-slate-950">
+                <option value="">{{ $filter['label'] }}</option>
+                @foreach ($filter['options'] as $option)
+                    <option value="{{ $option->id }}" @selected((string) request($filter['name']) === (string) $option->id)>{{ $option->name }}</option>
+                @endforeach
+            </select>
+        @endforeach
         <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950">Apply filters</button>
+        <a href="{{ url()->current() }}" class="inline-flex items-center justify-center rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Reset</a>
     </form>
 
     <div class="mt-8 overflow-x-auto rounded border dark:border-slate-800">
@@ -52,4 +68,3 @@
 
     <div class="mt-6">{{ $records->links() }}</div>
 </x-layouts.app>
-

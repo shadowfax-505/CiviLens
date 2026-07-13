@@ -14,7 +14,7 @@ class PublicProjectService
     public function listing(array $filters = []): LengthAwarePaginator
     {
         return Project::query()
-            ->with(['agency', 'status', 'category', 'priority'])
+            ->with(['agency', 'status', 'category', 'priority', 'country', 'division', 'district', 'upazila', 'union', 'ward'])
             ->where('is_public', true)
             ->where('is_active', true)
             ->whereNull('archived_at')
@@ -25,6 +25,8 @@ class PublicProjectService
                         ->orWhere('description', 'like', '%'.$query.'%');
                 });
             })
+            ->when($filters['agency_id'] ?? null, fn ($builder, int $agencyId) => $builder->where('agency_id', $agencyId))
+            ->when($filters['status_id'] ?? null, fn ($builder, int $statusId) => $builder->where('project_status_id', $statusId))
             ->latest()
             ->paginate(12)
             ->withQueryString();
@@ -37,11 +39,11 @@ class PublicProjectService
     {
         abort_unless($project->is_public && $project->is_active && $project->archived_at === null, 404);
 
-        $project->load(['agency', 'status', 'category', 'priority', 'budgets.status', 'activities']);
+        $project->load(['agency', 'status', 'category', 'priority', 'country', 'division', 'district', 'upazila', 'union', 'ward', 'budgets.status', 'activities']);
 
         return [
             'project' => $project,
-            'budgets' => $project->budgets()->with(['status', 'fiscalYear'])->latest()->limit(5)->get(),
+            'budgets' => $project->budgets()->with(['status', 'fiscalYear'])->where('is_active', true)->whereNull('archived_at')->latest()->limit(5)->get(),
             'tenders' => $project->tenders()->with(['status', 'method'])->where('is_public', true)->where('is_active', true)->whereNull('archived_at')->latest()->limit(6)->get(),
             'documents' => app(PublicDocumentService::class)->forProject($project),
             'activities' => $project->activities()->limit(8)->get(),

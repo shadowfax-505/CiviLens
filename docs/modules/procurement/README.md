@@ -1,5 +1,9 @@
 # Procurement Module
 
+## Change Proposal Governance
+
+Tender creation, updates, publishing, closing, archiving, and restoration are administrator actions. Staff retain visibility and submit Change Requests for reviewed, auditable proposals instead of changing tender records directly.
+
 ## Responsibility
 
 The Procurement & Tender Management module models the public procurement lifecycle from planning through tender publication, bid submission, bid opening, evaluation, award approval, contract creation, execution, variation management, milestone acceptance, payment recording, completion, closeout, and timeline auditability.

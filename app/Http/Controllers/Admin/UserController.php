@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\CreateUserRequest;
 use App\Http\Requests\Admin\ResetUserPasswordRequest;
 use App\Http\Requests\Admin\UpdateUserLockRequest;
 use App\Http\Requests\Admin\UpdateUserStatusRequest;
@@ -16,6 +17,39 @@ use Illuminate\View\View;
 
 class UserController extends Controller
 {
+    public function create(Request $request): View
+    {
+        abort_unless($request->user()?->can('create', User::class) === true, 403);
+
+        return view('admin.users.create', [
+            'roles' => Role::query()->orderBy('name')->get(),
+        ]);
+    }
+
+    public function store(CreateUserRequest $request, UserAdministrationService $service): RedirectResponse
+    {
+        $user = $service->createUser(
+            $request->validated(),
+            $request->validated('roles', []),
+            AuthenticatedUser::from($request),
+            $request,
+        );
+
+        return redirect()->route('admin.users.show', $user)->with('status', 'user-created');
+    }
+
+    public function show(User $user): View
+    {
+        abort_unless(request()->user()?->can('view', $user) === true, 403);
+
+        $user->load('roles.permissions');
+
+        return view('admin.users.show', [
+            'user' => $user,
+            'roles' => Role::query()->orderBy('name')->get(),
+        ]);
+    }
+
     public function index(Request $request): View
     {
         abort_unless($request->user()?->can('viewAny', User::class) === true, 403);

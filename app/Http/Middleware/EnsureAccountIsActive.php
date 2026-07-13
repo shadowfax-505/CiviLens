@@ -16,12 +16,18 @@ class EnsureAccountIsActive
     {
         $user = $request->user();
 
-        if ($user !== null && ! $user->canAccessApplication()) {
+        $requiresVerifiedEmail = $user?->hasRole(config('civiclens.roles.admin')) === true;
+
+        if ($user !== null && (! $user->canAccessApplication() || ($requiresVerifiedEmail && ! $user->hasVerifiedEmail()))) {
+            if ($requiresVerifiedEmail && ! $user->hasVerifiedEmail() && $request->routeIs('verification.notice', 'verification.verify', 'verification.send', 'logout')) {
+                return $next($request);
+            }
+
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            abort(Response::HTTP_FORBIDDEN, 'This account cannot access CivicLens.');
+            abort(Response::HTTP_FORBIDDEN, 'This account cannot access CivicLens until it is active, unlocked, and verified.');
         }
 
         return $next($request);

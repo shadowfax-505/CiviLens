@@ -2,6 +2,8 @@
 
 use App\Jobs\GenerateAnalyticsReport;
 use App\Jobs\GenerateAnalyticsSnapshot;
+use App\Models\AnalyticsReport;
+use App\Models\AnalyticsSnapshot;
 use App\Models\Budget;
 use App\Models\Role;
 use App\Models\User;
@@ -70,4 +72,63 @@ it('returns metric json and generates snapshots reports and alerts', function ()
 
     Queue::assertPushed(GenerateAnalyticsSnapshot::class);
     Queue::assertPushed(GenerateAnalyticsReport::class);
+});
+
+it('generates realtime analytics snapshots without queueing', function (): void {
+    Queue::fake();
+    $admin = analyticsAdmin();
+    Budget::factory()->create([
+        'current_allocation' => 2000,
+        'actual_expenditure' => 1000,
+    ]);
+
+    $this->actingAs($admin)->post('/admin/analytics/snapshots/realtime', [
+        'period' => 'daily',
+        'dashboard' => 'executive',
+        'date_from' => '2026-01-01',
+        'date_to' => '2026-12-31',
+    ])->assertRedirect()
+        ->assertSessionHas('status', 'analytics-snapshot-generated');
+
+    Queue::assertNotPushed(GenerateAnalyticsSnapshot::class);
+
+    $snapshot = AnalyticsSnapshot::query()->firstOrFail();
+
+    expect($snapshot->dashboard)->toBe('executive')
+        ->and($snapshot->filters)->toMatchArray([
+            'dashboard' => 'executive',
+            'date_from' => '2026-01-01',
+            'date_to' => '2026-12-31',
+        ]);
+});
+
+it('downloads realtime csv reports without queueing', function (): void {
+    Queue::fake();
+    $admin = analyticsAdmin();
+    Budget::factory()->create([
+        'current_allocation' => 2000,
+        'actual_expenditure' => 1000,
+    ]);
+
+    $response = $this->actingAs($admin)->post('/admin/analytics/reports/csv', [
+        'dashboard' => 'executive',
+        'date_from' => '2026-01-01',
+        'date_to' => '2026-12-31',
+    ]);
+
+    $response->assertOk();
+
+    Queue::assertNotPushed(GenerateAnalyticsReport::class);
+
+    $report = AnalyticsReport::query()->firstOrFail();
+
+    expect($response->headers->get('Content-Type'))->toContain('text/csv')
+        ->and($response->headers->get('Content-Disposition'))->toContain('.csv')
+        ->and($response->getContent())->toContain('CivicLens')
+        ->and($report->format)->toBe('csv')
+        ->and($report->filters)->toMatchArray([
+            'dashboard' => 'executive',
+            'date_from' => '2026-01-01',
+            'date_to' => '2026-12-31',
+        ]);
 });

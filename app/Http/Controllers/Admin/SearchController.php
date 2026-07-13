@@ -34,6 +34,7 @@ class SearchController extends Controller
             'suggestions' => $suggestions->suggest($query->query, $user),
             'savedSearches' => SavedSearch::query()->where('user_id', $user->id)->latest()->limit(8)->get(),
             'recentSearches' => SearchHistory::query()->where('user_id', $user->id)->latest()->limit(8)->get(),
+            'canManageSearch' => $user->hasRole(config('civiclens.roles.admin')) || $user->hasPermission(config('civiclens.permissions.search_manage')),
         ]);
     }
 
@@ -106,11 +107,6 @@ class SearchController extends Controller
 
     private function authorizeSearch(Request $request): void
     {
-        $user = $request->user();
-
-        abort_unless($user !== null && (
-            $user->hasRole(config('civiclens.roles.admin'))
-            || $user->hasPermission(config('civiclens.permissions.search_manage'))
-        ), 403);
+        abort_unless($request->user() !== null, 403);
     }
 }

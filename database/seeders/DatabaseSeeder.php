@@ -84,6 +84,7 @@ class DatabaseSeeder extends Seeder
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Contractors', 'slug' => config('civiclens.permissions.contractors_manage'), 'description' => 'Manage contractor intelligence, compliance, performance, and vendor records.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Documents', 'slug' => config('civiclens.permissions.documents_manage'), 'description' => 'Manage enterprise documents, versions, metadata, and permissions.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Search', 'slug' => config('civiclens.permissions.search_manage'), 'description' => 'Use universal search, saved searches, discovery, and search analytics.'],
+            ['permission_group_id' => $projectGroup->id, 'name' => 'Submit Change Requests', 'slug' => config('civiclens.permissions.change_requests_submit'), 'description' => 'Submit change requests for civic records and reference data.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'View Analytics', 'slug' => config('civiclens.permissions.analytics_view'), 'description' => 'View platform analytics dashboards.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Analytics', 'slug' => config('civiclens.permissions.analytics_manage'), 'description' => 'Generate analytics snapshots, reports, alerts, and dashboard states.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Intelligence', 'slug' => config('civiclens.permissions.intelligence_manage'), 'description' => 'Manage rule-based intelligence indicators, evidence review, and processing readiness.'],
@@ -117,6 +118,7 @@ class DatabaseSeeder extends Seeder
             config('civiclens.permissions.contractors_manage'),
             config('civiclens.permissions.documents_manage'),
             config('civiclens.permissions.search_manage'),
+            config('civiclens.permissions.change_requests_submit'),
             config('civiclens.permissions.analytics_view'),
             config('civiclens.permissions.intelligence_manage'),
             config('civiclens.permissions.citizen_reports_manage'),
@@ -617,5 +619,7 @@ class DatabaseSeeder extends Seeder
         foreach ([$bangladesh, $baselineAgency, $baselineProject, $baselineBudget, $baselineTender] as $searchableRecord) {
             $indexing->index($searchableRecord);
         }
+
+        $this->call(DemoCivicLensSeeder::class);
     }
 }

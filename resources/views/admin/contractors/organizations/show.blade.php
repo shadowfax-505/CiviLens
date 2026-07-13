@@ -1,19 +1,31 @@
 <x-layouts.app :title="$organization->legal_name.' - CivicLens'">
+    @php($mapLocation = ($organization->headquarters_latitude !== null && $organization->headquarters_longitude !== null) ? $organization : $organization->branches->first(fn ($branch) => $branch->latitude !== null && $branch->longitude !== null))
     <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
             <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Contractor Intelligence</p>
             <h1 class="text-3xl font-bold">{{ $organization->legal_name }}</h1>
             <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ $organization->registration_number }} · {{ $organization->industry?->name }} · {{ ucfirst($organization->status) }}</p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ route('admin.contractors.organizations.edit', $organization) }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Edit</a>
-            @if ($organization->archived_at)
-                <form method="POST" action="{{ route('admin.contractors.organizations.restore', $organization) }}">@csrf @method('PATCH')<button class="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Restore</button></form>
-            @else
-                <form method="POST" action="{{ route('admin.contractors.organizations.archive', $organization) }}">@csrf @method('PATCH')<button class="rounded bg-amber-700 px-4 py-2 text-sm font-semibold text-white">Archive</button></form>
+            @if (auth()->user()?->hasRole(config('civiclens.roles.staff')))
+                <a class="mt-4 inline-flex rounded-full border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950" href="{{ route('admin.change-requests.create', ['module' => 'contractors', 'subject_type' => App\Models\Organization::class, 'subject_id' => $organization->id, 'subject_label' => $organization->legal_name, 'subject_url' => route('admin.contractors.organizations.show', $organization)]) }}">Request change</a>
             @endif
         </div>
+        <div class="flex flex-wrap gap-2">
+            @can('update', $organization)
+                <a href="{{ route('admin.contractors.organizations.edit', $organization) }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Edit</a>
+                @if ($organization->archived_at)
+                    <form method="POST" action="{{ route('admin.contractors.organizations.restore', $organization) }}">@csrf @method('PATCH')<button class="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Restore</button></form>
+                @else
+                    <form method="POST" action="{{ route('admin.contractors.organizations.archive', $organization) }}">@csrf @method('PATCH')<button class="rounded bg-amber-700 px-4 py-2 text-sm font-semibold text-white">Archive</button></form>
+                @endif
+            @endcan
+        </div>
     </div>
+
+    @if ($mapLocation)
+        <div class="mt-8 rounded-xl border bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <x-leaflet-static-map :label="$organization->legal_name.' office location'" :lat="$mapLocation->headquarters_latitude ?? $mapLocation->latitude" :lng="$mapLocation->headquarters_longitude ?? $mapLocation->longitude" :markers="$organization->branches->filter(fn ($branch) => $branch->latitude !== null && $branch->longitude !== null)->map(fn ($branch) => ['lat' => $branch->latitude, 'lng' => $branch->longitude, 'label' => $branch->address])->values()->all()" />
+        </div>
+    @endif
 
     <div class="mt-8 grid gap-4 md:grid-cols-4">
         @foreach (($scorecard ?? [

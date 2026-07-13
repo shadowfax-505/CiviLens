@@ -70,6 +70,12 @@
             <label class="text-sm md:col-span-2">Headquarters address
                 <textarea name="headquarters_address" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">{{ old('headquarters_address', $organization->headquarters_address) }}</textarea>
             </label>
+            <label class="text-sm">Headquarters latitude
+                <input type="number" step="0.0000001" min="-90" max="90" name="headquarters_latitude" value="{{ old('headquarters_latitude', $organization->headquarters_latitude) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
+            </label>
+            <label class="text-sm">Headquarters longitude
+                <input type="number" step="0.0000001" min="-180" max="180" name="headquarters_longitude" value="{{ old('headquarters_longitude', $organization->headquarters_longitude) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
+            </label>
         </div>
 
         <div class="mt-6 flex gap-3">

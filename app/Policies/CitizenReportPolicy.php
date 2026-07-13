@@ -21,8 +21,7 @@ class CitizenReportPolicy
     public function create(User $user): bool
     {
         return $user->hasRole(config('civiclens.roles.citizen'))
-            || $user->hasPermission(config('civiclens.permissions.reports_submit'))
-            || $user->hasRole(config('civiclens.roles.admin'));
+            || $user->hasPermission(config('civiclens.permissions.reports_submit'));
     }
 
     public function update(User $user): bool

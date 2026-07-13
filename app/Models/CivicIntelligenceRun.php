@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 #[Fillable([
@@ -44,5 +45,10 @@ class CivicIntelligenceRun extends Model
     public function trigger(): BelongsTo
     {
         return $this->belongsTo(User::class, 'triggered_by');
+    }
+
+    public function indicators(): HasMany
+    {
+        return $this->hasMany(IntelligenceIndicator::class);
     }
 }

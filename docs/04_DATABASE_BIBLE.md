@@ -18,6 +18,7 @@ The database is the strongest part of CivicLens. V1 should demonstrate normaliza
 - `analytics_snapshots`, `analytics_reports`, `analytics_alerts`, `dashboard_states`, `analytics_events`
 - `intelligence_rules`, `intelligence_indicators`, `intelligence_evidence`, `intelligence_reviews`, `civic_intelligence_runs`, `intelligence_rule_audits`
 - `citizen_reports`, `citizen_report_activities`
+- `change_requests`, `change_request_activities`
 
 ## Index Strategy
 
@@ -92,6 +93,8 @@ Project indexes support common filters:
 - approved budget and progress ranges
 
 Sprint 04 removes project-owned financial amount usage. Budget amount filtering belongs to the Finance module.
+
+Portfolio GIS keeps `projects.latitude` and `projects.longitude` as the authoritative location facts. A later additive migration creates nullable `projects.location` as an SRID 4326 MySQL `POINT` and a B-tree `(latitude, longitude, id)` index; SQLite and other portable test/runtime drivers retain the latitude/longitude query path. The `POINT` is synchronized from a complete coordinate pair and is never used to fabricate a location.
 
 ## Implemented in Sprint 04
 
@@ -301,7 +304,7 @@ Intelligence Readiness adds normalized, explainable, reviewable intelligence inf
 
 `intelligence_rules` stores deterministic rule definitions, thresholds, module scope, severity defaults, version, active state, creator/updater users, admin-managed priority, weight, execution frequency, documentation URL, description, and latest execution metadata.
 
-`intelligence_indicators` stores generated advisory signals with source polymorphic references, module, severity, confidence score, status, detected timestamp, rule version, detection payload, and metadata. Indicators reference source facts and do not replace them.
+`intelligence_indicators` stores generated advisory signals with source polymorphic references, module, severity, confidence score, status, detected timestamp, rule version, detection payload, and metadata. Indicators reference source facts and do not replace them. New engine-generated indicators may additionally reference `civic_intelligence_runs`; the relationship is nullable so historical indicators remain intact.
 
 `intelligence_evidence` links indicators to supporting source records. `intelligence_reviews` stores human review decisions. `intelligence_processing_jobs` stores preparation jobs for future OCR, AI review, and search synchronization without running real OCR or LLM processing. `intelligence_activities` stores append-only timeline events.
 
@@ -319,7 +322,7 @@ Civic Intelligence Engine run history adds a reproducibility and audit table:
 
 Engine runs do not duplicate source project, budget, procurement, contractor, document, citizen report, agency, geography, search, or analytics facts. Generated indicators continue to live in `intelligence_indicators` with source-linked evidence and human review state.
 
-Indexes support status filtering, engine-version filtering, started/completed timeline lookup, and UUID retrieval.
+Indexes support status filtering, engine-version filtering, started/completed timeline lookup, UUID retrieval, and run-scoped indicator severity timelines. Candidate indexes support delay, approved-award concentration, and unresolved citizen-report queries.
 
 ## Implemented in Sprint 13 Part 2
 
@@ -345,6 +348,12 @@ Citizen reports use a public UUID for tracking instead of exposing internal IDs.
 Sprint 11 added permission slug:
 
 - `citizen_reports.manage`
+
+## Change-Request Governance
+
+`change_requests` stores staff proposals without replacing source-domain records. It supports an operation, nullable target identifier for proposed creation, structured payload, supporting attachment metadata, requester, reviewer, review status, and review notes. `change_request_activities` is append-only and records submission, review, and source-application confirmation with the acting user, notes, and metadata. Approval and application confirmation never mutate the proposed source record automatically.
+
+Agency records include optional `latitude`, `longitude`, and `geojson`. Organization records include optional `headquarters_latitude`, `headquarters_longitude`, and `headquarters_geojson`. These are additive presentation/location fields and do not replace the normalized geography foreign keys.
 
 ## Identity Columns Added in Sprint 01
 

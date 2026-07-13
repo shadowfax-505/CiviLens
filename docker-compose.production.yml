@@ -5,11 +5,18 @@ services:
       target: app
     env_file:
       - .env.production
-    depends_on:
-      - mysql
-      - redis
+    environment:
+      CIVICLENS_RUNTIME_ROLE: web
     volumes:
       - civic_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD-SHELL", "php -r '$$socket = @stream_socket_client(\"tcp://127.0.0.1:9000\", $$errno, $$errstr, 2); exit($$socket ? 0 : 1);'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    stop_signal: SIGQUIT
+    stop_grace_period: 30s
     restart: unless-stopped
 
   worker:
@@ -18,44 +25,122 @@ services:
       target: app
     env_file:
       - .env.production
-    command: ["supervisord", "-c", "/etc/supervisord.conf"]
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--timeout=90", "--max-time=3600", "--no-interaction"]
     depends_on:
-      - app
-      - mysql
-      - redis
+      app:
+        condition: service_healthy
+    environment:
+      CIVICLENS_RUNTIME_ROLE: worker
+    user: www-data
     volumes:
       - civic_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD-SHELL", "grep -aq '[q]ueue:work' /proc/1/cmdline"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    stop_grace_period: 2m
     restart: unless-stopped
+
+  scheduler:
+    build:
+      context: .
+      target: app
+    env_file:
+      - .env.production
+    command: ["php", "artisan", "schedule:work", "--no-interaction"]
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      CIVICLENS_RUNTIME_ROLE: scheduler
+    user: www-data
+    volumes:
+      - civic_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD-SHELL", "grep -aq '[s]chedule:work' /proc/1/cmdline"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    stop_grace_period: 2m
+    restart: unless-stopped
+
+  release:
+    build:
+      context: .
+      target: app
+    env_file:
+      - path: .env.release
+        required: false
+    command: ["php", "artisan", "migrate", "--force", "--no-interaction"]
+    environment:
+      CIVICLENS_RUNTIME_ROLE: release
+      APP_ENV: production
+      APP_DEBUG: "false"
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      FILESYSTEM_DISK: local
+      MAIL_MAILER: log
+      LOG_CHANNEL: stderr
+    user: www-data
+    profiles: ["release"]
+    restart: "no"
 
   nginx:
     build:
       context: .
       target: nginx
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     ports:
       - "8080:80"
     volumes:
       - civic_storage:/var/www/html/storage:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1/nginx-healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
 
   mysql:
     image: mysql:8.4
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-civiclens}
-      MYSQL_USER: ${DB_USERNAME:-civiclens}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-civiclens}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-civiclens_root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
+    profiles: ["bundled"]
 
   redis:
     image: redis:7.4-alpine
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ["sh", "-ec", "test -n \"$$REDIS_PASSWORD\" && exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     restart: unless-stopped
+    profiles: ["bundled"]
 
 volumes:
   civic_storage:

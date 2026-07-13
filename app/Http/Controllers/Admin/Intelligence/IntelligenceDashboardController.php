@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Throwable;
 
 class IntelligenceDashboardController extends Controller
 {
@@ -32,11 +33,34 @@ class IntelligenceDashboardController extends Controller
         return response()->json($dashboard->summary());
     }
 
-    public function runEngine(Request $request, CivicIntegrityEngineService $engine): RedirectResponse
+    public function runEngine(Request $request, CivicIntegrityEngineService $engine): JsonResponse|RedirectResponse
     {
         abort_unless($request->user()?->can('create', IntelligenceIndicator::class) === true, 403);
 
-        $run = $engine->run(AuthenticatedUser::from($request));
+        try {
+            $run = $engine->run(AuthenticatedUser::from($request));
+        } catch (Throwable $throwable) {
+            report($throwable);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'failed',
+                    'message' => 'Civic Integrity Engine run failed. Review run history and application logs.',
+                ], 500);
+            }
+
+            return back()->with('status', 'civic-integrity-engine-run-failed');
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => $run->status,
+                'run_id' => $run->id,
+                'uuid' => $run->uuid,
+                'rules_executed' => $run->rules_executed,
+                'indicators_created' => $run->indicators_created,
+            ]);
+        }
 
         return back()->with('status', 'civic-integrity-engine-run-'.$run->id);
     }
