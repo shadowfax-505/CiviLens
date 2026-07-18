@@ -3,6 +3,7 @@
 namespace App\Services\Finance;
 
 use App\Models\Budget;
+use App\Models\Project;
 use Illuminate\Support\Collection;
 
 class BudgetCalculationService
@@ -74,6 +75,7 @@ class BudgetCalculationService
                     ->map(/** @return array<string, mixed> */ function ($projectBudgets): array {
                         /** @var Budget $first */
                         $first = $projectBudgets->first();
+
                         return [
                             'project' => $first->project,
                             'total_allocation' => (float) $projectBudgets->sum('current_allocation'),
@@ -85,15 +87,17 @@ class BudgetCalculationService
 
                 $agencies = $fiscalYearBudgets
                     ->groupBy(function (Budget $budget): int|string {
-                        /** @var \App\Models\Project|null $project */
+                        /** @var Project|null $project */
                         $project = $budget->project;
+
                         return $project->agency_id ?? 'unassigned';
                     })
                     ->map(/** @return array<string, mixed> */ function ($agencyBudgets): array {
                         /** @var Budget $first */
                         $first = $agencyBudgets->first();
-                        /** @var \App\Models\Project|null $project */
+                        /** @var Project|null $project */
                         $project = $first->project;
+
                         return [
                             'agency' => $project?->agency,
                             'total_allocation' => (float) $agencyBudgets->sum('current_allocation'),
@@ -117,7 +121,7 @@ class BudgetCalculationService
                     'projects' => $projects,
                     'agencies' => $agencies,
                 ];
-                
+
                 return $result;
             })
             ->sortByDesc(fn (array $summary): string => optional($summary['fiscal_year'])->starts_on?->format('Y-m-d') ?? '')

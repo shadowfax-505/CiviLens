@@ -17,7 +17,6 @@ use App\Models\Permission;
 use App\Models\PermissionGroup;
 use App\Models\Project;
 use App\Models\Role;
-use App\Models\SearchIndex;
 use App\Models\Tender;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
