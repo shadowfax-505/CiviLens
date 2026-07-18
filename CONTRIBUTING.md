@@ -5,7 +5,7 @@ Contributions should preserve the project handbook and version strategy.
 ## Workflow
 
 1. Read `docs/MASTER_INDEX.md`.
-2. Check `.ai/CURRENT_SPRINT.md` and `.ai/TASK_QUEUE.md`.
+2. Check active issue tracker or roadmap.
 3. Create a focused branch.
 4. Update tests and documentation with every feature.
 5. Record architecture changes in `docs/adr/`.

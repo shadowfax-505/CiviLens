@@ -63,6 +63,33 @@ it('supports filtering sorting pagination and permission aware results', functio
         ->and($citizenResults->total())->toBe(0);
 });
 
+it('automatically indexes a new project without any manual indexing call', function (): void {
+    $project = Project::factory()->create([
+        'name' => 'Auto Indexed Culvert Project',
+        'is_public' => true,
+        'is_active' => true,
+    ]);
+
+    expect(SearchIndex::query()
+        ->where('searchable_type', Project::class)
+        ->where('searchable_id', $project->id)
+        ->exists())->toBeTrue();
+
+    $project->update(['name' => 'Auto Indexed Culvert Project (Renamed)']);
+
+    expect(SearchIndex::query()
+        ->where('searchable_type', Project::class)
+        ->where('searchable_id', $project->id)
+        ->value('title'))->toBe('Auto Indexed Culvert Project (Renamed)');
+
+    $project->delete();
+
+    expect(SearchIndex::query()
+        ->where('searchable_type', Project::class)
+        ->where('searchable_id', $project->id)
+        ->exists())->toBeFalse();
+});
+
 it('registers existing civic modules without hardcoding providers in controllers', function (): void {
     $modules = app(SearchRegistry::class)->modules();
 

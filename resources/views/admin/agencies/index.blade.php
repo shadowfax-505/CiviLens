@@ -6,9 +6,10 @@
         </div>
         @can('create', App\Models\Agency::class)
             <a href="{{ route('admin.agencies.create') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create agency</a>
-        @else
-            <a href="{{ route('admin.change-requests.create', ['module' => 'agencies', 'operation' => 'create', 'subject_label' => 'New government agency']) }}" class="rounded border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">Propose agency</a>
         @endcan
+        @if (auth()->user()?->hasRole(config('civiclens.roles.staff')) === true)
+            <a href="{{ route('admin.change-requests.create', ['module' => 'agencies', 'operation' => 'create', 'subject_label' => 'New government agency']) }}" class="rounded border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">Propose agency</a>
+        @endif
     </div>
 
     <form method="GET" class="mt-6 grid gap-3 md:grid-cols-5">

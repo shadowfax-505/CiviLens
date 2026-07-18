@@ -43,9 +43,10 @@
             <label class="text-sm">Visibility
                 <select name="document_visibility_id" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
                     @foreach ($visibilities as $visibility)
-                        <option value="{{ $visibility->id }}" @selected(old('document_visibility_id', $document->document_visibility_id) == $visibility->id)>{{ $visibility->name }}</option>
+                        <option value="{{ $visibility->id }}" @selected(old('document_visibility_id', $document->document_visibility_id ?? $visibilities->firstWhere('slug', 'public')?->id) == $visibility->id)>{{ $visibility->name }}</option>
                     @endforeach
                 </select>
+                @error('document_visibility_id') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
             </label>
             <label class="text-sm">Project relationship
                 <select name="documentable_id" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
@@ -82,7 +83,7 @@
         </div>
 
         <div class="mt-6 flex gap-3">
-            <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">{{ $document->exists ? 'Save metadata' : 'Upload document' }}</button>
+            <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">{{ $document->exists ? 'Save metadata' : 'Upload document' }}</button>
             <a href="{{ route('admin.documents.index') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Cancel</a>
         </div>
     </form>

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Contracts\Search\Searchable;
 use App\Contracts\Search\SearchProvider;
 use App\Events\AlertTriggered;
 use App\Events\AnalyticsCacheRefreshed;
@@ -76,6 +77,7 @@ use App\Models\Tender;
 use App\Models\Upazila;
 use App\Models\User;
 use App\Models\Ward;
+use App\Observers\SearchIndexObserver;
 use App\Policies\AgencyPolicy;
 use App\Policies\AnalyticsPolicy;
 use App\Policies\BudgetPolicy;
@@ -89,6 +91,7 @@ use App\Policies\ProjectPolicy;
 use App\Policies\TenderPolicy;
 use App\Policies\UserPolicy;
 use App\Services\Search\DatabaseSearchProvider;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -135,6 +138,12 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Tender::class, TenderPolicy::class);
         Gate::policy(CitizenReport::class, CitizenReportPolicy::class);
         Gate::policy(ProcurementPlan::class, ProcurementPlanPolicy::class);
+
+        foreach (config('civiclens.search.registry', []) as $searchableClass) {
+            if (is_a($searchableClass, Model::class, true) && is_a($searchableClass, Searchable::class, true)) {
+                $searchableClass::observe(SearchIndexObserver::class);
+            }
+        }
 
         Event::listen(ProjectCreated::class, LogDomainEvent::class);
         Event::listen(BudgetCreated::class, LogDomainEvent::class);

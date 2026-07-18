@@ -9,11 +9,11 @@
                 <input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" class="mt-1 w-full rounded-lg border px-3 py-2 text-slate-950" required>
             </label>
             @error('code')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
-            <button class="rounded-lg bg-blue-900 px-4 py-3 text-sm font-semibold text-white dark:bg-blue-300 dark:text-blue-950">Verify code</button>
+            <button type="submit" class="rounded-lg bg-blue-900 px-4 py-3 text-sm font-semibold text-white dark:bg-blue-300 dark:text-blue-950">Verify code</button>
         </form>
         <form method="POST" action="{{ route('verification.send') }}" class="mt-6">
             @csrf
-            <button class="rounded-lg bg-blue-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 dark:bg-blue-300 dark:text-blue-950 dark:hover:bg-blue-200">Resend verification email</button>
+            <button type="submit" class="rounded-lg bg-blue-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 dark:bg-blue-300 dark:text-blue-950 dark:hover:bg-blue-200">Resend verification email</button>
         </form>
     </section>
 </x-layouts.app>

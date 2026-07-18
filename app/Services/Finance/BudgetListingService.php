@@ -12,7 +12,7 @@ class BudgetListingService
     /**
      * @return LengthAwarePaginator<int, Budget>
      */
-    public function paginate(Request $request, bool $archived = false): LengthAwarePaginator
+    public function paginate(Request $request, bool $archived = false, bool $publicOnly = false): LengthAwarePaginator
     {
         $sort = in_array($request->query('sort'), ['current_allocation', 'actual_expenditure', 'currency', 'created_at'], true)
             ? $request->query('sort')
@@ -22,6 +22,10 @@ class BudgetListingService
         return Budget::query()
             ->with(['project.agency', 'fiscalYear', 'fundingSource', 'category', 'type', 'status'])
             ->when($archived, fn (Builder $query) => $query->whereNotNull('archived_at'), fn (Builder $query) => $query->whereNull('archived_at'))
+            ->when($publicOnly, fn (Builder $query) => $query->whereHas(
+                'project',
+                fn (Builder $project) => $project->where('is_public', true)->where('is_active', true),
+            ))
             ->when($request->filled('search'), function (Builder $query) use ($request): void {
                 $search = $request->string('search')->toString();
                 $query->where(function (Builder $query) use ($search): void {

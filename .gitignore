@@ -65,3 +65,7 @@ Thumbs.db
 *.sqlite3
 *.tmp
 *.bak
+
+# Archives and scratch
+ai_traces_archive.tar.gz
+scratch.php

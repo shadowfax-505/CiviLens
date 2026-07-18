@@ -28,6 +28,7 @@ class BudgetController extends Controller
         return view('admin.finance.budgets.index', array_merge($this->lookupData(), [
             'budgets' => $listing->paginate($request),
             'summary' => $calculations->dashboardSummary(),
+            'fiscalYearSummaries' => $calculations->fiscalYearSummaries(),
             'archived' => false,
         ]));
     }
@@ -39,6 +40,7 @@ class BudgetController extends Controller
         return view('admin.finance.budgets.index', array_merge($this->lookupData(), [
             'budgets' => $listing->paginate($request, archived: true),
             'summary' => $calculations->dashboardSummary(),
+            'fiscalYearSummaries' => collect(),
             'archived' => true,
         ]));
     }
@@ -64,7 +66,7 @@ class BudgetController extends Controller
         abort_unless($request->user()?->can('view', $budget) === true, 403);
 
         return view('admin.finance.budgets.show', [
-            'budget' => $budget->load(['project.agency', 'fiscalYear', 'fundingSource', 'category', 'type', 'status', 'revisions.approver', 'transactions.type', 'transactions.user']),
+            'budget' => $budget->load(['project.agency', 'fiscalYear', 'fundingSource', 'category', 'type', 'status', 'revisions.approver', 'transactions.type', 'transactions.user', 'tenders', 'contracts']),
         ]);
     }
 

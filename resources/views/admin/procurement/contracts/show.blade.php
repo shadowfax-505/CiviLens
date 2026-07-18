@@ -53,7 +53,7 @@
                 <input name="paid_at" type="date" class="rounded border px-3 py-2 text-slate-950">
                 <input name="status" value="certified" class="rounded border px-3 py-2 text-slate-950">
                 <textarea name="notes" placeholder="Notes" class="rounded border px-3 py-2 text-slate-950"></textarea>
-                <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Record payment</button>
+                <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Record payment</button>
             </form>
             <ol class="mt-4 space-y-2">
                 @forelse ($contract->payments as $payment)

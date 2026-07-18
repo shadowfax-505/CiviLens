@@ -43,6 +43,17 @@ function documentPayload(array $overrides = []): array
     ], $overrides);
 }
 
+it('defaults a newly uploaded document visibility option to Public in the form', function (): void {
+    $admin = documentAdmin();
+    $public = DocumentVisibility::factory()->create(['name' => 'Public', 'slug' => 'public']);
+    DocumentVisibility::factory()->create(['name' => 'Agency', 'slug' => 'agency']);
+    DocumentVisibility::factory()->create(['name' => 'Private', 'slug' => 'private']);
+
+    $html = $this->actingAs($admin)->get(route('admin.documents.create'))->assertOk()->getContent();
+
+    expect($html)->toContain('value="'.$public->id.'" selected');
+});
+
 it('restricts document management to authorized users', function (): void {
     $user = User::factory()->create();
 

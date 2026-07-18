@@ -19,5 +19,5 @@
 - Add multi-tenant support.
 - Add partner integrations.
 - Add advanced analytics and data quality pipelines.
-- Add model governance for AI-assisted insights.
+- Add model governance for automated insights.
 

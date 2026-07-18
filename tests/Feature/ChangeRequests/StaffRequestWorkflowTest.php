@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Budget;
 use App\Models\ChangeRequest;
 use App\Models\Project;
 use App\Models\Role;
@@ -72,6 +73,73 @@ it('hides request buttons from administrators on editable records', function ():
     $this->actingAs($admin)->get('/admin/projects/'.$project->id)
         ->assertOk()
         ->assertDontSee('Request change');
+});
+
+it('shows staff propose buttons on admin resource indexes for staff users', function (): void {
+    $staff = createStaffRequestUser();
+
+    $this->actingAs($staff)
+        ->get(route('admin.documents.index'))
+        ->assertOk()
+        ->assertSee('Propose document');
+
+    $this->actingAs($staff)
+        ->get(route('admin.projects.index'))
+        ->assertOk()
+        ->assertSee('Propose project');
+
+    $this->actingAs($staff)
+        ->get(route('admin.procurement.tenders.index'))
+        ->assertOk()
+        ->assertSee('Propose tender');
+
+    $this->actingAs($staff)
+        ->get(route('admin.contractors.organizations.index'))
+        ->assertOk()
+        ->assertSee('Propose organization');
+
+    $this->actingAs($staff)
+        ->get(route('admin.finance.budgets.index'))
+        ->assertOk()
+        ->assertSee('Propose budget');
+});
+
+it('lets staff submit budget change requests through the staff request workflow', function (): void {
+    $staff = createStaffRequestUser();
+    $budget = Budget::factory()->create(['current_allocation' => 10000, 'actual_expenditure' => 2500]);
+
+    $this->actingAs($staff)
+        ->post(route('admin.change-requests.store'), [
+            'module' => 'budgets',
+            'operation' => 'update',
+            'subject_type' => Budget::class,
+            'subject_id' => $budget->id,
+            'subject_label' => $budget->project?->name ?? 'Budget #'.$budget->id,
+            'subject_url' => route('admin.finance.budgets.show', $budget),
+            'summary' => 'Adjust budget allocation',
+            'current_value' => '10000.00',
+            'proposed_value' => '12000.00',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('change_requests', [
+        'module' => 'budgets',
+        'operation' => 'update',
+        'subject_id' => $budget->id,
+        'subject_label' => $budget->project?->name ?? 'Budget #'.$budget->id,
+        'summary' => 'Adjust budget allocation',
+    ]);
+});
+
+it('shows validation errors on the page instead of silently bouncing when required fields are missing', function (): void {
+    $staff = createStaffRequestUser();
+
+    $this->actingAs($staff)
+        ->from(route('admin.change-requests.create'))
+        ->followingRedirects()
+        ->post(route('admin.change-requests.store'), ['module' => 'projects'])
+        ->assertOk()
+        ->assertSee('Please fix the following before submitting');
 });
 
 it('prevents staff from directly mutating governed records', function (): void {

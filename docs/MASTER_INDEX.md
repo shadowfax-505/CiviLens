@@ -1,6 +1,6 @@
 # CivicLens Documentation Master Index
 
-This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read these documents in order when onboarding a human developer or AI coding agent.
+This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read these documents in order when onboarding a developer.
 
 ## Core Handbook
 
@@ -26,7 +26,6 @@ This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read t
 - [Scalability Guide](15_SCALABILITY_GUIDE.md) - future growth strategy.
 - [Coding Standards](16_CODING_STANDARDS.md) - PHP, Laravel, SQL, and frontend conventions.
 - [Git Workflow](17_GIT_WORKFLOW.md) - branches, commits, PRs, and releases.
-- [AI Development Guide](18_AI_DEVELOPMENT_GUIDE.md) - using Codex and other AI assistants safely.
 - [Data Governance](19_DATA_GOVERNANCE.md) - data quality, privacy, retention, and stewardship.
 - [Open Data Policy](20_OPEN_DATA_POLICY.md) - public data release principles.
 - [Accessibility](21_ACCESSIBILITY.md) - WCAG and inclusive design requirements.

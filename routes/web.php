@@ -49,6 +49,7 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Citizen\CitizenBudgetDashboardController;
 use App\Http\Controllers\Citizen\CitizenReportDashboardController;
 use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\ProfileController;
@@ -64,7 +65,6 @@ use App\Http\Controllers\PublicPortal\PublicSearchController;
 use App\Http\Controllers\VersionController;
 use App\Models\Project;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', PublicHomeController::class)->name('public.home');
@@ -139,9 +139,10 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('/reports', [CitizenReportDashboardController::class, 'index'])->name('reports.index');
         Route::get('/reports/{report}', [CitizenReportDashboardController::class, 'show'])->name('reports.show');
         Route::get('/reports/{report}/attachment', [CitizenReportController::class, 'downloadAttachment'])->name('reports.attachment');
+        Route::get('/budgets', [CitizenBudgetDashboardController::class, 'index'])->name('budgets.index');
     });
 
-    Route::prefix('admin')->name('admin.')->group(function (): void {
+    Route::prefix('admin')->name('admin.')->middleware('admin.access')->group(function (): void {
         Route::get('/system/metrics', SystemMetricsController::class)->name('system.metrics');
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -294,11 +295,4 @@ Route::middleware(['auth', 'active'])->group(function (): void {
             Route::resource('wards', WardController::class)->except('show');
         });
     });
-
-// Debug endpoint used by client-side submit listener to record attempted submits
-Route::post('/_debug/form-submit', function (Request $request) {
-    Log::info('Client submit beacon', ['payload' => $request->getContent(), 'ip' => request()->ip()]);
-
-    return response()->noContent();
-})->withoutMiddleware(['auth', 'active']);
 });

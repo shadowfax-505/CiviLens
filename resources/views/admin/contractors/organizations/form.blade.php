@@ -58,7 +58,7 @@
                 <input name="website" value="{{ old('website', $organization->website) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
             </label>
             <label class="text-sm">Email
-                <input name="email" value="{{ old('email', $organization->email) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
+                <input name="email" type="email" autocomplete="email" value="{{ old('email', $organization->email) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
                 @error('email') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
             </label>
             <label class="text-sm">Phone
@@ -70,16 +70,20 @@
             <label class="text-sm md:col-span-2">Headquarters address
                 <textarea name="headquarters_address" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">{{ old('headquarters_address', $organization->headquarters_address) }}</textarea>
             </label>
-            <label class="text-sm">Headquarters latitude
-                <input type="number" step="0.0000001" min="-90" max="90" name="headquarters_latitude" value="{{ old('headquarters_latitude', $organization->headquarters_latitude) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
-            </label>
-            <label class="text-sm">Headquarters longitude
-                <input type="number" step="0.0000001" min="-180" max="180" name="headquarters_longitude" value="{{ old('headquarters_longitude', $organization->headquarters_longitude) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
-            </label>
+        </div>
+
+        <div class="mt-6">
+            <x-leaflet-coordinate-picker
+                :lat="$organization->headquarters_latitude"
+                :lng="$organization->headquarters_longitude"
+                lat-name="headquarters_latitude"
+                lng-name="headquarters_longitude"
+                label="Headquarters location"
+            />
         </div>
 
         <div class="mt-6 flex gap-3">
-            <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Save organization</button>
+            <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Save organization</button>
             <a href="{{ route('admin.contractors.organizations.index') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Cancel</a>
         </div>
     </form>

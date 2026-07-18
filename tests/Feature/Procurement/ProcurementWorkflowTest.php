@@ -52,6 +52,33 @@ function tenderPayload(array $overrides = []): array
     ], $overrides);
 }
 
+function procurementStaff(): User
+{
+    $role = Role::query()->create(['name' => 'Government Staff', 'slug' => config('civiclens.roles.staff')]);
+    $user = User::factory()->create();
+    $user->roles()->attach($role);
+
+    return $user;
+}
+
+it('hides bid, evaluation, award, and contract entry forms from staff but shows them to admins', function (): void {
+    $admin = procurementAdmin();
+    $staff = procurementStaff();
+    $payload = tenderPayload();
+
+    $this->actingAs($admin)->post('/admin/procurement/tenders', $payload)->assertRedirect();
+    $tender = Tender::query()->where('tender_number', $payload['tender_number'])->firstOrFail();
+
+    $this->actingAs($admin)->get("/admin/procurement/tenders/{$tender->id}")
+        ->assertOk()
+        ->assertSee('Record a new bid');
+
+    $this->actingAs($staff)->get("/admin/procurement/tenders/{$tender->id}")
+        ->assertOk()
+        ->assertDontSee('Record a new bid')
+        ->assertSee('Request change');
+});
+
 it('restricts procurement management to authorized administrators', function (): void {
     $user = User::factory()->create();
 
