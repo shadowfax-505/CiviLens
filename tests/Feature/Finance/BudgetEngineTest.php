@@ -28,11 +28,11 @@ function financeAdmin(): User
 function budgetPayload(array $overrides = []): array
 {
     $project = Project::factory()->create();
-    $fiscalYear = FiscalYear::factory()->create(['name' => 'FY 2099', 'starts_on' => '2098-07-01', 'ends_on' => '2099-06-30']);
-    $fundingSource = FundingSource::factory()->create(['name' => 'Public Funds', 'slug' => 'public-funds']);
-    $category = BudgetCategory::factory()->create(['name' => 'Capital Works', 'slug' => 'capital-works']);
-    $type = BudgetType::factory()->create(['name' => 'Development', 'slug' => 'development']);
-    $status = BudgetStatus::factory()->create(['name' => 'Approved', 'slug' => 'approved']);
+    $fiscalYear = FiscalYear::query()->firstOrCreate(['name' => 'FY 2099'], ['starts_on' => '2098-07-01', 'ends_on' => '2099-06-30']);
+    $fundingSource = FundingSource::query()->firstOrCreate(['slug' => 'public-funds'], ['name' => 'Public Funds']);
+    $category = BudgetCategory::query()->firstOrCreate(['slug' => 'capital-works'], ['name' => 'Capital Works']);
+    $type = BudgetType::query()->firstOrCreate(['slug' => 'development'], ['name' => 'Development']);
+    $status = BudgetStatus::query()->firstOrCreate(['slug' => 'approved'], ['name' => 'Approved']);
 
     return array_merge([
         'project_id' => $project->id,
@@ -51,6 +51,73 @@ function budgetPayload(array $overrides = []): array
         'is_active' => '1',
     ], $overrides);
 }
+
+function financeStaff(): User
+{
+    $role = Role::query()->create(['name' => 'Government Staff', 'slug' => config('civiclens.roles.staff')]);
+    $user = User::factory()->create();
+    $user->roles()->attach($role);
+
+    return $user;
+}
+
+function budgetCitizen(): User
+{
+    $role = Role::query()->create(['name' => 'Citizen', 'slug' => config('civiclens.roles.citizen')]);
+    $user = User::factory()->create(['is_active' => true, 'email_verified_at' => now()]);
+    $user->roles()->attach($role);
+
+    return $user;
+}
+
+it('lets staff view the budget dashboard but blocks them from directly creating updating or archiving budgets', function (): void {
+    $admin = financeAdmin();
+    $staff = financeStaff();
+    $payload = budgetPayload();
+
+    $this->actingAs($admin)->post('/admin/finance/budgets', $payload)->assertRedirect();
+    $budget = Budget::query()->where('project_id', $payload['project_id'])->firstOrFail();
+
+    $this->actingAs($staff)->get('/admin/finance/budgets')->assertOk();
+    $this->actingAs($staff)->get('/admin/finance/budgets/create')->assertForbidden();
+    $this->actingAs($staff)->post('/admin/finance/budgets', budgetPayload())->assertForbidden();
+    $this->actingAs($staff)->get("/admin/finance/budgets/{$budget->id}/edit")->assertForbidden();
+    $this->actingAs($staff)->patch("/admin/finance/budgets/{$budget->id}/archive")->assertForbidden();
+});
+
+it('hides the modify budgets button from staff while giving admins a working create link', function (): void {
+    $admin = financeAdmin();
+    $staff = financeStaff();
+
+    $this->actingAs($staff)->get('/admin/finance/budgets')
+        ->assertOk()
+        ->assertDontSee('New budget')
+        ->assertSee('Propose budget');
+
+    $this->actingAs($admin)->get('/admin/finance/budgets')
+        ->assertOk()
+        ->assertSee('New budget');
+});
+
+it('shows citizens only budgets for public active projects with no edit or proposal controls', function (): void {
+    $citizen = budgetCitizen();
+    $staff = financeStaff();
+
+    $publicProject = Project::factory()->create(['name' => 'Public Culvert Project', 'is_public' => true, 'is_active' => true]);
+    $internalProject = Project::factory()->create(['name' => 'Internal Planning Project', 'is_public' => false, 'is_active' => true]);
+
+    Budget::factory()->create(['project_id' => $publicProject->id, 'current_allocation' => 500000, 'actual_expenditure' => 100000]);
+    Budget::factory()->create(['project_id' => $internalProject->id, 'current_allocation' => 900000, 'actual_expenditure' => 400000]);
+
+    $this->actingAs($citizen)->get(route('citizen.budgets.index'))
+        ->assertOk()
+        ->assertSee('Public Culvert Project')
+        ->assertDontSee('Internal Planning Project')
+        ->assertDontSee('Propose budget')
+        ->assertDontSee('Request change');
+
+    $this->actingAs($staff)->get(route('citizen.budgets.index'))->assertForbidden();
+});
 
 it('restricts financial management to authorized administrators', function (): void {
     $user = User::factory()->create();

@@ -1,5 +1,7 @@
 <?php
 
+use App\Jobs\ReindexSearchRegistry;
+use App\Models\SearchIndex;
 use App\Services\Intelligence\CivicIntegrityEngineService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -20,3 +22,11 @@ Artisan::command('civiclens:integrity-run', function (CivicIntegrityEngineServic
 Schedule::command('civiclens:integrity-run')
     ->dailyAt('02:15')
     ->withoutOverlapping();
+
+Artisan::command('civiclens:search-reindex', function (): int {
+    ReindexSearchRegistry::dispatchSync();
+
+    $this->info('Search reindex complete. '.SearchIndex::query()->count().' records indexed.');
+
+    return 0;
+})->purpose('Rebuild the universal search index for every registered searchable model');

@@ -1,6 +1,6 @@
 # CivicLens Documentation Master Index
 
-This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read these documents in order when onboarding a new developer.
+This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read these documents in order when onboarding a developer.
 
 ## Core Handbook
 

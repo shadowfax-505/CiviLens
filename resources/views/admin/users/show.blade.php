@@ -34,9 +34,9 @@
         @csrf
         @method('PUT')
         <label class="block text-sm font-medium">New Password
-            <input name="password" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-950" placeholder="Enter temporary password" required>
+            <input name="password" type="text" autocomplete="new-password" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-950" placeholder="Enter temporary password" required>
         </label>
-        <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Set Password</button>
+        <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Set Password</button>
     </form>
 
     <form id="roles-form" method="POST" action="{{ route('admin.users.roles', $user) }}" class="mt-4 hidden space-y-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
@@ -52,7 +52,7 @@
                 @endforeach
             </div>
         </label>
-        <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Update Roles</button>
+        <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Update Roles</button>
     </form>
 
     <section class="mt-8 grid gap-4 md:grid-cols-3">

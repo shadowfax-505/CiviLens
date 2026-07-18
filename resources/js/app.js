@@ -1,8 +1,23 @@
 import Alpine from 'alpinejs';
 import L from 'leaflet';
+import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
 
 window.Alpine = Alpine;
 Alpine.start();
+
+// Leaflet auto-detects its marker image path by regex-matching a CSS background-image
+// URL against a literal "marker-icon.png" suffix. Vite content-hashes the filename
+// (e.g. marker-icon-hN30_KVU.png), so that detection silently fails and every marker
+// falls back to a page-relative request that 404s. Configuring the URLs explicitly
+// bypasses that detection entirely.
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconUrl: markerIconUrl,
+    iconRetinaUrl: markerIcon2xUrl,
+    shadowUrl: markerShadowUrl,
+});
 
 const appearance = document.documentElement.dataset.appearance || 'system';
 const media = window.matchMedia('(prefers-color-scheme: dark)');

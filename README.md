@@ -1,11 +1,11 @@
 # CivicLens
 
 
-CivicLens is an AI-assisted Civic Intelligence Platform for collecting, validating, searching, analyzing, and visualizing public-sector project information.
+CivicLens is a Civic Intelligence Platform for collecting, validating, searching, analyzing, and visualizing public-sector project information.
 
 This repository contains the **Enterprise v1.0 Laravel platform** plus the project documentation set. The stable v1 release is **v1.0.0**. The current application includes authentication, role and permission management, user administration, geography, agencies, projects, budgets, procurement and contracts, contractors, documents, universal search, analytics, public transparency, citizen reports, production deployment scaffolding, portfolio maps, and the deterministic Civic Integrity Engine.
 
-V1 does not implement OCR, LLMs, embeddings, vector databases, semantic search, autonomous AI agents, or legal conclusions. Integrity signals are deterministic, evidence-backed, and human-reviewed.
+Integrity signals are deterministic, evidence-backed, and human-reviewed.
 
 ## Repository Map
 
@@ -61,4 +61,4 @@ Version 1 is intentionally structured so v2 can be added without rewriting the p
 
 1. Read [docs/ENGINEERING_DIRECTIVE.md](docs/ENGINEERING_DIRECTIVE.md).
 2. Read [docs/MASTER_INDEX.md](docs/MASTER_INDEX.md).
-5. Run `composer quality`, `npm run build`, and applicable browser tests before claiming a change is complete.
+3. Run `composer quality`, `npm run build`, and applicable browser tests before claiming a change is complete.

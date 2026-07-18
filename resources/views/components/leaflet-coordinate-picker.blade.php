@@ -2,11 +2,13 @@
     'lat' => null,
     'lng' => null,
     'label' => 'Map location',
+    'latName' => 'latitude',
+    'lngName' => 'longitude',
 ])
 
 @php
-    $latitude = old('latitude', $lat);
-    $longitude = old('longitude', $lng);
+    $latitude = old($latName, $lat);
+    $longitude = old($lngName, $lng);
 @endphp
 
 <div {{ $attributes->merge(['class' => 'cl-map-picker md:col-span-2']) }} data-leaflet-picker>
@@ -22,11 +24,11 @@
     <div class="grid gap-3 md:grid-cols-2">
         <label class="grid gap-1 text-sm font-semibold">
             Latitude
-            <input name="latitude" value="{{ $latitude }}" inputmode="decimal" data-leaflet-lat>
+            <input name="{{ $latName }}" value="{{ $latitude }}" inputmode="decimal" data-leaflet-lat>
         </label>
         <label class="grid gap-1 text-sm font-semibold">
             Longitude
-            <input name="longitude" value="{{ $longitude }}" inputmode="decimal" data-leaflet-lng>
+            <input name="{{ $lngName }}" value="{{ $longitude }}" inputmode="decimal" data-leaflet-lng>
         </label>
     </div>
 </div>

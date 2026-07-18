@@ -1,7 +1,9 @@
 <x-layouts.app title="User Administration - CivicLens">
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 class="text-3xl font-bold">User Administration</h1>
-        <a href="{{ route('admin.users.create') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Add Administrator</a>
+        @can('create', App\Models\User::class)
+            <a href="{{ route('admin.users.create') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Add Administrator</a>
+        @endcan
     </div>
 
     <form method="GET" action="{{ route('admin.users.index') }}" class="mt-6 grid gap-3 md:grid-cols-4">

@@ -2,6 +2,7 @@
 
 use App\Jobs\NotifyCitizenReportSubmitted;
 use App\Mail\CitizenReportAcknowledgement;
+use App\Models\Agency;
 use App\Models\Budget;
 use App\Models\CitizenReport;
 use App\Models\CitizenReportCategory;
@@ -63,6 +64,30 @@ it('renders the CivicLens public home from the root route', function (): void {
     $this->get('/public')
         ->assertOk()
         ->assertViewIs('public.home');
+});
+
+it('allows reports_submit users to access the citizen dashboard', function (): void {
+    $permissionGroup = PermissionGroup::query()->firstOrCreate(
+        ['slug' => 'civic-data'],
+        ['name' => 'Civic Data'],
+    );
+
+    $permission = Permission::query()->firstOrCreate(
+        ['slug' => config('civiclens.permissions.reports_submit')],
+        ['name' => 'Submit Reports', 'permission_group_id' => $permissionGroup->id],
+    );
+
+    $role = Role::query()->firstOrCreate(['slug' => config('civiclens.roles.staff')], ['name' => 'Government Staff']);
+    $role->permissions()->syncWithoutDetaching([$permission->id]);
+
+    $user = User::factory()->create(['is_active' => true, 'email_verified_at' => now()]);
+    $user->roles()->sync([$role->id]);
+
+    $this->actingAs($user)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertSee('Citizen dashboard')
+        ->assertSee('Submit a report');
 });
 
 it('shows only active public projects in the public project explorer', function (): void {
@@ -193,37 +218,37 @@ it('lists and downloads only public documents through application routes', funct
 });
 
 it('restricts public search results to public indexed records', function (): void {
-    SearchIndex::query()->create([
-        'searchable_type' => Project::class,
-        'searchable_id' => Project::factory()->create(['is_public' => true, 'is_active' => true])->id,
-        'module' => 'projects',
-        'title' => 'Public School Works',
-        'description' => 'Public school project.',
-        'url' => '/public/projects/public-school-works',
-        'visibility' => 'public',
-        'status' => 'active',
-        'search_text' => 'Public School Works',
-        'metadata' => ['route_module' => 'projects'],
-        'indexed_at' => now(),
-    ]);
-    SearchIndex::query()->create([
-        'searchable_type' => Project::class,
-        'searchable_id' => Project::factory()->create(['is_public' => false, 'is_active' => true])->id,
-        'module' => 'projects',
-        'title' => 'Private School Works',
-        'description' => 'Private project.',
-        'url' => '/admin/projects/1',
-        'visibility' => 'internal',
-        'status' => 'active',
-        'search_text' => 'Private School Works',
-        'metadata' => ['route_module' => 'projects'],
-        'indexed_at' => now(),
-    ]);
+    Project::factory()->create(['is_public' => true, 'is_active' => true, 'name' => 'Public School Works']);
+    Project::factory()->create(['is_public' => false, 'is_active' => true, 'name' => 'Private School Works']);
 
     $this->get(route('public.search', ['q' => 'School']))
         ->assertOk()
         ->assertSee('Public School Works')
         ->assertDontSee('Private School Works');
+});
+
+it('returns public search visibility only for active agencies and visible contractors', function (): void {
+    $agency = Agency::factory()->create(['status' => 'active']);
+    expect($agency->searchVisibility())->toBe('public');
+
+    $agency->delete();
+    $deletedAgency = Agency::withTrashed()->findOrFail($agency->id);
+    expect($deletedAgency->searchVisibility())->toBe('internal');
+
+    $organization = Organization::factory()->create(['status' => 'active', 'archived_at' => null]);
+    ContractorProfile::factory()->create([
+        'organization_id' => $organization->id,
+        'is_public' => false,
+        'is_active' => true,
+        'is_suspended' => false,
+        'is_blacklisted' => false,
+        'archived_at' => null,
+    ]);
+
+    expect($organization->searchVisibility())->toBe('internal');
+
+    $organization->refresh()->profile->forceFill(['is_public' => true])->save();
+    expect($organization->refresh()->searchVisibility())->toBe('public');
 });
 
 it('keeps public search pagination bounded while preserving result totals', function (): void {
@@ -246,26 +271,12 @@ it('keeps public search pagination bounded while preserving result totals', func
                 'is_active' => true,
             ])->save();
         }
-
-        SearchIndex::query()->create([
-            'searchable_type' => Project::class,
-            'searchable_id' => $project->id,
-            'module' => 'projects',
-            'title' => 'Streamed Search Project '.$index,
-            'description' => 'Bounded public search result.',
-            'url' => '/public/projects/'.$project->slug,
-            'visibility' => 'public',
-            'status' => 'active',
-            'search_text' => 'Streamed Search Project '.$index,
-            'metadata' => ['route_module' => 'projects'],
-            'indexed_at' => now()->subSeconds($index),
-        ]);
     }
 
     $this->get(route('public.search', ['q' => 'Streamed', 'page' => 2]))
         ->assertOk()
         ->assertViewHas('results', fn ($results): bool => $results->count() === 12 && $results->total() === 24)
-        ->assertSee('Streamed Search Project 13');
+        ->assertSee('Streamed Search Project 12');
 });
 
 it('keeps authenticated citizens on the public-safe search and dashboard', function (): void {
@@ -281,6 +292,35 @@ it('keeps authenticated citizens on the public-safe search and dashboard', funct
         ->assertOk()
         ->assertViewIs('citizen.dashboard')
         ->assertDontSee('Executive Command Center');
+});
+
+it('shows citizen report navigation only to citizen users and admin moderation only to moderators', function (): void {
+    $citizen = citizenUser();
+    $this->actingAs($citizen)
+        ->get('/')
+        ->assertOk()
+        ->assertSee('My Reports')
+        ->assertDontSee('Citizen Reports');
+
+    $admin = citizenReportAdmin();
+    $this->actingAs($admin)
+        ->get('/')
+        ->assertOk()
+        ->assertSee('Citizen Reports')
+        ->assertDontSee('My Reports');
+});
+
+it('restricts the citizen report dashboard index to citizen role users', function (): void {
+    $citizen = citizenUser();
+
+    $this->actingAs($citizen)
+        ->get(route('citizen.reports.index'))
+        ->assertOk();
+
+    $admin = citizenReportAdmin();
+    $this->actingAs($admin)
+        ->get(route('citizen.reports.index'))
+        ->assertForbidden();
 });
 
 it('requires authentication for citizen report submission and tracks by public uuid', function (): void {

@@ -1,22 +1,8 @@
-<x-layouts.app :title="($archived ? 'Archived Budgets' : 'Financial Dashboard').' - CivicLens'">
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-            <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Financial Core</p>
-            <h1 class="text-3xl font-bold">{{ $archived ? 'Archived Budgets' : 'Budget Dashboard' }}</h1>
-            <p class="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300">Budget records are the financial source of truth for project allocations, revisions, transactions, and spending.</p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ route('admin.finance.budgets.index') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Active</a>
-            <a href="{{ route('admin.finance.budgets.archived') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Archived</a>
-            @unless ($archived)
-                @can('create', App\Models\Budget::class)
-                    <a href="{{ route('admin.finance.budgets.create') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">New budget</a>
-                @endcan
-                @if (auth()->user()?->hasRole(config('civiclens.roles.staff')) === true)
-                    <a href="{{ route('admin.change-requests.create', ['module' => 'budgets', 'operation' => 'create', 'subject_label' => 'New budget', 'subject_url' => route('admin.finance.budgets.index')]) }}" class="rounded border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">Propose budget</a>
-                @endif
-            @endunless
-        </div>
+<x-layouts.app title="Budget Transparency - CivicLens">
+    <div>
+        <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Civic Transparency</p>
+        <h1 class="text-3xl font-bold">Budget Dashboard</h1>
+        <p class="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300">Budget allocations and spending for public, active projects. Figures reflect published records only.</p>
     </div>
 
     <section class="mt-8 grid gap-4 md:grid-cols-4">
@@ -24,12 +10,9 @@
         <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Spent Budget</p><p class="text-xl font-bold">{{ number_format($summary['spent_budget'], 2) }}</p></div>
         <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Remaining Budget</p><p class="text-xl font-bold">{{ number_format($summary['remaining_budget'], 2) }}</p></div>
         <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Utilization</p><p class="text-xl font-bold">{{ $summary['utilization_percentage'] }}%</p></div>
-        <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Allocated Budget</p><p class="text-xl font-bold">{{ number_format($summary['allocated_budget'], 2) }}</p></div>
-        <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm text-slate-500">Revision Count</p><p class="text-xl font-bold">{{ $summary['revision_count'] }}</p></div>
-        <div class="rounded-xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:col-span-2"><p class="text-sm text-slate-500">Project Financial Health</p><p class="text-xl font-bold">{{ $summary['financial_health'] }}</p></div>
     </section>
 
-    @if (! $archived && $fiscalYearSummaries->isNotEmpty())
+    @if ($fiscalYearSummaries->isNotEmpty())
         <section class="mt-8 space-y-6">
             <h2 class="text-xl font-bold">Budget Summary by Fiscal Year</h2>
             @foreach ($fiscalYearSummaries as $fySummary)
@@ -49,13 +32,7 @@
                                 <tbody>
                                     @foreach ($fySummary['agencies'] as $row)
                                         <tr class="border-t dark:border-slate-800">
-                                            <td class="py-2 pr-2">
-                                                @if ($row['agency'])
-                                                    <a class="font-semibold text-blue-700 dark:text-blue-300" href="{{ route('admin.agencies.edit', $row['agency']) }}">{{ $row['agency']->name }}</a>
-                                                @else
-                                                    <span class="text-slate-500">Unassigned</span>
-                                                @endif
-                                            </td>
+                                            <td class="py-2 pr-2">{{ $row['agency']?->name ?? 'Unassigned' }}</td>
                                             <td class="py-2 text-right">{{ number_format($row['total_allocation'], 2) }}</td>
                                         </tr>
                                     @endforeach
@@ -70,7 +47,7 @@
                                         <tr class="border-t dark:border-slate-800">
                                             <td class="py-2 pr-2">
                                                 @if ($row['project'])
-                                                    <a class="font-semibold text-blue-700 dark:text-blue-300" href="{{ route('admin.projects.show', $row['project']) }}">{{ $row['project']->name }}</a>
+                                                    <a class="font-semibold text-blue-700 dark:text-blue-300" href="{{ route('public.projects.show', $row['project']) }}">{{ $row['project']->name }}</a>
                                                 @else
                                                     <span class="text-slate-500">Unassigned</span>
                                                 @endif
@@ -93,13 +70,6 @@
             <select name="project_id" class="rounded border px-3 py-2 text-slate-950"><option value="">All projects</option>@foreach ($projects as $project)<option value="{{ $project->id }}" @selected(request('project_id') == $project->id)>{{ $project->name }}</option>@endforeach</select>
             <select name="agency_id" class="rounded border px-3 py-2 text-slate-950"><option value="">All agencies</option>@foreach ($agencies as $agency)<option value="{{ $agency->id }}" @selected(request('agency_id') == $agency->id)>{{ $agency->name }}</option>@endforeach</select>
             <select name="fiscal_year_id" class="rounded border px-3 py-2 text-slate-950"><option value="">All years</option>@foreach ($fiscalYears as $year)<option value="{{ $year->id }}" @selected(request('fiscal_year_id') == $year->id)>{{ $year->name }}</option>@endforeach</select>
-            <select name="funding_source_id" class="rounded border px-3 py-2 text-slate-950"><option value="">All funding</option>@foreach ($fundingSources as $source)<option value="{{ $source->id }}" @selected(request('funding_source_id') == $source->id)>{{ $source->name }}</option>@endforeach</select>
-            <select name="budget_type_id" class="rounded border px-3 py-2 text-slate-950"><option value="">All types</option>@foreach ($types as $type)<option value="{{ $type->id }}" @selected(request('budget_type_id') == $type->id)>{{ $type->name }}</option>@endforeach</select>
-            <select name="budget_status_id" class="rounded border px-3 py-2 text-slate-950"><option value="">All statuses</option>@foreach ($statuses as $status)<option value="{{ $status->id }}" @selected(request('budget_status_id') == $status->id)>{{ $status->name }}</option>@endforeach</select>
-            <select name="sort" class="rounded border px-3 py-2 text-slate-950"><option value="created_at">Created</option><option value="current_allocation" @selected(request('sort') === 'current_allocation')>Allocation</option><option value="actual_expenditure" @selected(request('sort') === 'actual_expenditure')>Spent</option></select>
-            <input name="amount_min" value="{{ request('amount_min') }}" class="rounded border px-3 py-2 text-slate-950" type="number" min="0" placeholder="Amount min">
-            <input name="amount_max" value="{{ request('amount_max') }}" class="rounded border px-3 py-2 text-slate-950" type="number" min="0" placeholder="Amount max">
-            <input name="created_from" value="{{ request('created_from') }}" class="rounded border px-3 py-2 text-slate-950" type="date">
             <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950">Apply filters</button>
         </div>
     </form>
@@ -110,7 +80,13 @@
             <tbody>
                 @forelse ($budgets as $budget)
                     <tr class="border-t dark:border-slate-800">
-                        <td class="px-4 py-3"><a class="font-semibold text-blue-700 dark:text-blue-300" href="{{ route('admin.finance.budgets.show', $budget) }}">{{ $budget->project?->name }}</a><div class="text-xs text-slate-500">{{ $budget->notes }}</div></td>
+                        <td class="px-4 py-3">
+                            @if ($budget->project)
+                                <a class="font-semibold text-blue-700 dark:text-blue-300" href="{{ route('public.projects.show', $budget->project) }}">{{ $budget->project->name }}</a>
+                            @else
+                                <span class="text-slate-500">Unassigned</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3">{{ $budget->fiscalYear?->name }}</td>
                         <td class="px-4 py-3">{{ $budget->type?->name }}</td>
                         <td class="px-4 py-3">{{ number_format((float) $budget->current_allocation, 2) }} {{ $budget->currency }}</td>
@@ -118,7 +94,7 @@
                         <td class="px-4 py-3">{{ number_format($budget->remaining_balance, 2) }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-4 py-8 text-slate-500">No budgets match the current filters.</td></tr>
+                    <tr><td colspan="6" class="px-4 py-8 text-slate-500">No published budgets match the current filters.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -126,4 +102,3 @@
 
     <div class="mt-6">{{ $budgets->links() }}</div>
 </x-layouts.app>
-

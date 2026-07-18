@@ -19,6 +19,10 @@ class User extends Authenticatable implements MustVerifyEmail
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
     /**
      * Get the attributes that should be cast.
      *
@@ -94,5 +98,19 @@ class User extends Authenticatable implements MustVerifyEmail
     public function canAccessApplication(): bool
     {
         return $this->is_active && ! $this->isLocked();
+    }
+
+    /**
+     * Overrides MustVerifyEmail's default notification. Registration and manual
+     * resend both already send the real, queued verification channel through
+     * EmailVerificationOtpService. Without this override, the framework's
+     * Registered event listener also fires the stock VerifyEmail notification
+     * synchronously (not queued) on every registration and resend, so any SMTP
+     * hiccup during that inline send fails the request before the user ever
+     * reaches the verification-notice page.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        // Intentionally empty; see EmailVerificationOtpService.
     }
 }

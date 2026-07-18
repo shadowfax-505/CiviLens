@@ -41,6 +41,25 @@ it('registers a citizen user and dispatches email verification', function (): vo
     $this->assertDatabaseHas('email_verification_otps', ['user_id' => $user->id]);
 });
 
+it('completes registration end to end without faking events and reaches the verification notice', function (): void {
+    Role::query()->create(['name' => 'Citizen', 'slug' => 'citizen']);
+
+    $response = $this->post('/register', [
+        'name' => 'Kamal Hossain',
+        'email' => 'kamal@example.com',
+        'password' => 'SecurePass123!',
+        'password_confirmation' => 'SecurePass123!',
+    ]);
+
+    $response->assertRedirect('/verify-email');
+    $this->assertAuthenticated();
+    $this->followRedirects($response)->assertOk();
+
+    $user = User::query()->where('email', 'kamal@example.com')->firstOrFail();
+    expect($user->email_verified_at)->toBeNull();
+    $this->assertDatabaseHas('email_verification_otps', ['user_id' => $user->id]);
+});
+
 it('verifies an authenticated user with an unexpired OTP', function (): void {
     $user = User::factory()->unverified()->create();
 
