@@ -111,3 +111,64 @@ The rejected `modis-terra-2026-07-27-repaired-5400x2700.jpg` and prior Blue-Marb
 
 - `7804ab1 feat: build seamless orbital imagery assets`
 - This report is committed separately as Task 1 validation documentation.
+
+---
+
+## Fix round 2 — candidate repair separation and truthful provenance
+
+The approved runtime remains the visually accepted seamless NASA Blue Marble plus cloud-observation composite. No daily MODIS swath asset is published under `public/images/orbital/`.
+
+### Candidate-only repair path
+
+`tools/orbital/candidate-repair.mjs` now provides a separate, non-runtime candidate-preparation pipeline. It is not called by `build:orbital` and cannot replace the approved composite by default.
+
+- Detects only RGB `<= 12` connected components of at least `64` pixels.
+- Leaves dark-blue ocean pixels untouched.
+- Repairs only confirmed components using an aligned fallback.
+- Uses each component's local boundary profile for color matching and an 8-pixel feather.
+- Calculates SSIM outside repair masks and requires `>= 0.995`.
+- Validates dimensions and unresolved repaired pixels before writing either the candidate image or its manifest.
+- The real Sharp synthetic suite covers detector/ocean handling, local color matching, feather configuration, SSIM, manifest output, and fail-closed no-write behavior.
+
+### RED/GREEN evidence
+
+RED:
+
+```text
+node --test tools/orbital/candidate-repair.test.mjs
+ERR_MODULE_NOT_FOUND: tools/orbital/candidate-repair.mjs
+
+node --test tools/orbital/orbital-surface.test.mjs
+expected actionable missing-source error; received Sharp's raw input-file error
+```
+
+GREEN and final rerun:
+
+```text
+npm run test:orbital
+7 passing, 0 failing
+
+npm run build:orbital
+completed from repository-controlled sources
+```
+
+### Reproducible sources and provenance
+
+- Local fallback renamed to `nasa-blue-marble-2004-12-5400x2700.jpg`. The v10 reference URL contains `world.200412`, so the source period is correctly recorded as December 2004 rather than August.
+- The small cloud input is now versioned at `public/images/orbital/sources/nasa-cloud-observation-2048x1024.jpg`.
+- `build:orbital` uses the local fallback and this committed cloud source; missing inputs fail with actionable errors before a runtime asset is written.
+- The manifest records source identity, URL (or explicit `null` when no source URL was supplied), acquisition period, source dimensions, SHA-256 checksums, fallback version, output checksum, and repair percentage `0`.
+- The exact v10 brightness/contrast/saturation/gamma/alpha values remain in the manifest, explicitly marked `appliedToAsset: false`; Cesium applies that calibration in Task 2, so it is not destructively baked into Task 1 imagery.
+
+### Final validation
+
+- Runtime and fallback decode as JPEG at `5400 × 2700`.
+- Candidate repair suite: 5 tests passing.
+- Seamless-surface suite: 2 tests passing.
+- Two consecutive `npm run build:orbital` runs produced the same runtime SHA-256: `680bf4c373620a14a8f6608b602f9b303521264674d626ef94ee37ef2f7e7bce`.
+- `git diff --check` passed before the code/assets commit.
+- The approved runtime was visually rechecked; it remains gap-free and has no triangular polar-orbit swaths.
+
+### Commit
+
+- `d7ac4a9 feat: add validated orbital candidate pipeline`
