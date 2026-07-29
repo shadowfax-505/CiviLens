@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import sharp from 'sharp';
 
@@ -28,6 +28,18 @@ async function normalizedImage(filePath, width, height, label) {
   }
 }
 
+async function inputMetadata(filePath, label) {
+  try {
+    const metadata = await sharp(filePath).metadata();
+    if (!metadata.width || !metadata.height) {
+      throw new Error('image dimensions are unavailable');
+    }
+    return metadata;
+  } catch (error) {
+    throw new Error(`Missing or unreadable orbital ${label} source: ${filePath} (${error.message})`);
+  }
+}
+
 export async function buildOrbitalAssets({
   basePath,
   cloudPath,
@@ -36,15 +48,37 @@ export async function buildOrbitalAssets({
   width = 5400,
   height = 2700,
 }) {
-  const fallback = await normalizedImage(basePath, width, height, 'base');
-  const clouds = await normalizedImage(cloudPath, width, height, 'cloud');
-  const [baseMetadata, cloudMetadata] = await Promise.all([sharp(basePath).metadata(), sharp(cloudPath).metadata()]);
+  const [baseMetadata, cloudMetadata] = await Promise.all([inputMetadata(basePath, 'base'), inputMetadata(cloudPath, 'cloud')]);
+  if (baseMetadata.width !== width || baseMetadata.height !== height) {
+    throw new Error(`orbital base source dimensions must be ${width}x${height}, received ${baseMetadata.width}x${baseMetadata.height}`);
+  }
+  const [fallback, clouds] = await Promise.all([
+    normalizedImage(basePath, width, height, 'base'),
+    normalizedImage(cloudPath, width, height, 'cloud'),
+  ]);
 
-  await mkdir(dirname(runtimePath), { recursive: true });
-  await sharp(fallback)
+  const runtimeBuffer = await sharp(fallback)
     .composite([{ input: clouds, blend: ORBITAL_SURFACE_CALIBRATION.cloudComposite.blend, opacity: ORBITAL_SURFACE_CALIBRATION.cloudComposite.opacity }])
     .jpeg(JPEG_OPTIONS)
-    .toFile(runtimePath);
+    .toBuffer();
+  const runtimeBufferMetadata = await sharp(runtimeBuffer).metadata();
+  if (runtimeBufferMetadata.width !== width || runtimeBufferMetadata.height !== height) {
+    throw new Error('invalid orbital runtime dimensions');
+  }
+
+  await mkdir(dirname(runtimePath), { recursive: true });
+  const temporaryRuntimePath = `${runtimePath}.${process.pid}.tmp`;
+  try {
+    await writeFile(temporaryRuntimePath, runtimeBuffer);
+    const temporaryMetadata = await sharp(temporaryRuntimePath).metadata();
+    if (temporaryMetadata.width !== width || temporaryMetadata.height !== height) {
+      throw new Error('invalid temporary orbital runtime dimensions');
+    }
+    await rename(temporaryRuntimePath, runtimePath);
+  } catch (error) {
+    await unlink(temporaryRuntimePath).catch(() => {});
+    throw error;
+  }
 
   const runtimeMetadata = await sharp(runtimePath).metadata();
   const dimensionsValid = baseMetadata.width === width
@@ -73,9 +107,12 @@ export async function buildOrbitalAssets({
         sha256: await sha256(basePath),
       },
       clouds: {
-        identity: 'NASA observation-derived cloud composite',
-        url: null,
-        acquisitionPeriod: 'not documented in supplied local source',
+        identity: 'NASA GIBS MODIS Terra Corrected Reflectance True Color cloud observation',
+        layer: 'MODIS_Terra_CorrectedReflectance_TrueColor',
+        endpoint: 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi',
+        template: 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=MODIS_Terra_CorrectedReflectance_TrueColor&STYLES=default&FORMAT=image/png&TRANSPARENT=FALSE&WIDTH={width}&HEIGHT={height}&CRS=EPSG:4326&BBOX=-90,-180,90,180&TIME=2026-07-27',
+        acquisitionDate: '2026-07-27',
+        processing: 'observation-derived cloud extraction and screen composite',
         dimensions: { width: cloudMetadata.width, height: cloudMetadata.height },
         sha256: await sha256(cloudPath),
       },
