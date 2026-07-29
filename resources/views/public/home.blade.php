@@ -2,7 +2,10 @@
     {{-- ═══════════════════════════════════════════════════════════════
          HERO
     ═══════════════════════════════════════════════════════════════ --}}
-    <section class="cl-about-hero cl-about-fade">
+    @if ($earthJourneyEnabled ?? false)
+        @include('public.partials.earth-journey')
+    @else
+        <section class="cl-about-hero cl-about-fade">
         <div class="cl-about-orb cl-about-orb--gold"></div>
         <div class="cl-about-orb cl-about-orb--cyan"></div>
 
@@ -43,7 +46,8 @@
                 <p class="mt-0.5 text-[0.68rem] font-bold uppercase tracking-wider text-cyan-200/80">Public Documents</p>
             </div>
         </div>
-    </section>
+        </section>
+    @endif
 
     {{-- ═══════════════════════════════════════════════════════════════
          MISSION & VISION
