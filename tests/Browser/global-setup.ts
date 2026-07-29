@@ -11,7 +11,7 @@ function artisan(args: string[]) {
       ...process.env,
       APP_ENV: 'testing',
       APP_DEBUG: 'true',
-      APP_URL: 'http://127.0.0.1:8000',
+      APP_URL: 'http://127.0.0.1:8010',
       DB_CONNECTION: 'sqlite',
       DB_DATABASE: databasePath,
       CACHE_STORE: 'array',
