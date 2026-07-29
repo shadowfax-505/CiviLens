@@ -14,6 +14,7 @@ class PublicHomeController extends Controller
         return view('public.home', [
             'summary' => $dashboard->summary(),
             'navigation' => $navigation->links(),
+            'earthJourneyEnabled' => (bool) config('civiclens.earth_journey.enabled'),
         ]);
     }
 }
