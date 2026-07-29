@@ -115,3 +115,18 @@ test('fails closed before writes for invalid input candidates', async () => {
   await assert.rejects(() => access(outputPath));
   await assert.rejects(() => access(manifestPath));
 });
+
+test('rejects mismatched primary and fallback metadata before candidate writes', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'civiclens-mismatched-candidate-'));
+  const sourcePath = join(directory, 'source.jpg');
+  const fallbackPath = join(directory, 'fallback.jpg');
+  const outputPath = join(directory, 'candidate.jpg');
+  const source = pixels(40, 60, 80);
+  const fallback = Buffer.alloc(24 * 16 * 3, 100);
+
+  await sharp(source, { raw: { width, height, channels: 3 } }).jpeg({ quality: 100 }).toFile(sourcePath);
+  await sharp(fallback, { raw: { width: 24, height: 16, channels: 3 } }).jpeg({ quality: 100 }).toFile(fallbackPath);
+
+  await assert.rejects(() => prepareCandidate({ sourcePath, fallbackPath, outputPath, manifestPath: join(directory, 'candidate.json'), width, height }), /metadata mismatch/i);
+  await assert.rejects(() => access(outputPath));
+});
