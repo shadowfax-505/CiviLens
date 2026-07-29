@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "asset": {
+    "kind": "seamless-nasa-blue-marble-cloud-composite",
+    "projection": "equirectangular",
+    "width": 5400,
+    "height": 2700,
+    "format": "jpeg"
+  },
+  "sources": {
+    "surface": {
+      "sha256": "3dd0e487d9cc0fe5fd85c3912c3782473bd50efd9ac1b5b7edf74b3733ca18b1"
+    },
+    "clouds": {
+      "sha256": "daddaad84d7a33bbbc86cdda3f591099f57cee8607b7bcf3b67eb7e4f7a1c793"
+    }
+  },
+  "calibration": {
+    "fallbackReferenceUrl": "https://eoimages.gsfc.nasa.gov/images/imagerecords/74000/74343/world.200412.3x5400x2700.jpg",
+    "fallback": {
+      "brightness": 0.88,
+      "contrast": 1.31,
+      "saturation": 1.34,
+      "gamma": 0.86,
+      "alpha": 1
+    },
+    "runtime": {
+      "brightness": 0.93,
+      "contrast": 1.28,
+      "saturation": 1.18,
+      "gamma": 0.88,
+      "alpha": 1
+    },
+    "cloudComposite": {
+      "blend": "screen",
+      "opacity": 0.68
+    }
+  },
+  "fallback": {
+    "sha256": "68a72fc37223b7dd50a78e2a2b0e4302deff8a93711d8206c64cfd65b68952c7"
+  },
+  "runtime": {
+    "sha256": "7e58ebc4081661ac56208323e64b05689bcd2dc63642e5dd69f4ce0d84818441"
+  },
+  "validation": {
+    "decoded": true,
+    "dimensionsValid": true,
+    "deterministic": true,
+    "valid": true
+  }
+}
