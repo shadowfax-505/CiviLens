@@ -29,4 +29,5 @@ export default async function globalSetup() {
 
   artisan(['config:clear']);
   artisan(['migrate:fresh', '--seed', '--force']);
+  artisan(['db:seed', '--class=Tests\\Support\\BrowserVisibilitySeeder', '--force']);
 }
