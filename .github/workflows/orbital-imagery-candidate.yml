@@ -27,7 +27,15 @@ jobs:
       - name: Check out the triggering revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
+          ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
+
+      - name: Anchor generation to the fetched default branch head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
+          git switch --detach "origin/${BASE_BRANCH}"
 
       - name: Use Node.js 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -58,31 +66,58 @@ jobs:
         run: |
           set -euo pipefail
           manifest="${CANDIDATE_DIRECTORY}/modis-terra-${{ steps.acquisition.outputs.date }}-manifest.json"
+          candidate="${CANDIDATE_DIRECTORY}/modis-terra-${{ steps.acquisition.outputs.date }}-repaired-5400x2700.jpg"
           node --input-type=module -e "
+            import { createHash } from 'node:crypto';
             import { readFile } from 'node:fs/promises';
             const manifest = JSON.parse(await readFile(process.argv[1], 'utf8'));
+            const acquisitionDate = process.argv[2];
+            const candidate = await readFile(process.argv[3]);
+            const sourceUrl = new URL(manifest.source.url);
+            const checksum = createHash('sha256').update(candidate).digest('hex');
             if (
-              manifest.source.acquisitionDate !== process.argv[2]
+              manifest.source.acquisitionDate !== acquisitionDate
               || manifest.source.provider !== 'NASA GIBS'
+              || manifest.source.layer !== 'MODIS_Terra_CorrectedReflectance_TrueColor'
+              || manifest.source.projection !== 'EPSG:4326'
+              || sourceUrl.origin !== 'https://gibs.earthdata.nasa.gov'
+              || sourceUrl.pathname !== '/wms/epsg4326/best/wms.cgi'
+              || sourceUrl.searchParams.get('TIME') !== acquisitionDate
+              || sourceUrl.searchParams.get('LAYERS') !== 'MODIS_Terra_CorrectedReflectance_TrueColor'
+              || sourceUrl.searchParams.get('CRS') !== 'EPSG:4326'
               || manifest.validation.valid !== true
               || manifest.validation.unresolvedPixels !== 0
               || manifest.validation.outsideRepairSsim < 0.995
+              || manifest.output.sha256 !== checksum
               || manifest.review.required !== true
               || manifest.review.publishedAutomatically !== false
             ) {
               throw new Error('candidate validation or provenance check failed');
             }
-          " "${manifest}" "${{ steps.acquisition.outputs.date }}"
+          " "${manifest}" "${{ steps.acquisition.outputs.date }}" "${candidate}"
 
       - name: Detect a changed review candidate
         id: changes
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -n "$(git status --porcelain -- "${CANDIDATE_DIRECTORY}")" ]]; then
-            echo "changed=true" >> "${GITHUB_OUTPUT}"
-          else
+          branch="${{ steps.acquisition.outputs.branch }}"
+          candidate="${CANDIDATE_DIRECTORY}/modis-terra-${{ steps.acquisition.outputs.date }}-repaired-5400x2700.jpg"
+          manifest="${CANDIDATE_DIRECTORY}/modis-terra-${{ steps.acquisition.outputs.date }}-manifest.json"
+          previous_candidate="${RUNNER_TEMP}/previous-candidate.jpg"
+          previous_manifest="${RUNNER_TEMP}/previous-manifest.json"
+          if git ls-remote --exit-code --heads origin "${branch}" > /dev/null 2>&1; then
+            git fetch --no-tags origin "refs/heads/${branch}:refs/remotes/origin/${branch}"
+          fi
+          if
+            git show "origin/${branch}:${candidate}" > "${previous_candidate}" 2>/dev/null \
+            && git show "origin/${branch}:${manifest}" > "${previous_manifest}" 2>/dev/null \
+            && cmp --silent "${candidate}" "${previous_candidate}" \
+            && cmp --silent "${manifest}" "${previous_manifest}"
+          then
             echo "changed=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
           fi
 
       - name: Commit candidate to its deterministic review branch
@@ -93,7 +128,7 @@ jobs:
           branch="${{ steps.acquisition.outputs.branch }}"
           git config user.name "civiclens-orbital-bot"
           git config user.email "actions@users.noreply.github.com"
-          git switch --force-create "${branch}"
+          git switch --force-create "${branch}" "origin/${BASE_BRANCH}"
           git add -- "${CANDIDATE_DIRECTORY}"
           git diff --cached --check
           git commit -m "chore: prepare MODIS candidate ${{ steps.acquisition.outputs.date }}"

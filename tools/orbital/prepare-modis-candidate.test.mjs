@@ -49,6 +49,18 @@ test('derives a deterministic UTC T-2 date and official EPSG:4326 GIBS URL', () 
   assert.equal(url.searchParams.get('HEIGHT'), '2700');
 });
 
+test('rejects normalized impossible calendar dates before constructing a source URL', () => {
+  assert.throws(() => gibsUrlForDate('2026-02-31'), /YYYY-MM-DD/);
+});
+
+test('encodes explicit candidate dimensions and the full equirectangular extent', () => {
+  const url = new URL(gibsUrlForDate('2026-07-26', { width, height }));
+
+  assert.equal(url.searchParams.get('WIDTH'), '48');
+  assert.equal(url.searchParams.get('HEIGHT'), '32');
+  assert.equal(url.searchParams.get('BBOX'), '-90,-180,90,180');
+});
+
 test('builds a truthful non-default candidate from an injected local input without network access', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'civiclens-modis-cli-'));
   const sourcePath = join(directory, 'source.jpg');
@@ -74,12 +86,13 @@ test('builds a truthful non-default candidate from an injected local input witho
   });
   const manifest = JSON.parse(await readFile(result.manifestPath, 'utf8'));
 
-  assert.match(result.outputPath, /candidates\/modis-terra-2026-07-26-repaired-5400x2700\.jpg$/);
+  assert.match(result.outputPath, /candidates\/modis-terra-2026-07-26-repaired-48x32\.jpg$/);
   assert.equal(manifest.asset.kind, 'non-runtime-repair-candidate');
-  assert.equal(manifest.source.provider, 'NASA GIBS');
-  assert.equal(manifest.source.layer, 'MODIS_Terra_CorrectedReflectance_TrueColor');
-  assert.equal(manifest.source.acquisitionDate, '2026-07-26');
-  assert.match(manifest.source.url, /^https:\/\/gibs\.earthdata\.nasa\.gov\//);
+  assert.equal(manifest.source.provider, 'local-injected-input');
+  assert.equal(manifest.source.inputPath, 'source.jpg');
+  assert.equal(manifest.source.claimedAcquisitionDate, '2026-07-26');
+  assert.equal(manifest.source.url, undefined);
+  assert.equal(manifest.source.layer, undefined);
   assert.equal(manifest.review.required, true);
   assert.equal(manifest.review.publishedAutomatically, false);
   assert.equal(manifest.validation.valid, true);
@@ -93,7 +106,7 @@ test('downloads through an injected adapter only when no local input is supplied
 
   await sharp(fallback, { raw: { width, height, channels: 3 } }).jpeg({ quality: 100 }).toFile(fallbackPath);
 
-  await prepareModisCandidate({
+  const result = await prepareModisCandidate({
     date: '2026-07-26',
     outputDirectory: join(directory, 'candidates'),
     fallbackPath,
@@ -106,8 +119,15 @@ test('downloads through an injected adapter only when no local input is supplied
       await sharp(source, { raw: { width, height, channels: 3 } }).jpeg({ quality: 100 }).toFile(targetPath);
     },
   });
+  const manifest = JSON.parse(await readFile(result.manifestPath, 'utf8'));
 
   assert.match(requestedUrl, /TIME=2026-07-26/);
+  assert.equal(manifest.source.provider, 'NASA GIBS');
+  assert.equal(manifest.source.layer, 'MODIS_Terra_CorrectedReflectance_TrueColor');
+  assert.equal(manifest.source.projection, 'EPSG:4326');
+  assert.equal(manifest.source.acquisitionDate, '2026-07-26');
+  assert.equal(manifest.source.url, requestedUrl);
+  assert.equal(manifest.output.sha256.length, 64);
 });
 
 test('rejects invalid dates before download or candidate writes', async () => {
@@ -116,6 +136,15 @@ test('rejects invalid dates before download or candidate writes', async () => {
   await assert.rejects(
     () => prepareModisCandidate({
       date: '2026-7-26',
+      downloader: async () => {
+        downloaded = true;
+      },
+    }),
+    /YYYY-MM-DD/,
+  );
+  await assert.rejects(
+    () => prepareModisCandidate({
+      date: '2026-02-31',
       downloader: async () => {
         downloaded = true;
       },
