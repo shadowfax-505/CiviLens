@@ -1,0 +1,76 @@
+import assert from 'node:assert/strict';
+import { mkdtemp, readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+import sharp from 'sharp';
+
+import { buildOrbitalAssets } from './orbital-surface.mjs';
+
+test('builds deterministic seamless NASA surface and cloud-rich runtime assets', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'civiclens-orbital-surface-'));
+  const basePath = join(directory, 'base.jpg');
+  const cloudPath = join(directory, 'clouds.jpg');
+  const fallbackPath = join(directory, 'fallback.jpg');
+  const runtimePath = join(directory, 'runtime.jpg');
+  const manifestPath = join(directory, 'manifest.json');
+  const base = Buffer.alloc(96 * 48 * 3);
+  const clouds = Buffer.alloc(48 * 24 * 3);
+
+  for (let offset = 0; offset < base.length; offset += 3) {
+    base[offset] = 35;
+    base[offset + 1] = 75;
+    base[offset + 2] = 105;
+  }
+  for (let offset = 0; offset < clouds.length; offset += 3) {
+    clouds[offset] = 0;
+    clouds[offset + 1] = 0;
+    clouds[offset + 2] = 0;
+  }
+  for (let y = 6; y < 18; y += 1) {
+    for (let x = 12; x < 36; x += 1) {
+      const offset = (y * 48 + x) * 3;
+      clouds[offset] = 220;
+      clouds[offset + 1] = 220;
+      clouds[offset + 2] = 220;
+    }
+  }
+
+  await sharp(base, { raw: { width: 96, height: 48, channels: 3 } }).jpeg({ quality: 100 }).toFile(basePath);
+  await sharp(clouds, { raw: { width: 48, height: 24, channels: 3 } }).jpeg({ quality: 100 }).toFile(cloudPath);
+
+  const first = await buildOrbitalAssets({
+    basePath,
+    cloudPath,
+    fallbackPath,
+    runtimePath,
+    manifestPath,
+    width: 96,
+    height: 48,
+  });
+  const firstRuntime = await readFile(runtimePath);
+  const firstManifest = await readFile(manifestPath, 'utf8');
+  const runtimePixels = await sharp(runtimePath).raw().toBuffer();
+
+  const second = await buildOrbitalAssets({
+    basePath,
+    cloudPath,
+    fallbackPath,
+    runtimePath,
+    manifestPath,
+    width: 96,
+    height: 48,
+  });
+  const metadata = await sharp(runtimePath).metadata();
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+
+  assert.equal(metadata.width, 96);
+  assert.equal(metadata.height, 48);
+  assert.equal(manifest.asset.kind, 'seamless-nasa-blue-marble-cloud-composite');
+  assert.equal(manifest.sources.clouds.sha256.length, 64);
+  assert.equal(first.runtime.sha256, second.runtime.sha256);
+  assert.equal(firstManifest, await readFile(manifestPath, 'utf8'));
+  assert.deepEqual(firstRuntime, await readFile(runtimePath));
+  assert.ok(runtimePixels[(12 * 96 + 24) * 3] > runtimePixels[0]);
+  assert.equal(manifest.validation.valid, true);
+});
