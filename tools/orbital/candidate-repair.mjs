@@ -181,8 +181,8 @@ export function validateCandidate({ width, height, expectedWidth, expectedHeight
   return { valid, minimumOutsideRepairSsim: MIN_OUTSIDE_REPAIR_SSIM };
 }
 
-async function pixels(filePath, width, height) {
-  return sharp(filePath).removeAlpha().resize(width, height, { fit: 'fill', kernel: sharp.kernel.lanczos3 }).raw().toBuffer({ resolveWithObject: true });
+async function pixels(filePath) {
+  return sharp(filePath).removeAlpha().raw().toBuffer({ resolveWithObject: true });
 }
 
 async function sha256(value) {
@@ -190,7 +190,17 @@ async function sha256(value) {
 }
 
 export async function prepareCandidate({ sourcePath, fallbackPath, outputPath, manifestPath, width = 5400, height = 2700 }) {
-  const [source, fallback] = await Promise.all([pixels(sourcePath, width, height), pixels(fallbackPath, width, height)]);
+  const [sourceMetadata, fallbackMetadata] = await Promise.all([sharp(sourcePath).metadata(), sharp(fallbackPath).metadata()]);
+  const metadataMatches = sourceMetadata.width === width
+    && sourceMetadata.height === height
+    && fallbackMetadata.width === width
+    && fallbackMetadata.height === height
+    && sourceMetadata.width === fallbackMetadata.width
+    && sourceMetadata.height === fallbackMetadata.height;
+  if (!metadataMatches) {
+    throw new Error(`candidate metadata mismatch: primary ${sourceMetadata.width}x${sourceMetadata.height}, fallback ${fallbackMetadata.width}x${fallbackMetadata.height}, expected ${width}x${height}`);
+  }
+  const [source, fallback] = await Promise.all([pixels(sourcePath), pixels(fallbackPath)]);
   const geometry = { width, height, channels: 3 };
   const repair = detectRepairComponents(source.data, geometry);
   const repaired = repairCandidatePixels(source.data, fallback.data, repair, geometry);
