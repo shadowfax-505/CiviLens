@@ -189,7 +189,16 @@ async function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
-export async function prepareCandidate({ sourcePath, fallbackPath, outputPath, manifestPath, width = 5400, height = 2700 }) {
+export async function prepareCandidate({
+  sourcePath,
+  fallbackPath,
+  outputPath,
+  manifestPath,
+  width = 5400,
+  height = 2700,
+  sourceDetails = {},
+  reviewMetadata = {},
+}) {
   const [sourceMetadata, fallbackMetadata] = await Promise.all([sharp(sourcePath).metadata(), sharp(fallbackPath).metadata()]);
   const metadataMatches = sourceMetadata.width === width
     && sourceMetadata.height === height
@@ -206,12 +215,8 @@ export async function prepareCandidate({ sourcePath, fallbackPath, outputPath, m
   const repaired = repairCandidatePixels(source.data, fallback.data, repair, geometry);
   const candidateJpeg = await sharp(repaired.data, { raw: geometry }).jpeg(JPEG_OPTIONS).toBuffer();
   const decoded = await sharp(candidateJpeg).raw().toBuffer({ resolveWithObject: true });
-  let unresolvedPixels = 0;
-  for (let pixel = 0; pixel < width * height; pixel += 1) {
-    if (repair.mask[pixel] === 255 && isNearBlack(decoded.data, offsetFor(pixel, geometry.channels))) {
-      unresolvedPixels += 1;
-    }
-  }
+  const unresolved = detectRepairComponents(decoded.data, geometry);
+  const unresolvedPixels = unresolved.confirmedPixels;
   let outsideRepairSsim;
   try {
     outsideRepairSsim = structuralSimilarity(source.data, decoded.data, repair.mask, geometry);
@@ -222,11 +227,19 @@ export async function prepareCandidate({ sourcePath, fallbackPath, outputPath, m
   const manifest = {
     schemaVersion: 1,
     asset: { kind: 'non-runtime-repair-candidate', width, height, format: 'jpeg' },
-    source: { sha256: await sha256(await readFile(sourcePath)) },
+    source: {
+      ...sourceDetails,
+      sha256: await sha256(await readFile(sourcePath)),
+    },
     fallback: { sha256: await sha256(await readFile(fallbackPath)) },
     repair: { confirmedPixels: repair.confirmedPixels, componentCount: repair.componentCount, repairPercentage: (repair.confirmedPixels / (width * height)) * 100, featherRadius: repaired.featherRadius },
     validation: { outsideRepairSsim, unresolvedPixels, ...validation },
     output: { sha256: await sha256(candidateJpeg) },
+    review: {
+      required: true,
+      publishedAutomatically: false,
+      ...reviewMetadata,
+    },
   };
   await mkdir(dirname(outputPath), { recursive: true });
   await mkdir(dirname(manifestPath), { recursive: true });

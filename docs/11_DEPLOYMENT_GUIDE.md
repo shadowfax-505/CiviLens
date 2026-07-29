@@ -84,6 +84,20 @@ Do not bind-mount the application checkout into the production Nginx container. 
 
 Frontend customization is deploy-safe when it stays inside Blade views, shared components, `resources/css/app.css`, and `resources/js/app.js` while preserving route names, form fields, policies, and the Vite manifest pipeline. See `docs/31_FRONTEND_CUSTOMIZATION_GUIDE.md`.
 
+### Civic Earth rollout and rollback
+
+The Earth-to-Bangladesh journey is guarded by `CIVICLENS_EARTH_JOURNEY_ENABLED`, which defaults to `false`. Enable it only after the production image has been built with the pinned local Cesium assets and `public/images/orbital/manifest.json` matches the approved local textures:
+
+```bash
+CIVICLENS_EARTH_JOURNEY_ENABLED=true
+php artisan optimize:clear
+php artisan config:cache
+```
+
+Environment changes are not visible while Laravel configuration is cached until the cache is rebuilt. To roll back only the journey, set the flag to `false`, run the same cache commands, and verify `/`; the established static hero returns without a route, controller, form, permission, or database change. Restoring the previous container image remains the full-release rollback.
+
+The production artifact must contain Vite's `public/build/cesium` directory and both approved local orbital textures. Do not replace them with daily browser tiles. The weekly candidate workflow writes only to `public/images/orbital/candidates/` on a review branch; merging that review does not promote a candidate into the runtime paths. Promotion requires a separate explicit visual approval and release change.
+
 Rollback plan:
 
 - Restore the previous container image or release artifact.
