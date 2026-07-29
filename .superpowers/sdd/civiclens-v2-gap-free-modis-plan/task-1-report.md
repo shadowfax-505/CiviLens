@@ -1,6 +1,10 @@
-# Task 1 report — BLOCKED
+# Task 1 report — FINAL APPROVED
 
-## Outcome
+## Final status
+
+Task 1 is approved. The published runtime is the deterministic, visually accepted seamless NASA Blue Marble plus 2026-07-27 GIBS/MODIS observation-derived cloud composite. The daily swath repair workflow is candidate-only, validated, and cannot publish to the default runtime path.
+
+## Initial rejected attempt (historical)
 
 The deterministic Node/Sharp pipeline and its assets were built, but the candidate is **not approved and must not be committed**. Direct visual inspection of the generated 5400×2700 runtime texture still shows repeating triangular orbital swaths/seams after the single bounded multi-source fallback rebuild required by the task owner.
 
@@ -172,3 +176,56 @@ completed from repository-controlled sources
 ### Commit
 
 - `d7ac4a9 feat: add validated orbital candidate pipeline`
+
+---
+
+## Fix round 3 — final reviewer validation gates
+
+### Candidate metadata contract
+
+The non-runtime candidate pipeline now decodes metadata for both the primary and fallback before processing. It rejects differing decoded dimensions, an aspect mismatch, or dimensions that differ from the requested candidate contract. It no longer silently resizes either candidate input. The mismatch test also verifies that no candidate output is written.
+
+### Atomic approved-runtime publishing
+
+The approved runtime builder now:
+
+1. Reads and validates metadata for both repository-controlled inputs before writes.
+2. Decodes both inputs before writes.
+3. Composes the runtime in memory and validates its dimensions.
+4. Writes a sibling temporary runtime, decodes and validates that temporary file, then atomically renames it into place.
+5. Leaves an existing runtime sentinel untouched when cloud validation fails.
+
+### Complete cloud provenance
+
+The manifest identifies the committed cloud input as `MODIS_Terra_CorrectedReflectance_TrueColor` from the NASA GIBS EPSG:4326 WMS endpoint, records the WMS request template, acquisition date `2026-07-27`, and processing as `observation-derived cloud extraction and screen composite`. This describes the cloud layer only; the surface remains the December 2004 Blue Marble fallback and is not claimed to be daily observation imagery.
+
+### RED/GREEN evidence
+
+RED:
+
+```text
+node --test tools/orbital/candidate-repair.test.mjs
+rejects mismatched primary and fallback metadata before candidate writes
+Missing expected rejection.
+```
+
+GREEN:
+
+```text
+npm run test:orbital
+9 passing, 0 failing
+```
+
+### Final validation
+
+- `npm run build:orbital` completed twice from committed sources.
+- Both runtime SHA-256 values: `680bf4c373620a14a8f6608b602f9b303521264674d626ef94ee37ef2f7e7bce`.
+- Fallback and runtime decode as `5400 × 2700` JPEG images.
+- Candidate suite: 6 passing tests, including mismatch rejection and fail-closed writes.
+- Runtime suite: 3 passing tests, including actionable missing inputs and runtime sentinel preservation.
+- `git diff --check` passed before the code/assets commit.
+- The report's initial BLOCKED attempt remains above as history; the top-level report status is final approved.
+
+### Commit
+
+- `d75b9cf fix: enforce orbital asset validation gates`
