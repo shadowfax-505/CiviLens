@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -67,10 +67,28 @@ test('builds deterministic seamless NASA surface and cloud-rich runtime assets',
   assert.equal(metadata.width, 96);
   assert.equal(metadata.height, 48);
   assert.equal(manifest.asset.kind, 'seamless-nasa-blue-marble-cloud-composite');
+  assert.equal(manifest.repair.percentage, 0);
+  assert.equal(manifest.calibration.appliedToAsset, false);
   assert.equal(manifest.sources.clouds.sha256.length, 64);
   assert.equal(first.runtime.sha256, second.runtime.sha256);
   assert.equal(firstManifest, await readFile(manifestPath, 'utf8'));
   assert.deepEqual(firstRuntime, await readFile(runtimePath));
   assert.ok(runtimePixels[(12 * 96 + 24) * 3] > runtimePixels[0]);
   assert.equal(manifest.validation.valid, true);
+});
+
+test('fails with actionable input errors before writing a runtime asset', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'civiclens-orbital-missing-'));
+  const runtimePath = join(directory, 'runtime.jpg');
+
+  await assert.rejects(() => buildOrbitalAssets({
+    basePath: join(directory, 'missing-base.jpg'),
+    cloudPath: join(directory, 'missing-clouds.jpg'),
+    fallbackPath: join(directory, 'fallback.jpg'),
+    runtimePath,
+    manifestPath: join(directory, 'manifest.json'),
+    width: 96,
+    height: 48,
+  }), /Missing or unreadable orbital base source/i);
+  await assert.rejects(() => access(runtimePath));
 });
