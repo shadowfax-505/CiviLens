@@ -341,4 +341,10 @@ ready(() => {
     initializeLeafletPickers();
     initializeLeafletStaticMaps();
     initializeProjectPortfolioMaps();
+
+    document.querySelectorAll('[data-civic-earth]').forEach((root) => {
+        import('./civic-earth/index.js')
+            .then(({ initializeCivicEarth }) => initializeCivicEarth(root))
+            .catch(() => root.classList.add('has-renderer-fallback'));
+    });
 });
