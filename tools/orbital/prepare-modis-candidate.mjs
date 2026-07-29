@@ -18,7 +18,12 @@ export function tMinusTwoDate(reference = new Date()) {
 }
 
 function validateDate(date) {
-  if (!DATE_PATTERN.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) {
+  const parsed = new Date(`${date}T00:00:00Z`);
+  if (
+    !DATE_PATTERN.test(date)
+    || Number.isNaN(parsed.getTime())
+    || parsed.toISOString().slice(0, 10) !== date
+  ) {
     throw new Error('candidate date must use a valid YYYY-MM-DD value');
   }
 }
@@ -75,10 +80,10 @@ export async function prepareModisCandidate({
   downloader = download,
 } = {}) {
   validateDate(date);
-  const sourceUrl = gibsUrlForDate(date, { width, height });
+  const sourceUrl = inputPath ? null : gibsUrlForDate(date, { width, height });
   const temporaryDirectory = inputPath ? null : await mkdtemp(join(tmpdir(), 'civiclens-modis-'));
   const resolvedInput = inputPath ? resolve(inputPath) : join(temporaryDirectory, `modis-terra-${date}.jpg`);
-  const outputPath = join(resolve(outputDirectory), `modis-terra-${date}-repaired-5400x2700.jpg`);
+  const outputPath = join(resolve(outputDirectory), `modis-terra-${date}-repaired-${width}x${height}.jpg`);
   const manifestPath = join(resolve(outputDirectory), `modis-terra-${date}-manifest.json`);
 
   try {
@@ -95,14 +100,20 @@ export async function prepareModisCandidate({
       manifestPath,
       width,
       height,
-      sourceDetails: {
-        provider: 'NASA GIBS',
-        product: 'MODIS Terra corrected reflectance true color',
-        layer: GIBS_LAYER,
-        acquisitionDate: date,
-        url: sourceUrl,
-        projection: 'EPSG:4326',
-      },
+      sourceDetails: inputPath
+        ? {
+            provider: 'local-injected-input',
+            inputPath: basename(resolvedInput),
+            claimedAcquisitionDate: date,
+          }
+        : {
+            provider: 'NASA GIBS',
+            product: 'MODIS Terra corrected reflectance true color',
+            layer: GIBS_LAYER,
+            acquisitionDate: date,
+            url: sourceUrl,
+            projection: 'EPSG:4326',
+          },
       reviewMetadata: {
         candidateDirectory: 'public/images/orbital/candidates',
         instructions: 'Review stages 1-5 for swaths, seams, blank regions, and color discontinuities before any explicit promotion.',
