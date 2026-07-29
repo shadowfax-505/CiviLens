@@ -1,5 +1,7 @@
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import './civic-earth.css';
+import './civic-earth-overlays.css';
+import './civic-earth-responsive.css';
 
 import {
     CHAPTERS,
@@ -8,6 +10,7 @@ import {
     progressForStage,
     stageIndexForKey,
 } from './journey-config.js';
+import { createCleanupRegistry, shouldConsumeWheel } from './lifecycle.js';
 
 const select = (root, name) => root.querySelector(`[data-earth-${name}]`);
 const formatAltitude = (metres) => metres >= 1000
@@ -25,27 +28,37 @@ function scrollToStage(scroll, index, reducedMotion) {
     });
 }
 
-function setupJourneyControls(root, scroll, draw, reducedMotion) {
+function setupJourneyControls(root, scroll, draw, reducedMotion, cleanup) {
     const dots = select(root, 'flight-dots');
 
     CHAPTERS.forEach((chapter, index) => {
         const button = document.createElement('button');
+        const handleActivateStage = () => scrollToStage(scroll, index, reducedMotion);
         button.type = 'button';
         button.setAttribute('aria-label', `Go to ${chapter.step}`);
-        button.addEventListener('click', () => scrollToStage(scroll, index, reducedMotion));
+        button.addEventListener('click', handleActivateStage);
         dots?.append(button);
+        cleanup.add(() => {
+            button.removeEventListener('click', handleActivateStage);
+            button.remove();
+        });
     });
 
-    scroll.addEventListener('wheel', (event) => {
-        if (!event.deltaY) {
+    const handleWheel = (event) => {
+        if (!shouldConsumeWheel({
+            scrollTop: scroll.scrollTop,
+            scrollHeight: scroll.scrollHeight,
+            clientHeight: scroll.clientHeight,
+            deltaY: event.deltaY,
+        })) {
             return;
         }
 
         event.preventDefault();
         scroll.scrollTop += event.deltaY;
-    }, { passive: false, capture: true });
+    };
 
-    scroll.addEventListener('keydown', (event) => {
+    const handleKeydown = (event) => {
         const current = computeJourneyState(
             scroll.scrollTop / Math.max(scroll.scrollHeight - scroll.clientHeight, 1),
         ).stageIndex;
@@ -57,9 +70,17 @@ function setupJourneyControls(root, scroll, draw, reducedMotion) {
 
         event.preventDefault();
         scrollToStage(scroll, next, reducedMotion);
-    });
+    };
 
-    scroll.addEventListener('scroll', draw, { passive: true });
+    const handleScroll = () => draw();
+
+    scroll.addEventListener('wheel', handleWheel, { passive: false, capture: true });
+    scroll.addEventListener('keydown', handleKeydown);
+    scroll.addEventListener('scroll', handleScroll, { passive: true });
+
+    cleanup.add(() => scroll.removeEventListener('wheel', handleWheel, { capture: true }));
+    cleanup.add(() => scroll.removeEventListener('keydown', handleKeydown));
+    cleanup.add(() => scroll.removeEventListener('scroll', handleScroll));
 }
 
 function updateContent(root, state) {
@@ -135,7 +156,7 @@ function addRegionalLayers(Cesium, viewer) {
     return { regional, roads, labels };
 }
 
-async function addPublicProjectMarkers(Cesium, viewer, endpoint) {
+async function addPublicProjectMarkers(Cesium, viewer, endpoint, signal) {
     if (!endpoint) {
         return [];
     }
@@ -148,7 +169,10 @@ async function addPublicProjectMarkers(Cesium, viewer, endpoint) {
         east: '92.8',
     }).toString();
 
-    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+    const response = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        signal,
+    });
     if (!response.ok) {
         throw new Error('Public project markers are unavailable.');
     }
@@ -247,7 +271,7 @@ function createViewer(Cesium, container) {
     return { viewer, referenceDate };
 }
 
-export async function initializeCivicEarth(root) {
+export function initializeCivicEarth(root) {
     if (!root || root.dataset.initialized === 'true') {
         return null;
     }
@@ -262,6 +286,8 @@ export async function initializeCivicEarth(root) {
     root.style.setProperty('--civic-earth-fallback', `url("${root.dataset.fallbackTexture}")`);
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const status = select(root, 'status');
+    const cleanup = createCleanupRegistry();
+    const markerRequest = new AbortController();
     let frame = 0;
     let lastStage = -1;
     let viewer = null;
@@ -270,6 +296,7 @@ export async function initializeCivicEarth(root) {
     let regionalLayers = null;
     let projectMarkers = [];
     let cesium = null;
+    let destroyed = false;
 
     const draw = () => {
         frame = 0;
@@ -332,68 +359,103 @@ export async function initializeCivicEarth(root) {
         }
     };
 
-    setupJourneyControls(root, scroll, scheduleDraw, reducedMotion);
+    cleanup.add(() => markerRequest.abort());
+    setupJourneyControls(root, scroll, scheduleDraw, reducedMotion, cleanup);
     draw();
 
-    try {
-        window.CESIUM_BASE_URL = '/build/cesium/';
-        const Cesium = await import('cesium');
-        cesium = Cesium;
-        const setup = createViewer(Cesium, container);
-        viewer = setup.viewer;
-        select(root, 'time').textContent = `${setup.referenceDate} 06:00 UTC`;
-
-        fallbackLayer = await addSingleTileLayer(
-            Cesium,
-            viewer,
-            root.dataset.fallbackTexture,
-            'NASA Blue Marble',
-            IMAGERY_CALIBRATION.fallback,
-        );
-        root.classList.add('is-renderer-ready');
-
-        regionalLayers = addRegionalLayers(Cesium, viewer);
-
+    const initializeRenderer = async () => {
         try {
-            runtimeLayer = await addSingleTileLayer(
+            window.CESIUM_BASE_URL = '/build/cesium/';
+            const Cesium = await import('cesium');
+            if (destroyed) {
+                return;
+            }
+
+            cesium = Cesium;
+            const setup = createViewer(Cesium, container);
+            viewer = setup.viewer;
+            select(root, 'time').textContent = `${setup.referenceDate} 06:00 UTC`;
+
+            fallbackLayer = await addSingleTileLayer(
                 Cesium,
                 viewer,
-                root.dataset.runtimeTexture,
-                'NASA EOSDIS MODIS observation composite',
-                IMAGERY_CALIBRATION.runtime,
+                root.dataset.fallbackTexture,
+                'NASA Blue Marble',
+                IMAGERY_CALIBRATION.fallback,
             );
-        } catch {
-            select(root, 'imagery').textContent = 'NASA Blue Marble · resilient fallback';
-        }
+            if (destroyed) {
+                return;
+            }
 
-        try {
-            projectMarkers = await addPublicProjectMarkers(
-                Cesium,
-                viewer,
-                root.dataset.projectMarkersUrl,
-            );
-        } catch {
-            if (status) {
-                status.textContent = 'Project markers are temporarily unavailable; public project links remain available.';
+            root.classList.add('is-renderer-ready');
+            regionalLayers = addRegionalLayers(Cesium, viewer);
+
+            try {
+                runtimeLayer = await addSingleTileLayer(
+                    Cesium,
+                    viewer,
+                    root.dataset.runtimeTexture,
+                    'NASA EOSDIS MODIS observation composite',
+                    IMAGERY_CALIBRATION.runtime,
+                );
+            } catch {
+                if (!destroyed) {
+                    select(root, 'imagery').textContent = 'NASA Blue Marble · resilient fallback';
+                }
+            }
+
+            if (destroyed) {
+                return;
+            }
+
+            try {
+                projectMarkers = await addPublicProjectMarkers(
+                    Cesium,
+                    viewer,
+                    root.dataset.projectMarkersUrl,
+                    markerRequest.signal,
+                );
+            } catch (error) {
+                if (error?.name !== 'AbortError' && !destroyed && status) {
+                    status.textContent = 'Project markers are temporarily unavailable; public project links remain available.';
+                }
+            }
+
+            if (!destroyed) {
+                draw();
+            }
+        } catch (error) {
+            if (!destroyed && error?.name !== 'AbortError') {
+                root.classList.add('has-renderer-fallback');
+                if (status) {
+                    status.textContent = 'The interactive globe is unavailable. The validated NASA fallback remains visible.';
+                }
             }
         }
-
-        draw();
-    } catch {
-        root.classList.add('has-renderer-fallback');
-        if (status) {
-            status.textContent = 'The interactive globe is unavailable. The validated NASA fallback remains visible.';
-        }
-    }
-
-    return {
-        destroy() {
-            if (frame) {
-                window.cancelAnimationFrame(frame);
-            }
-            if (viewer && !viewer.isDestroyed()) {
-                viewer.destroy();
-            }
-        },
     };
+
+    const destroy = () => {
+        if (destroyed) {
+            return;
+        }
+
+        destroyed = true;
+        cleanup.run();
+        if (frame) {
+            window.cancelAnimationFrame(frame);
+            frame = 0;
+        }
+        if (viewer && !viewer.isDestroyed()) {
+            viewer.destroy();
+        }
+        viewer = null;
+        projectMarkers = [];
+        root.classList.remove('is-map-mode', 'is-renderer-ready', 'has-renderer-fallback');
+        root.style.removeProperty('--civic-earth-fallback');
+        delete root.dataset.initialized;
+    };
+
+    void initializeRenderer();
+
+    return { destroy };
 }
