@@ -59,6 +59,10 @@ return [
         'tile_attribution' => env('MAP_TILE_ATTRIBUTION', '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'),
     ],
 
+    'earth_journey' => [
+        'enabled' => (bool) env('CIVICLENS_EARTH_JOURNEY_ENABLED', false),
+    ],
+
     'search' => [
         'provider' => env('SEARCH_PROVIDER', 'database'),
         'cache_ttl_minutes' => (int) env('SEARCH_CACHE_TTL_MINUTES', 10),
