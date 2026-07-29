@@ -64,7 +64,6 @@ use App\Http\Controllers\PublicPortal\PublicSearchController;
 use App\Http\Controllers\VersionController;
 use App\Models\Project;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', PublicHomeController::class)->name('public.home');
@@ -295,10 +294,4 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         });
     });
 
-// Debug endpoint used by client-side submit listener to record attempted submits
-Route::post('/_debug/form-submit', function (Request $request) {
-    Log::info('Client submit beacon', ['payload' => $request->getContent(), 'ip' => request()->ip()]);
-
-    return response()->noContent();
-})->withoutMiddleware(['auth', 'active']);
 });
