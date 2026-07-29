@@ -6,7 +6,7 @@
         "build": "vite build",
         "build:orbital": "node tools/orbital/build-orbital-assets.mjs",
         "dev": "vite",
-        "test:orbital": "node --test tools/orbital/orbital-surface.test.mjs",
+        "test:orbital": "node --test tools/orbital/orbital-surface.test.mjs tools/orbital/candidate-repair.test.mjs",
         "test:e2e": "playwright test",
         "test:e2e:headed": "playwright test --headed",
         "test:e2e:report": "playwright show-report"
