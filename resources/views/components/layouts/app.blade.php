@@ -121,29 +121,6 @@
             </main>
         </div>
 
-        {{-- Debug: capture client-side form submits for troubleshooting --}}
-        <script>
-            (function () {
-                document.addEventListener('submit', function (e) {
-                    try {
-                        const form = e.target;
-                        if (!(form instanceof HTMLFormElement)) return;
-                        // log brief details to the console to help reproduction
-                        console.info('Form submit captured', {action: form.action, method: form.method, id: form.id || null});
-                        // send a lightweight beacon to /_debug/form-submit for server-side logging
-                        if (navigator.sendBeacon) {
-                            var payload = JSON.stringify({action: form.action, method: form.method});
-                            navigator.sendBeacon('/_debug/form-submit', payload);
-                        } else {
-                            fetch('/_debug/form-submit', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: form.action, method: form.method})}).catch(()=>{});
-                        }
-                    } catch (err) {
-                        // ignore
-                    }
-                }, true);
-            })();
-        </script>
-
         <footer class="cl-footer">
             <span>CivicLens {{ config('app.version') }}</span>
             <span>Release metadata: {{ config('app.commit') }}</span>
