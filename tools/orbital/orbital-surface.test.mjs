@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { access, mkdtemp, readFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -69,6 +69,8 @@ test('builds deterministic seamless NASA surface and cloud-rich runtime assets',
   assert.equal(manifest.asset.kind, 'seamless-nasa-blue-marble-cloud-composite');
   assert.equal(manifest.repair.percentage, 0);
   assert.equal(manifest.calibration.appliedToAsset, false);
+  assert.equal(manifest.sources.clouds.layer, 'MODIS_Terra_CorrectedReflectance_TrueColor');
+  assert.equal(manifest.sources.clouds.acquisitionDate, '2026-07-27');
   assert.equal(manifest.sources.clouds.sha256.length, 64);
   assert.equal(first.runtime.sha256, second.runtime.sha256);
   assert.equal(firstManifest, await readFile(manifestPath, 'utf8'));
@@ -80,10 +82,14 @@ test('builds deterministic seamless NASA surface and cloud-rich runtime assets',
 test('fails with actionable input errors before writing a runtime asset', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'civiclens-orbital-missing-'));
   const runtimePath = join(directory, 'runtime.jpg');
+  const cloudPath = join(directory, 'cloud.jpg');
+  const clouds = Buffer.alloc(48 * 24 * 3, 120);
+
+  await sharp(clouds, { raw: { width: 48, height: 24, channels: 3 } }).jpeg({ quality: 100 }).toFile(cloudPath);
 
   await assert.rejects(() => buildOrbitalAssets({
     basePath: join(directory, 'missing-base.jpg'),
-    cloudPath: join(directory, 'missing-clouds.jpg'),
+    cloudPath,
     fallbackPath: join(directory, 'fallback.jpg'),
     runtimePath,
     manifestPath: join(directory, 'manifest.json'),
@@ -91,4 +97,25 @@ test('fails with actionable input errors before writing a runtime asset', async 
     height: 48,
   }), /Missing or unreadable orbital base source/i);
   await assert.rejects(() => access(runtimePath));
+});
+
+test('leaves an existing runtime untouched when cloud validation fails', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'civiclens-orbital-sentinel-'));
+  const basePath = join(directory, 'base.jpg');
+  const runtimePath = join(directory, 'runtime.jpg');
+  const sentinel = Buffer.from('approved-runtime-sentinel');
+  const base = Buffer.alloc(96 * 48 * 3, 80);
+
+  await sharp(base, { raw: { width: 96, height: 48, channels: 3 } }).jpeg({ quality: 100 }).toFile(basePath);
+  await writeFile(runtimePath, sentinel);
+
+  await assert.rejects(() => buildOrbitalAssets({
+    basePath,
+    cloudPath: join(directory, 'missing-cloud.jpg'),
+    runtimePath,
+    manifestPath: join(directory, 'manifest.json'),
+    width: 96,
+    height: 48,
+  }), /Missing or unreadable orbital cloud source/i);
+  assert.deepEqual(await readFile(runtimePath), sentinel);
 });
