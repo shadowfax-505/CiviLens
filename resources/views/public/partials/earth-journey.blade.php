@@ -40,8 +40,8 @@
 
                 <div class="civic-earth__copy">
                     <p class="civic-earth__eyebrow" data-earth-eyebrow>Earth system · documented solar geometry</p>
-                    <h1 class="civic-earth__title" data-earth-title>One living Earth.<br><span>Bangladesh in context.</span></h1>
-                    <p class="civic-earth__lede" data-earth-lede>A physically coherent journey from the living Earth to verified geography and public-delivery evidence.</p>
+                    <h1 class="civic-earth__title" data-earth-title>One living Earth.<br><span class="accent">Bangladesh in context.</span></h1>
+                    <p class="civic-earth__lede" data-earth-lede>A deep-space establishing view shows the whole WGS84 planet, recent cloud systems, atmosphere, and a physically valid day–night edge.</p>
                     <div class="civic-earth__actions">
                         <a class="civic-earth__primary" href="{{ route('public.projects.index') }}">Explore public data →</a>
                         <a class="civic-earth__secondary" href="{{ route('public.search') }}">Search evidence</a>
@@ -55,7 +55,7 @@
                         <em data-earth-scale>22,000 km view</em>
                     </div>
                     <strong data-earth-card-title>A planet, not a decorative globe</strong>
-                    <p data-earth-card-copy>Recent cloud observations and a seamless Blue Marble surface live inside one coherent WGS84 celestial scene.</p>
+                    <p data-earth-card-copy>No orbit rings or invented planetary props: only Earth, atmosphere, stars, and celestial objects that the reference geometry actually places in frame.</p>
                 </aside>
 
                 <div class="civic-earth__data" data-earth-data aria-label="Public CivicLens summary">
