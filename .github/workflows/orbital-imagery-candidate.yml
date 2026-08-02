@@ -1,0 +1,166 @@
+name: Orbital imagery candidate
+
+on:
+  schedule:
+    - cron: '15 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: orbital-imagery-candidate
+  cancel-in-progress: false
+
+jobs:
+  prepare-review-candidate:
+    name: Validate T-2 MODIS review candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CANDIDATE_DIRECTORY: public/images/orbital/candidates
+      BASE_BRANCH: ${{ github.event.repository.default_branch }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Check out the triggering revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Anchor generation to the fetched default branch head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
+          git switch --detach "origin/${BASE_BRANCH}"
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Calculate the UTC acquisition date
+        id: acquisition
+        shell: bash
+        run: |
+          set -euo pipefail
+          acquisition_date="$(date --utc --date='2 days ago' +'%Y-%m-%d')"
+          echo "date=${acquisition_date}" >> "${GITHUB_OUTPUT}"
+          echo "branch=automation/modis-candidate-${acquisition_date}" >> "${GITHUB_OUTPUT}"
+
+      - name: Run repair and workflow quality tests
+        run: npm run test:orbital
+
+      - name: Download, repair, and validate the NASA GIBS candidate
+        run: npm run build:orbital-candidate -- --date "${{ steps.acquisition.outputs.date }}"
+
+      - name: Verify candidate provenance and fail closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="${CANDIDATE_DIRECTORY}/modis-terra-${{ steps.acquisition.outputs.date }}-manifest.json"
+          candidate="${CANDIDATE_DIRECTORY}/modis-terra-${{ steps.acquisition.outputs.date }}-repaired-5400x2700.jpg"
+          node --input-type=module -e "
+            import { createHash } from 'node:crypto';
+            import { readFile } from 'node:fs/promises';
+            const manifest = JSON.parse(await readFile(process.argv[1], 'utf8'));
+            const acquisitionDate = process.argv[2];
+            const candidate = await readFile(process.argv[3]);
+            const sourceUrl = new URL(manifest.source.url);
+            const checksum = createHash('sha256').update(candidate).digest('hex');
+            if (
+              manifest.source.acquisitionDate !== acquisitionDate
+              || manifest.source.provider !== 'NASA GIBS'
+              || manifest.source.layer !== 'MODIS_Terra_CorrectedReflectance_TrueColor'
+              || manifest.source.projection !== 'EPSG:4326'
+              || sourceUrl.origin !== 'https://gibs.earthdata.nasa.gov'
+              || sourceUrl.pathname !== '/wms/epsg4326/best/wms.cgi'
+              || sourceUrl.searchParams.get('TIME') !== acquisitionDate
+              || sourceUrl.searchParams.get('LAYERS') !== 'MODIS_Terra_CorrectedReflectance_TrueColor'
+              || sourceUrl.searchParams.get('CRS') !== 'EPSG:4326'
+              || manifest.validation.valid !== true
+              || manifest.validation.unresolvedPixels !== 0
+              || manifest.validation.outsideRepairSsim < 0.995
+              || manifest.output.sha256 !== checksum
+              || manifest.review.required !== true
+              || manifest.review.publishedAutomatically !== false
+            ) {
+              throw new Error('candidate validation or provenance check failed');
+            }
+          " "${manifest}" "${{ steps.acquisition.outputs.date }}" "${candidate}"
+
+      - name: Detect a changed review candidate
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="${{ steps.acquisition.outputs.branch }}"
+          candidate="${CANDIDATE_DIRECTORY}/modis-terra-${{ steps.acquisition.outputs.date }}-repaired-5400x2700.jpg"
+          manifest="${CANDIDATE_DIRECTORY}/modis-terra-${{ steps.acquisition.outputs.date }}-manifest.json"
+          previous_candidate="${RUNNER_TEMP}/previous-candidate.jpg"
+          previous_manifest="${RUNNER_TEMP}/previous-manifest.json"
+          if git ls-remote --exit-code --heads origin "${branch}" > /dev/null 2>&1; then
+            git fetch --no-tags origin "refs/heads/${branch}:refs/remotes/origin/${branch}"
+          fi
+          if
+            git show "origin/${branch}:${candidate}" > "${previous_candidate}" 2>/dev/null \
+            && git show "origin/${branch}:${manifest}" > "${previous_manifest}" 2>/dev/null \
+            && cmp --silent "${candidate}" "${previous_candidate}" \
+            && cmp --silent "${manifest}" "${previous_manifest}"
+          then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Commit candidate to its deterministic review branch
+        if: steps.changes.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="${{ steps.acquisition.outputs.branch }}"
+          git config user.name "civiclens-orbital-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git switch --force-create "${branch}" "origin/${BASE_BRANCH}"
+          git add -- "${CANDIDATE_DIRECTORY}"
+          git diff --cached --check
+          git commit -m "chore: prepare MODIS candidate ${{ steps.acquisition.outputs.date }}"
+          git push --force-with-lease --set-upstream origin "${branch}"
+
+      - name: Open or update the review pull request
+        if: steps.changes.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="${{ steps.acquisition.outputs.branch }}"
+          title="chore: review MODIS candidate ${{ steps.acquisition.outputs.date }}"
+          body_file="${RUNNER_TEMP}/orbital-candidate-pr.md"
+          {
+            echo "## Orbital imagery candidate"
+            echo
+            echo "- Acquisition date: \`${{ steps.acquisition.outputs.date }}\` (UTC T-2)"
+            echo "- Source: NASA GIBS \`MODIS_Terra_CorrectedReflectance_TrueColor\`"
+            echo "- Output: \`${CANDIDATE_DIRECTORY}/\` only"
+            echo "- Production default changed: **no**"
+            echo
+            echo "## Human visual review required"
+            echo
+            echo "Inspect journey stages 1-5 for dark swaths, seams, blank regions, color discontinuities, and geographic alignment. This pull request must not be merged or promoted unless that review passes."
+          } > "${body_file}"
+          number="$(gh pr list --head "${branch}" --base "${BASE_BRANCH}" --state open --json number --jq '.[0].number // empty')"
+          if [[ -n "${number}" ]]; then
+            gh pr edit "${number}" --title "${title}" --body-file "${body_file}"
+          else
+            gh pr create --head "${branch}" --base "${BASE_BRANCH}" --title "${title}" --body-file "${body_file}"
+          fi
+
+      - name: Record unchanged approved state
+        if: steps.changes.outputs.changed != 'true'
+        run: echo "Validated candidate bytes and manifest are unchanged; no review pull request update is needed."

@@ -2,16 +2,17 @@
 
 ## Sprint
 
-Release Candidate 1: Production Readiness Validation
+CivicLens v2 Foundation
 
 ## Goal
 
-Finalize CivicLens v1.0.0 for first production deployment. This pass does not add new business features and does not implement OCR, LLMs, embeddings, vector databases, semantic search, AI agents, machine learning, recommendation systems, or automated legal conclusions.
+Build v2 from a separately verified v1 stabilization base. Establish architecture and governance first, then deliver role-specific public UX, governed source ingestion, multilingual document extraction, blind review, and evidence-bound shadow intelligence in reversible stages.
 
 ## Active Tasks
 
-- RC1 metadata, footer version, and release docs. Status: complete.
-- Defensive security headers and request correlation verification. Status: complete.
-- Production-readiness quality gates, browser tests, cache checks, and smoke benchmarks. Status: complete.
-- Local Docker production-style deployment validation. Status: complete.
-- Final go/no-go recommendation. Status: pending final response.
+- v1.0.1 stabilization branch and dependency audits. Status: complete.
+- Restore validated gap-free Civic Earth journey on the v2 branch. Status: complete.
+- Replace nested globe scrolling with document scrolling and sticky stages. Status: complete.
+- Accept v2 publication, OCR/compute, geospatial privacy, and heterogeneous-source ADRs. Status: complete.
+- Implement role-specific shells and district preference consent. Status: next.
+- Implement source registry and recently indexed public read model. Status: queued.
