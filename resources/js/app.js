@@ -1,5 +1,9 @@
 import Alpine from 'alpinejs';
 import L from 'leaflet';
+import './civic-earth/civic-earth.css';
+import './civic-earth/civic-earth-overlays.css';
+import './civic-earth/civic-earth-responsive.css';
+import { bootstrapCivicEarth } from './civic-earth/bootstrap.js';
 
 window.Alpine = Alpine;
 Alpine.start();
@@ -343,8 +347,6 @@ ready(() => {
     initializeProjectPortfolioMaps();
 
     document.querySelectorAll('[data-civic-earth]').forEach((root) => {
-        import('./civic-earth/index.js')
-            .then(({ initializeCivicEarth }) => initializeCivicEarth(root))
-            .catch(() => root.classList.add('has-renderer-fallback'));
+        void bootstrapCivicEarth(root);
     });
 });
