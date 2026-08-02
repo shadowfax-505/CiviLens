@@ -48,6 +48,7 @@ The Laravel app currently implements web identity routes for:
 - `POST /profile/avatar`
 - `PUT /profile/password`
 - `PUT /profile/notifications`
+- `PUT /profile/districts`
 - `GET /admin/users`
 - `PATCH /admin/users/{user}/status`
 - `PATCH /admin/users/{user}/lock`
@@ -182,6 +183,7 @@ The Laravel app currently implements web identity routes for:
 
 Public project-map data is available at `GET /public/projects/map-data`. It accepts a complete `south`, `west`, `north`, `east` viewport (or no viewport), validates coordinate ordering and configured span caps, and returns no more than the configured marker limit. Its marker schema is intentionally allowlisted to project name, authoritative latitude/longitude, public agency/status labels, and the public project URL; internal descriptions, identifiers, visibility flags, and source fields are not returned.
 - `GET /public`
+- `POST /public/district/resolve`
 - `GET /public/projects`
 - `GET /public/projects/{project:slug}`
 - `GET /public/agencies`
@@ -212,6 +214,12 @@ Public project-map data is available at `GET /public/projects/map-data`. It acce
 - `PATCH /admin/projects/map/{project}`
 - `GET /healthz`
 - `GET /version`
+
+`GET /public` accepts optional `timeline_type`, `district_id`, `publisher_id`, `date_from`, `date_to`, and `source_class` filters. Values are allowlisted and foreign keys are validated before reaching the public-safe read model. Until governed acquisition is active, `source_class=non-government` returns no compatibility records rather than misclassifying existing first-party data.
+
+`POST /public/district/resolve` accepts validated latitude and longitude only after the visitor activates **Explore my district**. It returns an allowlisted district identifier, name, and same-origin public-project URL with `Cache-Control: no-store, private`. The request does not persist coordinates; failure and denial resolve to Dhaka in the browser.
+
+`PUT /profile/districts` accepts at most eight distinct existing district IDs and replaces only the authenticated user's district preferences. `PUT /profile/notifications` retains its existing payload while additively accepting approved-change category booleans.
 
 JSON API authentication endpoints are still planned and should be implemented with Sanctum when package installation is available.
 

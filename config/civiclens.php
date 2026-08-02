@@ -63,6 +63,16 @@ return [
         'enabled' => (bool) env('CIVICLENS_EARTH_JOURNEY_ENABLED', false),
     ],
 
+    'notifications' => [
+        'categories' => [
+            'major_changes' => ['label' => 'All approved major changes', 'default' => true],
+            'procurement_updates' => ['label' => 'Procurement updates', 'default' => false],
+            'budget_updates' => ['label' => 'Budget updates', 'default' => false],
+            'audit_updates' => ['label' => 'Audit updates', 'default' => false],
+            'agency_publications' => ['label' => 'Agency publications', 'default' => false],
+        ],
+    ],
+
     'search' => [
         'provider' => env('SEARCH_PROVIDER', 'database'),
         'cache_ttl_minutes' => (int) env('SEARCH_CACHE_TTL_MINUTES', 10),
