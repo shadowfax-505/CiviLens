@@ -86,7 +86,7 @@
             <label class="text-sm"><input type="checkbox" name="is_suspended" value="1" @checked(old('is_suspended', $organization->profile?->is_suspended ?? false))> Suspended</label>
             <label class="text-sm"><input type="checkbox" name="is_blacklisted" value="1" @checked(old('is_blacklisted', $organization->profile?->is_blacklisted ?? false))> Blacklisted</label>
             <label class="text-sm"><input type="checkbox" name="is_public" value="1" @checked(old('is_public', $organization->profile?->is_public ?? true))> Public</label>
-            <div class="md:col-span-4"><button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Save contractor profile</button></div>
+            <div class="md:col-span-4"><button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Save contractor profile</button></div>
         </form>
     </section>
 

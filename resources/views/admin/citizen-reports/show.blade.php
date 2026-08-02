@@ -56,7 +56,7 @@
                 <h2 class="cl-card-title">Submission acknowledgement</h2>
                 <p class="mt-1 text-sm cl-muted">Queues a privacy-safe receipt email to the submitting citizen. Repeat sends are limited for five minutes.</p>
             </div>
-            <button class="cl-button" type="submit">Send queued-for-review email</button>
+                <button type="submit" class="cl-button">Send queued-for-review email</button>
         </form>
 
         <section class="space-y-3">

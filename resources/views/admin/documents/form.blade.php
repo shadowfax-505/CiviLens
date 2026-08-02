@@ -82,7 +82,7 @@
         </div>
 
         <div class="mt-6 flex gap-3">
-            <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">{{ $document->exists ? 'Save metadata' : 'Upload document' }}</button>
+            <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">{{ $document->exists ? 'Save metadata' : 'Upload document' }}</button>
             <a href="{{ route('admin.documents.index') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Cancel</a>
         </div>
     </form>

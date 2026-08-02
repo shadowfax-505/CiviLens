@@ -9,7 +9,12 @@
             <a href="{{ route('admin.finance.budgets.index') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Active</a>
             <a href="{{ route('admin.finance.budgets.archived') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Archived</a>
             @unless ($archived)
-                <a href="{{ route('admin.finance.budgets.create') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create budget</a>
+                @can('create', App\Models\Budget::class)
+                    <a href="{{ route('admin.finance.budgets.index') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Modify existing project budgets</a>
+                @endcan
+                @if (auth()->user()?->hasRole(config('civiclens.roles.staff')) === true)
+                    <a href="{{ route('admin.change-requests.create', ['module' => 'budgets', 'operation' => 'create', 'subject_label' => 'New budget', 'subject_url' => route('admin.finance.budgets.index')]) }}" class="rounded border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">Propose budget</a>
+                @endif
             @endunless
         </div>
     </div>

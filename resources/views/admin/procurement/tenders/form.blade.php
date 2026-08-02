@@ -20,6 +20,6 @@
         <textarea name="description" placeholder="Description" class="rounded border px-3 py-2 text-slate-950 md:col-span-2">{{ old('description', $tender->description) }}</textarea>
         <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_public" value="1" @checked(old('is_public', $tender->exists ? $tender->is_public : true))> Public tender</label>
         <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $tender->exists ? $tender->is_active : true))> Active tender</label>
-        <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save tender</button>
+        <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save tender</button>
     </form>
 </x-layouts.app>

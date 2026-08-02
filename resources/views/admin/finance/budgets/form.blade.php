@@ -20,7 +20,7 @@
         <input name="currency" value="{{ old('currency', $budget->currency ?: 'BDT') }}" maxlength="3" placeholder="Currency" class="rounded border px-3 py-2 text-slate-950">
         <textarea name="notes" placeholder="Notes" class="rounded border px-3 py-2 text-slate-950 md:col-span-2">{{ old('notes', $budget->notes) }}</textarea>
         <label class="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $budget->exists ? $budget->is_active : true))> Active budget</label>
-        <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save budget</button>
+        <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save budget</button>
     </form>
 </x-layouts.app>
 

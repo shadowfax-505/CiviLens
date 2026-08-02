@@ -140,7 +140,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('/reports/{report}/attachment', [CitizenReportController::class, 'downloadAttachment'])->name('reports.attachment');
     });
 
-    Route::prefix('admin')->name('admin.')->group(function (): void {
+    Route::prefix('admin')->name('admin.')->middleware('admin.access')->group(function (): void {
         Route::get('/system/metrics', SystemMetricsController::class)->name('system.metrics');
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
