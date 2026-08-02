@@ -4,7 +4,10 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "build:orbital": "node tools/orbital/build-orbital-assets.mjs",
+        "build:orbital-candidate": "node tools/orbital/prepare-modis-candidate.mjs",
         "dev": "vite",
+        "test:orbital": "node --test resources/js/civic-earth/bootstrap.test.mjs resources/js/civic-earth/journey-config.test.mjs tools/orbital/orbital-surface.test.mjs tools/orbital/candidate-repair.test.mjs tools/orbital/prepare-modis-candidate.test.mjs tools/orbital/refresh-workflow.test.mjs",
         "test:e2e": "playwright test",
         "test:e2e:headed": "playwright test --headed",
         "test:e2e:report": "playwright show-report"
@@ -14,11 +17,17 @@
         "@tailwindcss/vite": "^4.0.0",
         "concurrently": "^9.2.4",
         "laravel-vite-plugin": "^3.1",
+        "sharp": "^0.35.3",
         "tailwindcss": "^4.0.0",
-        "vite": "^8.0.0"
+        "vite": "^8.0.0",
+        "vite-plugin-static-copy": "4.1.1"
     },
     "dependencies": {
+        "@cesium/engine": "19.0.0",
+        "@cesium/widgets": "13.0.0",
+        "@zip.js/zip.js": "2.7.73",
         "alpinejs": "^3.15.12",
+        "cesium": "1.132.0",
         "leaflet": "^1.9.4"
     }
 }

@@ -65,3 +65,9 @@ This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read t
 - [Public Module](modules/public/README.md) - public transparency portal, safe browsing, public search, staff change requests, and citizen report moderation.
 - [Sprints](sprints/Sprint-01-Foundation.md) - delivery plans.
 - [V2 Upgrade Path](v2/V2_UPGRADE_PATH.md) - controlled evolution after v1.
+- [V2 Implementation Blueprint](v2/V2_IMPLEMENTATION_BLUEPRINT.md) - staged public UX, source ingestion, OCR, review, geospatial, compute, and release contracts.
+- [Reviewed Publication ADR](adr/ADR-010-V2-Reviewed-Publication.md) - blind review, subject response, correction, and public projection rules.
+- [Document Intelligence ADR](adr/ADR-011-V2-Document-Intelligence.md) - multilingual extraction, isolation, abstention, and flexible compute.
+- [Geospatial Privacy ADR](adr/ADR-012-V2-Geospatial-Privacy.md) - ephemeral browser location and district-only preferences.
+- [Heterogeneous Source ADR](adr/ADR-013-V2-Heterogeneous-Public-Sources.md) - government and non-governmental source provenance.
+- [Role-Specific Experience ADR](adr/ADR-014-V2-Role-Specific-Experience-Shells.md) - distinct public, citizen, staff, and administrator interfaces on shared foundations.

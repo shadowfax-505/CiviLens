@@ -3,7 +3,9 @@ import { loginAsAdmin, registerCitizen } from './helpers';
 
 test('guest can browse public portal projects procurement documents and search', async ({ page }) => {
   await page.goto('/public');
-  await expect(page.getByText('Civic Intelligence Platform')).toBeVisible();
+  await expect(page.getByRole('region', {
+    name: 'Nine-stage scroll journey from Earth orbit to public projects in Bangladesh',
+  })).toBeVisible();
 
   await page.goto('/public/projects', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Public Projects' })).toBeVisible();
