@@ -27,7 +27,6 @@
 }
 
 @media (max-width: 630px) {
-    .civic-earth__scroll,
     .civic-earth__stage {
         height: max(620px, calc(100svh - 7rem));
         min-height: 620px;
@@ -167,7 +166,4 @@
         animation-iteration-count: 1 !important;
     }
 
-    .civic-earth__scroll {
-        scroll-snap-type: y mandatory;
-    }
 }

@@ -9,19 +9,8 @@
 
 .civic-earth__scroll {
     position: relative;
-    height: min(760px, calc(100svh - 9.5rem));
-    min-height: 580px;
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior-x: contain;
-    overscroll-behavior-y: auto;
-    scrollbar-color: rgba(122, 240, 196, 0.65) rgba(255, 255, 255, 0.08);
-    scrollbar-width: thin;
-    border: 1px solid rgba(194, 255, 234, 0.2);
-    border-radius: 1.75rem;
-    background: #010407;
-    box-shadow: 0 2.5rem 7.5rem rgba(1, 9, 15, 0.4);
-    scroll-snap-type: y proximity;
+    height: 790svh;
+    overflow: visible;
 }
 
 .civic-earth__scroll:focus-visible {
@@ -29,31 +18,21 @@
     outline-offset: 3px;
 }
 
-.civic-earth__scroll::-webkit-scrollbar {
-    width: 7px;
-}
-
-.civic-earth__scroll::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-.civic-earth__scroll::-webkit-scrollbar-thumb {
-    border-radius: 999px;
-    background: linear-gradient(var(--earth-mint), var(--earth-gold), var(--earth-red));
-}
-
 .civic-earth__track {
     position: relative;
-    height: 790%;
+    height: 100%;
 }
 
 .civic-earth__stage {
     position: sticky;
-    top: 0;
+    top: 5rem;
     height: min(760px, calc(100svh - 9.5rem));
     min-height: 580px;
     overflow: hidden;
+    border: 1px solid rgba(194, 255, 234, 0.2);
+    border-radius: 1.75rem;
     background: #010407;
+    box-shadow: 0 2.5rem 7.5rem rgba(1, 9, 15, 0.4);
     isolation: isolate;
 }
 
