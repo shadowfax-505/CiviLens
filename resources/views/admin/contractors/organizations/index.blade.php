@@ -9,7 +9,12 @@
             <a href="{{ route('admin.contractors.organizations.index') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Active</a>
             <a href="{{ route('admin.contractors.organizations.archived') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Archived</a>
             @unless ($archived)
-                <a href="{{ route('admin.contractors.organizations.create') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create organization</a>
+                @can('create', App\Models\Organization::class)
+                    <a href="{{ route('admin.contractors.organizations.create') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create organization</a>
+                @endcan
+                @if (auth()->user()?->hasRole(config('civiclens.roles.staff')) === true)
+                    <a href="{{ route('admin.change-requests.create', ['module' => 'contractors', 'operation' => 'create', 'subject_label' => 'New contractor organization', 'subject_url' => route('admin.contractors.organizations.index')]) }}" class="rounded border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">Propose organization</a>
+                @endif
             @endunless
         </div>
     </div>

@@ -54,7 +54,7 @@
                         <textarea name="description" rows="4" class="mt-1 w-full rounded-lg border-slate-300 bg-white text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white">{{ old('description', $rule->description) }}</textarea>
                     </label>
                     <div class="flex flex-wrap gap-3 md:col-span-2">
-                        <button class="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-500">Save Rule</button>
+                        <button type="submit" class="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-500">Save Rule</button>
                     </div>
                 </form>
             </section>

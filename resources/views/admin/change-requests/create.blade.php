@@ -75,7 +75,7 @@
                 </label>
             </div>
 
-            <button class="rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-500">Submit Request</button>
+            <button type="submit" class="rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-500">Submit Request</button>
         </form>
     </section>
 </x-layouts.app>

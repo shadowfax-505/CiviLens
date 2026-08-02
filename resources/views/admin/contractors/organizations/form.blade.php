@@ -58,7 +58,7 @@
                 <input name="website" value="{{ old('website', $organization->website) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
             </label>
             <label class="text-sm">Email
-                <input name="email" value="{{ old('email', $organization->email) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
+                <input name="email" type="email" autocomplete="email" value="{{ old('email', $organization->email) }}" class="mt-1 w-full rounded border px-3 py-2 text-slate-950">
                 @error('email') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
             </label>
             <label class="text-sm">Phone
@@ -79,7 +79,7 @@
         </div>
 
         <div class="mt-6 flex gap-3">
-            <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Save organization</button>
+            <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Save organization</button>
             <a href="{{ route('admin.contractors.organizations.index') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Cancel</a>
         </div>
     </form>

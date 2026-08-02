@@ -9,7 +9,12 @@
             <a href="{{ route('admin.projects.index') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Active</a>
             <a href="{{ route('admin.projects.archived') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Archived</a>
             @unless ($archived)
-                <a href="{{ route('admin.projects.create') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create project</a>
+                @can('create', App\Models\Project::class)
+                    <a href="{{ route('admin.projects.create') }}" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create project</a>
+                @endcan
+                @if (auth()->user()?->hasRole(config('civiclens.roles.staff')) === true)
+                    <a href="{{ route('admin.change-requests.create', ['module' => 'projects', 'operation' => 'create', 'subject_label' => 'New project', 'subject_url' => route('admin.projects.index')]) }}" class="rounded border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">Propose project</a>
+                @endif
             @endunless
         </div>
     </div>
