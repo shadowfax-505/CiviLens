@@ -14,6 +14,6 @@ Build v2 from a separately verified v1 stabilization base. Establish architectur
 - Restore validated gap-free Civic Earth journey on the v2 branch. Status: complete.
 - Replace nested globe scrolling with document scrolling and sticky stages. Status: complete.
 - Accept v2 publication, OCR/compute, geospatial privacy, and heterogeneous-source ADRs. Status: complete.
-- Implement role-specific shells and district preference consent. Status: implemented; verification in progress.
+- Implement role-specific shells and district preference consent. Status: complete and merged.
 - Implement the compatibility recently indexed public read model. Status: implemented; governed publisher projection queued for Stage 5.
-- Implement source registry and immutable acquisition ledger. Status: next.
+- Implement source registry and immutable acquisition ledger. Status: implemented; security review and release gates in progress.

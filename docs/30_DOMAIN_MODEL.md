@@ -257,3 +257,11 @@ A Citizen Report belongs to:
 Citizen report activities form the audit timeline for submission, moderation status changes, archive, and restore actions. Public tracking uses UUIDs so internal numeric IDs are not exposed.
 
 Public project, procurement, document, agency, contractor, and search screens must read through public-safe services and must not publish private documents, internal storage paths, confidential contractor legal records, unreviewed intelligence indicators, or private analytics payloads.
+
+## Governed Source Acquisition
+
+A Source Publisher has many Source Endpoints. A Source Endpoint has many Source Crawl Runs and Discovered Resources. A Discovered Resource has immutable Source Artifact Versions ordered by `version_number`; a changed version references the previous version through `supersedes_id`.
+
+Discovery and acquisition are separate. A crawl run records candidates and dispatches rate-limited artifact jobs. A fetched artifact keeps the publisher link, source class through its endpoint, checksums, retrieval metadata, private storage location, and quarantine decision. Unchanged checksums reuse the existing artifact version.
+
+An artifact may link to one existing Document Version only after Stage 4 accepts it. That link does not make the artifact public. Reviewed summaries, subject responses, and public publication versions remain separate Stage 5 aggregates.

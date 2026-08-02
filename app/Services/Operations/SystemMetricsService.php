@@ -3,6 +3,10 @@
 namespace App\Services\Operations;
 
 use App\Models\CivicIntelligenceRun;
+use App\Models\SourceArtifactVersion;
+use App\Models\SourceCrawlRun;
+use App\Models\SourceEndpoint;
+use App\Models\SourcePublisher;
 use DateTimeInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -74,6 +78,7 @@ class SystemMetricsService
             'scheduler' => [
                 'configured' => true,
                 'integrity_command' => 'civiclens:integrity-run',
+                'source_dispatch_command' => 'civiclens:sources-dispatch',
                 'frequency' => 'daily',
             ],
             'integrity' => [
@@ -81,6 +86,7 @@ class SystemMetricsService
                 'failed_runs' => CivicIntelligenceRun::query()->where('status', 'failed')->count(),
                 'last_run' => $this->latestIntegrityRun(),
             ],
+            'ingestion' => $this->ingestion(),
             'generated_at' => date(DATE_ATOM),
         ];
     }
@@ -150,6 +156,26 @@ class SystemMetricsService
         return [
             'ok' => CivicIntelligenceRun::query()->where('status', 'failed')->where('started_at', '>=', now()->subDay())->doesntExist(),
             'last_run' => $this->latestIntegrityRun(),
+        ];
+    }
+
+    /** @return array<string, int|string|bool> */
+    private function ingestion(): array
+    {
+        if (! Schema::hasTable('source_endpoints')) {
+            return ['enabled' => (bool) config('civiclens.ingestion.enabled'), 'ready' => false];
+        }
+
+        return [
+            'enabled' => (bool) config('civiclens.ingestion.enabled'),
+            'ready' => true,
+            'publishers' => SourcePublisher::query()->where('is_active', true)->count(),
+            'endpoints' => SourceEndpoint::query()->count(),
+            'paused_endpoints' => SourceEndpoint::query()->whereNotNull('paused_at')->count(),
+            'failing_endpoints' => SourceEndpoint::query()->where('health_status', 'failing')->count(),
+            'runs_last_24_hours' => SourceCrawlRun::query()->where('started_at', '>=', now()->subDay())->count(),
+            'failed_runs_last_24_hours' => SourceCrawlRun::query()->whereIn('status', ['failed', 'completed_with_errors'])->where('started_at', '>=', now()->subDay())->count(),
+            'quarantined_artifacts' => SourceArtifactVersion::query()->where('is_quarantined', true)->count(),
         ];
     }
 

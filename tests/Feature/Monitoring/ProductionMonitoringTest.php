@@ -62,6 +62,7 @@ it('exposes admin-only operational metrics', function (): void {
     $this->actingAs($admin)->getJson('/admin/system/metrics')
         ->assertOk()
         ->assertJsonPath('integrity.runs_total', 1)
+        ->assertJsonPath('ingestion.ready', true)
         ->assertJsonStructure([
             'application',
             'database',
@@ -69,6 +70,7 @@ it('exposes admin-only operational metrics', function (): void {
             'queue',
             'scheduler',
             'integrity',
+            'ingestion',
             'generated_at',
         ]);
 });

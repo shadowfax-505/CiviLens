@@ -40,6 +40,10 @@ Production hardening extends, rather than rebuilds, Sprint 13 part 1. `/dashboar
 
 Stable v1.0.0 finalizes CivicLens without adding new business modules, public API expansion, v2 AI infrastructure, OCR, LLMs, embeddings, vector search, semantic search, machine learning, recommendation systems, microservices, GraphQL, or experimental packages.
 
+## V2 Stage 3 Memory
+
+V2 governed acquisition adds approved government/non-government publishers and endpoints, provider-neutral connector contracts, scheduler and queue jobs, private checksum-addressed artifact versions, malware quarantine, SSRF/redirect/content/MIME controls, pause/resume operations, and admin-only metrics. It extends the existing document lifecycle and exposes no acquired body publicly. Stage 4 begins only from clean artifacts.
+
 ## Required Reading
 
 - `docs/ENGINEERING_DIRECTIVE.md`
