@@ -28,7 +28,7 @@
                         <span>CivicLens</span>
                     </a>
                     <span class="civic-earth__stage-count">Earth → Bangladesh · 9 stages</span>
-                    <a class="civic-earth__enter" href="{{ route('public.projects.index') }}">Explore projects ↗</a>
+                    <a class="civic-earth__enter" href="#recently-indexed">See public evidence ↓</a>
                 </header>
 
                 <div class="civic-earth__science" aria-label="Scene information">
@@ -43,7 +43,7 @@
                     <h1 class="civic-earth__title" data-earth-title>One living Earth.<br><span class="accent">Bangladesh in context.</span></h1>
                     <p class="civic-earth__lede" data-earth-lede>A deep-space establishing view shows the whole WGS84 planet, recent cloud systems, atmosphere, and a physically valid day–night edge.</p>
                     <div class="civic-earth__actions">
-                        <a class="civic-earth__primary" href="{{ route('public.projects.index') }}">Explore public data →</a>
+                        @include('public.partials.district-explorer')
                         <a class="civic-earth__secondary" href="{{ route('public.search') }}">Search evidence</a>
                     </div>
                     <p class="civic-earth__hint"><i aria-hidden="true"></i><span data-earth-hint>Scroll inside this scene to descend</span></p>

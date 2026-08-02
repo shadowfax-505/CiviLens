@@ -16,6 +16,8 @@ The Identity module owns authentication, account security, profile management, r
 - Avatar upload to the public disk.
 - Password change with current-password validation.
 - Notification preferences.
+- Approved-change category preferences with major changes enabled by default.
+- Saved district-ID preferences without precise browser-location retention.
 - Account activity list.
 - Administrator user list with search, status filtering, sorting, pagination, eager-loaded roles, and account actions.
 - Administrator user creation with temporary passwords, role assignment, and unverified-by-default onboarding.
@@ -37,6 +39,8 @@ The Identity module owns authentication, account security, profile management, r
 - `password_reset_tokens`
 - `sessions`
 - `email_verification_otps`
+- `user_district_preferences`
+- `user_notification_preferences`
 
 ## Authorization
 
@@ -50,4 +54,4 @@ The web IAM module is implemented. Token-based API authentication remains blocke
 
 ## V2 Notes
 
-V2 may add organization-scoped roles, API access tiers, public dataset tokens, and richer security event analytics.
+V2 now provides distinct citizen, staff, and administrator experience shells over the existing policy boundary, plus district and notification preferences. Organization-scoped roles, API access tiers, public dataset tokens, and richer security event analytics remain future work.

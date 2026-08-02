@@ -6,7 +6,9 @@ The Public module exposes approved civic information to guests and citizens whil
 
 ## Implemented Scope
 
-- About-first public landing page, project explorer, agency profiles, procurement summaries, document library, and public search.
+- Nine-stage Earth-to-Dhaka landing journey followed by district exploration, a mixed recently-indexed timeline, project explorer, agency profiles, procurement summaries, document library, and public search.
+- Interaction-gated ephemeral browser-location resolution with no coordinate retention and a Dhaka fallback.
+- Validated timeline filters for record type, district, publisher, date, and government/non-government source class.
 - Public procurement award notices for approved awards with public disclosure status.
 - Public project detail pages composed through public-safe services, including map display when project coordinates exist.
 - Public portfolio map markers are read-only, capped, viewport-validated, and explicitly allowlisted; unpublished, inactive, archived, and incompletely located projects are excluded.
@@ -29,4 +31,4 @@ Public records are default-deny. Projects and tenders must be public, active, an
 
 ## V2 Notes
 
-Public APIs, open-data exports, maps, semantic search, OCR publication, and AI public summaries remain deferred.
+Governed publisher acquisition, public APIs, open-data exports, semantic search, OCR publication, and AI public summaries remain deferred. The current recently-indexed timeline is a compatibility projection of existing public-safe records and will switch to reviewed publication records without changing its public interaction contract.

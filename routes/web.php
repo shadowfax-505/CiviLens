@@ -55,6 +55,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPortal\CitizenReportController;
 use App\Http\Controllers\PublicPortal\PublicAgencyController;
 use App\Http\Controllers\PublicPortal\PublicContractorController;
+use App\Http\Controllers\PublicPortal\PublicDistrictLocatorController;
 use App\Http\Controllers\PublicPortal\PublicDocumentController;
 use App\Http\Controllers\PublicPortal\PublicHomeController;
 use App\Http\Controllers\PublicPortal\PublicProcurementController;
@@ -74,6 +75,9 @@ Route::get('/about', PublicHomeController::class)->name('public.about');
 
 Route::prefix('public')->name('public.')->group(function (): void {
     Route::get('/', PublicHomeController::class)->name('legacy-home');
+    Route::post('/district/resolve', PublicDistrictLocatorController::class)
+        ->middleware('throttle:30,1')
+        ->name('district.resolve');
     Route::get('/projects', [PublicProjectController::class, 'index'])->name('projects.index');
     Route::get('/projects/map-data', PublicProjectMapDataController::class)->middleware('throttle:60,1')->name('projects.map-data');
     Route::get('/projects/{project:slug}', [PublicProjectController::class, 'show'])->name('projects.show');
@@ -128,6 +132,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
     Route::put('/profile/notifications', [ProfileController::class, 'updateNotifications'])->name('profile.notifications');
+    Route::put('/profile/districts', [ProfileController::class, 'updateDistricts'])->name('profile.districts');
 
     Route::get('/public/reports/create', [CitizenReportController::class, 'create'])->name('public.reports.create');
     Route::post('/public/reports', [CitizenReportController::class, 'store'])

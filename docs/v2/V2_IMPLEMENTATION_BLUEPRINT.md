@@ -145,5 +145,7 @@ Distributed training is optional and requires compatible machines, a fast networ
 - Complete: clean v1 stabilization base, secure dependency locks, permission-safe public visibility, and staff proposal access.
 - Complete: locally packaged Cesium, validated gap-free NASA imagery, fail-closed imagery refresh, permission-safe public markers, and static fallback.
 - Complete: normal page scrolling drives the exact nine-stage Earth journey on desktop and mobile.
-- Next: role-specific application shells and the district preference/location consent contract.
-- Then: source registry and recently indexed read model before governed connectors, native extraction, or OCR execution.
+- Complete: shared semantic UI foundations with distinct public, citizen, staff, and administrator shells.
+- Complete: interaction-gated ephemeral location resolution, Dhaka fallback, and authenticated district-ID preferences without coordinate retention.
+- Complete: the compatibility recently-indexed read model over existing public-safe projects, procurement, and documents, including validated type, district, publisher, date, and source-class filters.
+- Next: the governed source registry, immutable acquisition ledger, connector jobs, and publisher-backed timeline projection before native extraction or OCR execution.

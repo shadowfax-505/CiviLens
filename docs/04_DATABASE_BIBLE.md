@@ -19,6 +19,7 @@ The database is the strongest part of CivicLens. V1 should demonstrate normaliza
 - `intelligence_rules`, `intelligence_indicators`, `intelligence_evidence`, `intelligence_reviews`, `civic_intelligence_runs`, `intelligence_rule_audits`
 - `citizen_reports`, `citizen_report_activities`
 - `change_requests`, `change_request_activities`
+- `user_district_preferences`, `user_notification_preferences`
 
 ## Index Strategy
 
@@ -375,6 +376,12 @@ Indexes were added for account state and account activity lookup:
 - `account_activities.actor_id + event`
 
 The custom role foundation seeds `admin`, `staff`, and `citizen` roles. See `docs/adr/ADR-007-Custom-Role-Permission-Foundation.md`.
+
+## V2 Experience Preferences
+
+`user_district_preferences` stores only the district IDs explicitly selected by an authenticated user. Its composite primary key prevents duplicate selections, both foreign keys cascade safely, and the reverse `(district_id, user_id)` index supports district audiences. Precise browser coordinates, accuracy, and location history are never persisted.
+
+`user_notification_preferences` normalizes approved civic-change categories by user while the existing `users.notification_preferences` JSON remains a compatibility projection for appearance and established notification settings. The unique `(user_id, category)` key makes updates idempotent; `(category, enabled)` supports notification fan-out. Major approved changes default on in the application contract, while users may choose a custom category set.
 
 ## V2 Expansion Notes
 
