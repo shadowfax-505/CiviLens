@@ -27,6 +27,9 @@
         --cl-ring: #0f766e;
         --cl-accent: #0ea5e9;
         --cl-warm: #b7791f;
+        --cl-shell-accent: #0f766e;
+        --cl-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+        --cl-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
     }
 
     .dark {
@@ -163,6 +166,18 @@
         min-height: 100vh;
     }
 
+    .cl-app-shell--administrator {
+        --cl-shell-accent: #7c3aed;
+    }
+
+    .cl-app-shell--staff {
+        --cl-shell-accent: #0369a1;
+    }
+
+    .cl-app-shell--citizen {
+        --cl-shell-accent: #047857;
+    }
+
     .cl-topbar {
         position: sticky;
         top: 0;
@@ -178,6 +193,26 @@
         align-items: center;
         gap: 1rem;
         padding: 0.75rem 1rem;
+    }
+
+    .cl-shell-label {
+        display: block;
+        color: var(--cl-shell-accent);
+        font-size: 0.68rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .cl-topbar-context {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+        color: var(--cl-text-muted);
+        font-size: 0.78rem;
+        font-weight: 650;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .cl-brand {
@@ -267,6 +302,12 @@
         transform: translateY(-1px);
         filter: saturate(1.08);
         box-shadow: 0 16px 38px rgba(15, 118, 110, 0.32);
+    }
+
+    .cl-button-primary:active,
+    a.cl-button-primary:active,
+    .cl-button:active {
+        transform: scale(0.97);
     }
 
     .cl-user-menu {
@@ -370,6 +411,207 @@
         width: min(100%, 96rem);
         margin: 0 auto;
         padding: 1rem;
+    }
+
+    .cl-shell-grid--workspace {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .cl-shell-grid--immersive {
+        width: 100%;
+        max-width: none;
+        padding: 0;
+    }
+
+    .cl-shell-grid--immersive .cl-main {
+        padding: 0;
+    }
+
+    .cl-shell-grid--immersive .civic-earth__stage {
+        top: 0;
+        height: min(760px, 100svh);
+        border-radius: 0 0 1.75rem 1.75rem;
+    }
+
+    .cl-role-rail {
+        min-width: 0;
+        align-self: start;
+        border: 1px solid var(--cl-border);
+        border-radius: 1rem;
+        background: color-mix(in srgb, var(--cl-surface-strong) 88%, transparent);
+        box-shadow: 0 18px 54px rgba(15, 23, 42, 0.08);
+        backdrop-filter: blur(20px);
+    }
+
+    .cl-role-rail__heading {
+        display: grid;
+        gap: 0.15rem;
+        border-bottom: 1px solid var(--cl-border);
+        padding: 1rem;
+    }
+
+    .cl-role-rail__heading span {
+        color: #0f172a;
+        font-weight: 900;
+    }
+
+    .dark .cl-role-rail__heading span {
+        color: #f8fafc;
+    }
+
+    .cl-role-rail__heading small {
+        color: var(--cl-shell-accent);
+        font-size: 0.68rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .cl-role-nav {
+        display: flex;
+        gap: 0.35rem;
+        overflow-x: auto;
+        padding: 0.65rem;
+    }
+
+    .cl-role-nav__link {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 0.65rem;
+        border-radius: 0.7rem;
+        padding: 0.65rem 0.75rem;
+        color: var(--cl-text-muted);
+        font-size: 0.8rem;
+        font-weight: 760;
+        text-decoration: none;
+        transition: color 160ms var(--cl-ease-out), background-color 160ms var(--cl-ease-out), transform 140ms var(--cl-ease-out);
+    }
+
+    .cl-role-nav__link > span {
+        width: 0.42rem;
+        height: 0.42rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--cl-shell-accent) 36%, transparent);
+    }
+
+    .cl-role-nav__link:hover,
+    .cl-role-nav__link:focus-visible,
+    .cl-role-nav__link.is-active {
+        background: color-mix(in srgb, var(--cl-shell-accent) 11%, transparent);
+        color: var(--cl-shell-accent);
+        outline: none;
+    }
+
+    .cl-role-nav__link.is-active > span {
+        background: var(--cl-shell-accent);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--cl-shell-accent) 13%, transparent);
+    }
+
+    .cl-public-story {
+        width: min(100% - 2rem, 92rem);
+        margin: 0 auto;
+        padding: clamp(3rem, 7vw, 7rem) 0;
+    }
+
+    .cl-district-explorer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.7rem;
+    }
+
+    .cl-district-explorer__status {
+        color: inherit;
+        font-size: 0.72rem;
+        font-weight: 720;
+        opacity: 0.78;
+    }
+
+    .cl-district-explorer__button {
+        min-height: 2.75rem;
+        border: 0;
+        border-radius: 999px;
+        padding: 0.72rem 1.05rem;
+        font-size: 0.78rem;
+        font-weight: 900;
+        transition: transform 150ms var(--cl-ease-out), filter 150ms var(--cl-ease-out), box-shadow 150ms var(--cl-ease-out);
+    }
+
+    .cl-district-explorer__button:active {
+        transform: scale(0.97);
+    }
+
+    .cl-district-explorer__button:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--cl-ring) 44%, transparent);
+        outline-offset: 3px;
+    }
+
+    .cl-district-explorer__button[aria-busy='true'] {
+        cursor: progress;
+        filter: saturate(0.65);
+    }
+
+    .cl-timeline {
+        position: relative;
+        display: grid;
+        gap: 0.85rem;
+    }
+
+    .cl-timeline::before {
+        position: absolute;
+        top: 0.7rem;
+        bottom: 0.7rem;
+        left: 0.35rem;
+        width: 1px;
+        background: var(--cl-border);
+        content: '';
+    }
+
+    .cl-timeline-item {
+        position: relative;
+        display: grid;
+        gap: 0.55rem;
+        margin-left: 1.5rem;
+        border: 1px solid var(--cl-border);
+        border-radius: 1rem;
+        background: var(--cl-surface-strong);
+        padding: 1rem;
+        text-decoration: none;
+        box-shadow: 0 10px 32px rgba(15, 23, 42, 0.06);
+        transition: transform 180ms var(--cl-ease-out), border-color 180ms var(--cl-ease-out), box-shadow 180ms var(--cl-ease-out);
+    }
+
+    .cl-timeline-item::before {
+        position: absolute;
+        top: 1.25rem;
+        left: -1.55rem;
+        width: 0.72rem;
+        height: 0.72rem;
+        border: 2px solid var(--cl-surface-strong);
+        border-radius: 999px;
+        background: var(--cl-shell-accent);
+        box-shadow: 0 0 0 1px var(--cl-shell-accent);
+        content: '';
+    }
+
+    .cl-timeline-item:focus-visible {
+        border-color: var(--cl-ring);
+        outline: 3px solid color-mix(in srgb, var(--cl-ring) 22%, transparent);
+        outline-offset: 2px;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        .cl-role-nav__link:hover {
+            transform: translateX(2px);
+        }
+
+        .cl-timeline-item:hover {
+            border-color: color-mix(in srgb, var(--cl-shell-accent) 35%, var(--cl-border));
+            box-shadow: 0 16px 42px rgba(15, 23, 42, 0.1);
+            transform: translateY(-2px);
+        }
     }
 
     .cl-card,
@@ -842,7 +1084,7 @@
         font-size: 0.82rem;
         font-weight: 700;
         text-decoration: none;
-        transition: all 180ms ease;
+        transition: border-color 180ms var(--cl-ease-out), color 180ms var(--cl-ease-out), transform 180ms var(--cl-ease-out), box-shadow 180ms var(--cl-ease-out);
     }
 
     .cl-about-nav-link:hover {
@@ -856,7 +1098,7 @@
         margin-left: auto;
         opacity: 0;
         transform: translateX(-4px);
-        transition: all 180ms ease;
+        transition: opacity 180ms var(--cl-ease-out), transform 180ms var(--cl-ease-out);
     }
 
     .cl-about-nav-link:hover .cl-about-nav-arrow {
@@ -881,6 +1123,12 @@
     }
 }
 
+.cl-shell-grid--immersive .civic-earth__stage {
+    top: 0;
+    height: min(760px, 100svh);
+    border-radius: 0 0 1.75rem 1.75rem;
+}
+
 @media (min-width: 1024px) {
     .cl-topbar-inner {
         padding-inline: 1.5rem;
@@ -890,9 +1138,59 @@
         padding: 1.5rem;
     }
 
+    .cl-shell-grid--workspace {
+        grid-template-columns: 15.5rem minmax(0, 1fr);
+    }
+
+    .cl-shell-grid--immersive {
+        display: block;
+        padding: 0;
+    }
+
+    .cl-role-rail {
+        position: sticky;
+        top: 5.65rem;
+        max-height: calc(100svh - 7.2rem);
+        overflow-y: auto;
+    }
+
+    .cl-role-nav {
+        flex-direction: column;
+        overflow: visible;
+    }
+
     .cl-footer {
         flex-direction: row;
         justify-content: space-between;
         padding-inline: 1.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cl-about-fade,
+    .cl-about-orb,
+    .cl-about-hero::after {
+        animation: none !important;
+    }
+
+    .cl-card,
+    .cl-button-primary,
+    .cl-role-nav__link,
+    .cl-timeline-item {
+        transform: none !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+@media (max-width: 630px) {
+    .cl-shell-grid--immersive .civic-earth__stage {
+        height: max(620px, 100svh);
+        border-radius: 0 0 1.35rem 1.35rem;
+    }
+}
+
+@media (max-height: 700px) and (min-width: 631px) {
+    .civic-earth__hint {
+        display: none;
     }
 }

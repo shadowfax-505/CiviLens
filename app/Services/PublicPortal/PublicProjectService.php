@@ -27,6 +27,7 @@ class PublicProjectService
             })
             ->when($filters['agency_id'] ?? null, fn ($builder, int $agencyId) => $builder->where('agency_id', $agencyId))
             ->when($filters['status_id'] ?? null, fn ($builder, int $statusId) => $builder->where('project_status_id', $statusId))
+            ->when($filters['district_id'] ?? null, fn ($builder, int $districtId) => $builder->where('district_id', $districtId))
             ->latest()
             ->paginate(12)
             ->withQueryString();

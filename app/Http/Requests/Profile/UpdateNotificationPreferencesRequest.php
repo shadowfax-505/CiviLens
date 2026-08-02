@@ -16,10 +16,21 @@ class UpdateNotificationPreferencesRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'email_reports' => ['nullable', 'boolean'],
             'security_alerts' => ['nullable', 'boolean'],
             'appearance' => ['nullable', 'in:system,light,dark'],
         ];
+
+        $categories = config('civiclens.notifications.categories', []);
+        if (is_array($categories)) {
+            foreach ($categories as $category => $definition) {
+                if (is_string($category)) {
+                    $rules[$category] = ['nullable', 'boolean'];
+                }
+            }
+        }
+
+        return $rules;
     }
 }

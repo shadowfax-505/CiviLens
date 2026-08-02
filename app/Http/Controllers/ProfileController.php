@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Profile\UpdateAvatarRequest;
+use App\Http\Requests\Profile\UpdateDistrictPreferencesRequest;
 use App\Http\Requests\Profile\UpdateNotificationPreferencesRequest;
 use App\Http\Requests\Profile\UpdatePasswordRequest;
 use App\Http\Requests\Profile\UpdateProfileRequest;
+use App\Models\District;
 use App\Services\Identity\AccountActivityLogger;
 use App\Support\Http\AuthenticatedUser;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +27,13 @@ class ProfileController extends Controller
             ->limit(20)
             ->get();
 
-        return view('profile.show', ['user' => $user, 'activities' => $activities]);
+        return view('profile.show', [
+            'user' => $user,
+            'activities' => $activities,
+            'districts' => District::query()->orderBy('name')->get(['id', 'name']),
+            'selectedDistrictIds' => $user->preferredDistricts()->pluck('districts.id')->all(),
+            'notificationCategories' => config('civiclens.notifications.categories', []),
+        ]);
     }
 
     public function update(UpdateProfileRequest $request, AccountActivityLogger $activityLogger): RedirectResponse
@@ -57,17 +65,45 @@ class ProfileController extends Controller
     public function updateNotifications(UpdateNotificationPreferencesRequest $request, AccountActivityLogger $activityLogger): RedirectResponse
     {
         $user = AuthenticatedUser::from($request);
+        $current = $user->notification_preferences;
+        if (! is_array($current)) {
+            $current = [];
+        }
+        $categories = config('civiclens.notifications.categories', []);
+        $categoryPreferences = [];
+
+        foreach ($categories as $category => $definition) {
+            $enabled = $request->has($category)
+                ? $request->boolean($category)
+                : (bool) ($current[$category] ?? $definition['default']);
+            $categoryPreferences[$category] = $enabled;
+            $user->notificationPreferences()->updateOrCreate(
+                ['category' => $category],
+                ['enabled' => $enabled],
+            );
+        }
+
         $user->forceFill([
-            'notification_preferences' => [
+            'notification_preferences' => array_replace($current, [
                 'email_reports' => $request->boolean('email_reports'),
                 'security_alerts' => $request->boolean('security_alerts'),
                 'appearance' => $request->validated('appearance', 'system'),
-            ],
+            ], $categoryPreferences),
         ])->save();
 
         $activityLogger->log($user, 'notifications.updated', $request, $user);
 
         return redirect()->route('settings.show')->with('status', 'notifications-updated');
+    }
+
+    public function updateDistricts(UpdateDistrictPreferencesRequest $request, AccountActivityLogger $activityLogger): RedirectResponse
+    {
+        $user = AuthenticatedUser::from($request);
+        $user->preferredDistricts()->sync($request->validated('district_ids', []));
+
+        $activityLogger->log($user, 'district-preferences.updated', $request, $user);
+
+        return redirect()->route('settings.show')->with('status', 'district-preferences-updated');
     }
 
     public function updatePassword(UpdatePasswordRequest $request, AccountActivityLogger $activityLogger): RedirectResponse
