@@ -20,3 +20,8 @@
 | Implement public transparency as curated public web views with authenticated, moderated citizen reports | Accepted | Documented in `docs/modules/public/README.md` |
 | Implement Sprint 13 part 1 production readiness and deterministic Civic Integrity Engine without OCR, LLMs, embeddings, vector search, semantic search, AI agents, or legal conclusions | Accepted | Documented in `docs/06_INTELLIGENCE_LAYER.md` and `docs/modules/intelligence/README.md` |
 | Complete Sprint 13 part 2 by hardening existing dashboards, reporting, monitoring, request correlation, and audited rule management without introducing v2 AI infrastructure | Accepted | Documented in `docs/03_SYSTEM_ARCHITECTURE.md`, `docs/14_MONITORING.md`, and module docs |
+| Publish v2 interpretations only through blind review, subject response where applicable, and versioned public projections | Accepted | `docs/adr/ADR-010-V2-Reviewed-Publication.md` |
+| Run multilingual extraction as isolated, versioned, CPU-capable queue work with an abstention path | Accepted | `docs/adr/ADR-011-V2-Document-Intelligence.md` |
+| Use browser location ephemerally and store only selected district IDs | Accepted | `docs/adr/ADR-012-V2-Geospatial-Privacy.md` |
+| Include government and non-governmental public sources with explicit, separate provenance | Accepted | `docs/adr/ADR-013-V2-Heterogeneous-Public-Sources.md` |
+| Use separate public, citizen, staff, and administrator shells over shared design and authorization foundations | Accepted | `docs/adr/ADR-014-V2-Role-Specific-Experience-Shells.md` |

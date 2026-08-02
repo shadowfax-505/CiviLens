@@ -1,11 +1,10 @@
 # Next Steps
 
-1. Prepare CivicLens v1 deployment and academic submission artifacts from the completed Sprint 13 implementation.
-2. Do not begin v2 AI infrastructure until CivicLens v1 deployment is complete and ADR-backed.
-3. Install Sanctum and implement token API auth when package access is available.
-4. Configure production MySQL, Redis, storage, mail, queue, scheduler, and backup infrastructure from `.env.production.example`.
-5. Implement future Scout, Meilisearch, or OpenSearch providers behind `SearchProvider` only when external services are available.
-6. Consider PHPMD or another maintainability package when package installation approval is available.
-7. Add scheduled report delivery and richer XLSX/PDF rendering packages only when package installation is available and justified.
-8. Promote OCR/AI preparation jobs into real providers only after ADR-backed v2 planning.
-9. Update docs after each implementation sprint.
+1. Implement shared design tokens with separate citizen, staff, and administrator shells.
+2. Add district preferences and an ephemeral, consent-based browser location suggestion with Dhaka fallback.
+3. Add the governed source registry and immutable acquisition ledger before any crawler runs.
+4. Build the recently indexed read model with source-class, document-type, publisher, date, and geography filters.
+5. Replace unmanaged regional Earth tiles with configured licensed or self-hosted providers before production enablement.
+6. Implement native-text extraction and isolated Tesseract `ben+eng` workers with one enhanced retry and abstention.
+7. Implement blind review, tie-break, subject response, re-review, and versioned publication before model output is public.
+8. Keep public API, semantic search, and model fine-tuning behind later ADR-backed milestones.
