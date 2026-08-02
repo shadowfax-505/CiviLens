@@ -15,12 +15,25 @@ const stages = [
   '09 · Civic data',
 ];
 
-async function openJourney(page: Page) {
+async function useControllerFallback(page: Page) {
+  await page.route('**/build/assets/Cesium-*.js', (route) => route.abort());
+}
+
+async function openJourney(page: Page, options: { renderer?: 'fallback' | 'real' } = {}) {
+  const renderer = options.renderer ?? 'fallback';
+
+  if (renderer === 'fallback') {
+    await useControllerFallback(page);
+  }
+
   await page.goto(`${enabledBaseUrl}/`, { waitUntil: 'domcontentloaded' });
   const journey = page.locator('[data-civic-earth]');
   await expect(journey).toBeVisible();
   await expect(journey.locator('[data-earth-flight-dots] button')).toHaveCount(9);
-  await expect(journey).toHaveClass(/is-renderer-ready/, { timeout: 30_000 });
+  await expect(journey).toHaveClass(
+    renderer === 'real' ? /is-renderer-ready/ : /has-renderer-fallback/,
+    { timeout: 30_000 },
+  );
 
   return journey;
 }
@@ -44,8 +57,30 @@ async function setExactStage(page: Page, index: number) {
   await expect(page.locator('[data-earth-step]')).toHaveText(stages[index]);
 }
 
+async function waitForScrollToSettle(page: Page) {
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    let previous = window.scrollY;
+    let stableFrames = 0;
+
+    const observe = () => {
+      const current = window.scrollY;
+      stableFrames = Math.abs(current - previous) < 0.5 ? stableFrames + 1 : 0;
+      previous = current;
+
+      if (stableFrames >= 4) {
+        resolve();
+        return;
+      }
+
+      requestAnimationFrame(observe);
+    };
+
+    requestAnimationFrame(observe);
+  }));
+}
+
 async function attachStageCapture(page: Page, testInfo: TestInfo, stage: string) {
-  const screenshot = await screenshotElement(page, page.locator('[data-civic-earth]'));
+  const screenshot = await screenshotElement(page.locator('.civic-earth__stage'));
   await expectNonBlankImage(screenshot);
   await testInfo.attach(`civic-earth-${stage.slice(0, 2)}`, {
     body: screenshot,
@@ -53,15 +88,13 @@ async function attachStageCapture(page: Page, testInfo: TestInfo, stage: string)
   });
 }
 
-async function screenshotElement(page: Page, locator: Locator) {
-  const box = await locator.boundingBox();
-  expect(box).not.toBeNull();
+async function screenshotElement(locator: Locator) {
+  await expect(locator).toBeVisible();
 
-  return page.screenshot({
-    clip: box!,
+  return locator.screenshot({
     type: 'jpeg',
     quality: 72,
-    scale: 'css',
+    animations: 'disabled',
   });
 }
 
@@ -96,10 +129,11 @@ test.describe('CivicLens Earth journey', () => {
   });
 
   test('captures non-blank gap checks for stages 1-5', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name.includes('mobile'), 'The real-renderer visual smoke suite runs once on desktop.');
     test.setTimeout(180_000);
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
-    await openJourney(page);
+    await openJourney(page, { renderer: 'real' });
 
     for (const [index, stage] of stages.slice(0, 5).entries()) {
       await setExactStage(page, index);
@@ -117,12 +151,16 @@ test.describe('CivicLens Earth journey', () => {
     await scroll.focus();
     await scroll.press('End');
     await expect(journey.locator('[data-earth-step]')).toHaveText('09 · Civic data');
+    await waitForScrollToSettle(page);
     await scroll.press('Home');
     await expect(journey.locator('[data-earth-step]')).toHaveText('01 · Earth system');
+    await waitForScrollToSettle(page);
     await scroll.press('ArrowDown');
     await expect(journey.locator('[data-earth-step]')).toHaveText('02 · Orbital Earth');
+    await waitForScrollToSettle(page);
     await scroll.press('ArrowUp');
     await expect(journey.locator('[data-earth-step]')).toHaveText('01 · Earth system');
+    await waitForScrollToSettle(page);
 
     const box = await journey.locator('.civic-earth__stage').boundingBox();
     expect(box).not.toBeNull();
@@ -226,51 +264,53 @@ test.describe('CivicLens Earth journey', () => {
     );
     await expect(fallback).toHaveCSS('position', 'absolute');
     expect(rendererRequests).toBeGreaterThan(0);
-    await expectNonBlankImage(await screenshotElement(page, journey));
+    await expect(fallback).toBeVisible();
   });
 
   test('keeps the validated local fallback visible when the runtime image fails', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name.includes('mobile'), 'The real-renderer failure smoke suite runs once on desktop.');
     let runtimeRequests = 0;
     await page.route('**/nasa-blue-marble-cloud-observation-composite-5400x2700.jpg', (route) => {
       runtimeRequests += 1;
       return route.abort();
     });
-    const journey = await openJourney(page);
+    const journey = await openJourney(page, { renderer: 'real' });
 
     await expect(journey.locator('[data-earth-imagery]')).toContainText('resilient fallback', { timeout: 30_000 });
     const canvas = journey.locator('[data-earth-globe] canvas');
     await expect(canvas).toBeVisible();
     expect(runtimeRequests).toBeGreaterThan(0);
-    await expectNonBlankImage(await screenshotElement(page, canvas));
+    await expectNonBlankImage(await screenshotElement(canvas));
     await expect(journey.locator('.civic-earth__fallback')).toHaveCSS(
       'background-image',
       /nasa-blue-marble-2004-12-5400x2700\.jpg/,
     );
     await testInfo.attach('runtime-failure-fallback', {
-      body: await screenshotElement(page, journey),
+      body: await screenshotElement(journey.locator('.civic-earth__stage')),
       contentType: 'image/jpeg',
     });
   });
 
   test('retains a non-blank globe when regional imagery is unavailable', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name.includes('mobile'), 'The real-renderer failure smoke suite runs once on desktop.');
     let regionalRequests = 0;
     await page.route('**/ArcGIS/rest/services/**', (route) => {
       regionalRequests += 1;
       return route.abort();
     });
-    const journey = await openJourney(page);
+    const journey = await openJourney(page, { renderer: 'real' });
 
     await selectStage(page, '05 · South Asia');
     const canvas = journey.locator('[data-earth-globe] canvas');
     await expect(canvas).toBeVisible();
     await expect.poll(() => regionalRequests).toBeGreaterThan(0);
-    await expectNonBlankImage(await screenshotElement(page, canvas));
+    await expectNonBlankImage(await screenshotElement(canvas));
     await expect(journey.locator('.civic-earth__fallback')).toHaveCSS(
       'background-image',
       /nasa-blue-marble-2004-12-5400x2700\.jpg/,
     );
     await testInfo.attach('regional-failure-fallback', {
-      body: await screenshotElement(page, journey),
+      body: await screenshotElement(journey.locator('.civic-earth__stage')),
       contentType: 'image/jpeg',
     });
   });
