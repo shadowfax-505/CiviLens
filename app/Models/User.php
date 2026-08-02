@@ -53,6 +53,22 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(Agency::class)->withPivot('relationship')->withTimestamps();
     }
 
+    /**
+     * @return BelongsToMany<District, $this>
+     */
+    public function preferredDistricts(): BelongsToMany
+    {
+        return $this->belongsToMany(District::class, 'user_district_preferences')->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<UserNotificationPreference, $this>
+     */
+    public function notificationPreferences(): HasMany
+    {
+        return $this->hasMany(UserNotificationPreference::class);
+    }
+
     public function hasRole(string $slug): bool
     {
         return $this->roles()->where('slug', $slug)->exists();

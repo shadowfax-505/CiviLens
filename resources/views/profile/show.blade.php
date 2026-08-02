@@ -67,13 +67,28 @@
                     <h2 class="cl-card-title mt-1">Notification Preferences</h2>
                 </div>
                 <label class="flex items-center gap-3 rounded-lg border border-slate-200 bg-white/60 px-3 py-2 text-sm font-semibold dark:border-slate-800 dark:bg-slate-950/30">
+                    <input type="hidden" name="email_reports" value="0">
                     <input type="checkbox" name="email_reports" value="1" @checked(data_get($preferences, 'email_reports'))>
                     Email reports
                 </label>
                 <label class="flex items-center gap-3 rounded-lg border border-slate-200 bg-white/60 px-3 py-2 text-sm font-semibold dark:border-slate-800 dark:bg-slate-950/30">
+                    <input type="hidden" name="security_alerts" value="0">
                     <input type="checkbox" name="security_alerts" value="1" @checked(data_get($preferences, 'security_alerts'))>
                     Security alerts
                 </label>
+
+                <fieldset class="space-y-3">
+                    <legend class="text-sm font-bold text-slate-950 dark:text-white">Approved civic changes</legend>
+                    <p class="text-xs leading-5 cl-muted">Major approved changes are enabled by default. Choose a custom set at any time.</p>
+                    @foreach ($notificationCategories as $key => $definition)
+                        @php($enabled = (bool) data_get($preferences, $key, $definition['default']))
+                        <label class="flex items-center gap-3 rounded-lg border border-slate-200 bg-white/60 px-3 py-2 text-sm font-semibold dark:border-slate-800 dark:bg-slate-950/30">
+                            <input type="hidden" name="{{ $key }}" value="0">
+                            <input type="checkbox" name="{{ $key }}" value="1" @checked($enabled)>
+                            {{ $definition['label'] }}
+                        </label>
+                    @endforeach
+                </fieldset>
 
                 <fieldset class="space-y-3">
                     <legend class="text-sm font-bold text-slate-950 dark:text-white">Appearance</legend>
@@ -88,6 +103,25 @@
                 </fieldset>
 
                 <button type="submit" class="cl-button-primary">Save preferences</button>
+            </form>
+
+            <form method="POST" action="{{ route('profile.districts') }}" class="cl-form-card space-y-5 lg:col-span-2">
+                @csrf
+                @method('PUT')
+                <div>
+                    <p class="cl-kicker">Local focus</p>
+                    <h2 class="cl-card-title mt-1">My districts</h2>
+                    <p class="mt-2 text-sm cl-muted">CivicLens stores only the district IDs you select. Browser coordinates are never saved to your account.</p>
+                </div>
+                <div class="grid max-h-72 gap-2 overflow-y-auto rounded-xl border border-slate-200 p-3 dark:border-slate-800 sm:grid-cols-2 lg:grid-cols-4">
+                    @foreach ($districts as $district)
+                        <label class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                            <input type="checkbox" name="district_ids[]" value="{{ $district->id }}" @checked(in_array($district->id, old('district_ids', $selectedDistrictIds), true))>
+                            {{ $district->name }}
+                        </label>
+                    @endforeach
+                </div>
+                <button type="submit" class="cl-button-primary">Save district preferences</button>
             </form>
         </div>
 

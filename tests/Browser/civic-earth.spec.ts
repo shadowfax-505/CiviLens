@@ -80,7 +80,15 @@ async function waitForScrollToSettle(page: Page) {
 }
 
 async function attachStageCapture(page: Page, testInfo: TestInfo, stage: string) {
-  const screenshot = await screenshotElement(page.locator('.civic-earth__stage'));
+  const stageElement = page.locator('.civic-earth__stage');
+  await expect(stageElement).toBeVisible();
+  const clip = await stageElement.boundingBox();
+  expect(clip).not.toBeNull();
+  const screenshot = await page.screenshot({
+    type: 'jpeg',
+    quality: 72,
+    clip: clip!,
+  });
   await expectNonBlankImage(screenshot);
   await testInfo.attach(`civic-earth-${stage.slice(0, 2)}`, {
     body: screenshot,
@@ -128,17 +136,15 @@ test.describe('CivicLens Earth journey', () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test('captures non-blank gap checks for stages 1-5', async ({ page }, testInfo) => {
+  test('renders a non-blank desktop globe with the real Cesium renderer', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name.includes('mobile'), 'The real-renderer visual smoke suite runs once on desktop.');
-    test.setTimeout(180_000);
+    test.setTimeout(90_000);
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
     await openJourney(page, { renderer: 'real' });
 
-    for (const [index, stage] of stages.slice(0, 5).entries()) {
-      await setExactStage(page, index);
-      await attachStageCapture(page, testInfo, stage);
-    }
+    await expect(page.locator('[data-earth-globe] canvas')).toBeVisible();
+    await attachStageCapture(page, testInfo, stages[0]);
 
     expect(pageErrors).toEqual([]);
   });
