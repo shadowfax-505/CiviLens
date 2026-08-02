@@ -67,7 +67,7 @@
                         ])
 
                         <div class="flex flex-wrap gap-3">
-                            <button class="rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-500">Save Project Location</button>
+                            <button type="submit" class="rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-500">Save Project Location</button>
                             <a class="rounded-full border border-slate-300 px-5 py-3 text-sm font-bold dark:border-slate-700" href="{{ route('admin.projects.show', $selectedProject) }}">Open Project Detail</a>
                         </div>
                     </form>

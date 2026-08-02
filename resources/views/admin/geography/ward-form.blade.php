@@ -13,6 +13,6 @@
         <input name="name" value="{{ old('name', $ward->name) }}" placeholder="Ward name" class="rounded border px-3 py-2 text-slate-950">
         <input name="code" value="{{ old('code', $ward->code) }}" placeholder="Code" class="rounded border px-3 py-2 text-slate-950">
         <x-leaflet-coordinate-picker :lat="$ward->latitude" :lng="$ward->longitude" label="Ward map pin" />
-        <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save ward</button>
+        <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save ward</button>
     </form>
 </x-layouts.app>
