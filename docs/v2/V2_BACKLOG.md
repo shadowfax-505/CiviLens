@@ -2,14 +2,13 @@
 
 ## Now
 
-- Complete role-specific navigation and dashboard shells.
-- Add district preference storage and ephemeral location-to-district consent flow.
-- Add the mixed recently indexed public timeline contract and filters.
+- Complete the focused Stage 2 PR for role-specific shells, district preferences, and the compatibility recently-indexed timeline.
+- Add the allowlisted source registry, acquisition ledger, and private immutable artifact versions.
+- Replace the compatibility timeline publisher projection with approved source/publication records as ingestion reaches Stage 5.
 - Replace unmanaged regional Earth tiles with a configured licensed or self-hosted provider before production enablement.
 
 ## Next
 
-- Add the allowlisted source registry, acquisition ledger, and private immutable artifact versions.
 - Implement API/feed, sitemap/direct-download, static-HTML, and isolated browser connectors in that order.
 - Onboard procurement, budget, audit, and agency sources from government and non-governmental publishers.
 - Add conditional retrieval, checksum deduplication, supersession, quarantine, rate limits, redirect validation, and SSRF controls.

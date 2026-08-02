@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\District;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -48,6 +49,44 @@ it('allows users to upload avatars and update notification preferences', functio
         'email_reports' => true,
         'security_alerts' => true,
         'appearance' => 'dark',
+        'major_changes' => true,
+    ]);
+
+    expect($user->notificationPreferences()->where('category', 'major_changes')->value('enabled'))->toBeTrue();
+});
+
+it('stores only selected district ids as account preferences', function (): void {
+    $user = User::factory()->create();
+    $districts = District::factory()->count(3)->create();
+
+    $this->actingAs($user)->put(route('profile.districts'), [
+        'district_ids' => [$districts[0]->id, $districts[2]->id],
+    ])->assertRedirect(route('settings.show'));
+
+    expect($user->fresh()->preferredDistricts()->pluck('districts.id')->all())
+        ->toEqualCanonicalizing([$districts[0]->id, $districts[2]->id]);
+});
+
+it('allows citizens to customize major-change notification categories', function (): void {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->put(route('profile.notifications'), [
+        'email_reports' => '0',
+        'security_alerts' => '1',
+        'appearance' => 'system',
+        'major_changes' => '0',
+        'procurement_updates' => '1',
+        'budget_updates' => '0',
+        'audit_updates' => '1',
+        'agency_publications' => '0',
+    ])->assertRedirect(route('settings.show'));
+
+    expect($user->fresh()->notification_preferences)->toMatchArray([
+        'major_changes' => false,
+        'procurement_updates' => true,
+        'budget_updates' => false,
+        'audit_updates' => true,
+        'agency_publications' => false,
     ]);
 });
 
