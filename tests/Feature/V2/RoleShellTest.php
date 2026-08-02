@@ -11,12 +11,12 @@ uses(RefreshDatabase::class);
 function roleShellUser(string $roleSlug, array $permissions = []): User
 {
     $group = PermissionGroup::query()->firstOrCreate(['slug' => 'shell-test'], ['name' => 'Shell test']);
-    $role = Role::query()->firstOrCreate(['slug' => $roleSlug], ['name' => str($roleSlug)->headline()]);
+    $role = Role::query()->firstOrCreate(['slug' => $roleSlug], ['name' => str($roleSlug)->headline()->toString()]);
 
     foreach ($permissions as $slug) {
         $permission = Permission::query()->firstOrCreate(
             ['slug' => $slug],
-            ['name' => str($slug)->headline(), 'permission_group_id' => $group->id],
+            ['name' => str($slug)->headline()->toString(), 'permission_group_id' => $group->id],
         );
         $role->permissions()->syncWithoutDetaching([$permission->id]);
     }
