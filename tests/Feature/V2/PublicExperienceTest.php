@@ -80,3 +80,10 @@ it('filters the public project explorer by district without exposing private pro
         ->assertDontSee('Khulna public road')
         ->assertDontSee('Dhaka internal plan');
 });
+
+it('validates public project filters before querying', function (): void {
+    $this->from(route('public.projects.index'))
+        ->get(route('public.projects.index', ['q' => str_repeat('x', 121), 'district_id' => 999999]))
+        ->assertRedirect(route('public.projects.index'))
+        ->assertSessionHasErrors(['q', 'district_id']);
+});

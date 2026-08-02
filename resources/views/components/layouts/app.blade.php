@@ -149,7 +149,8 @@
                     <nav class="cl-role-nav">
                         @foreach ($resolvedShell === 'citizen' ? $citizenLinks : $workspaceLinks as $link)
                             @if ($link['show'] ?? true)
-                                <a class="cl-role-nav__link {{ url()->current() === $link['route'] ? 'is-active' : '' }}" href="{{ $link['route'] }}">
+                                @php($isActive = url()->current() === $link['route'] || str_starts_with(url()->current(), rtrim($link['route'], '/').'/'))
+                                <a class="cl-role-nav__link {{ $isActive ? 'is-active' : '' }}" href="{{ $link['route'] }}" @if ($isActive) aria-current="page" @endif>
                                     <span aria-hidden="true"></span>{{ $link['label'] }}
                                 </a>
                             @endif

@@ -9,6 +9,7 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @phpstan-type TimelineItem array{type: string, title: string, summary: string, publisher: string, geography: string|null, source_class: string, indexed_at: CarbonInterface, url: string}
@@ -62,6 +63,7 @@ class PublicRecentlyIndexedService
             ->when($filters['date_from'] ?? null, fn ($query, string $date) => $query->whereDate('created_at', '>=', $date))
             ->when($filters['date_to'] ?? null, fn ($query, string $date) => $query->whereDate('created_at', '<=', $date))
             ->latest()
+            ->orderByDesc('id')
             ->limit($limit)
             ->get()
             ->map(/** @return TimelineItem */ fn (Project $project): array => [
@@ -70,7 +72,7 @@ class PublicRecentlyIndexedService
                 'summary' => str($project->description)->limit(170)->toString(),
                 'publisher' => $this->relatedString($project, 'agency.name') ?? 'Public project registry',
                 'geography' => $this->relatedString($project, 'district.name'),
-                'source_class' => 'Government',
+                'source_class' => 'government',
                 'indexed_at' => $this->timestamp($project),
                 'url' => route('public.projects.show', $project),
             ])->all());
@@ -89,9 +91,10 @@ class PublicRecentlyIndexedService
             ->whereNull('archived_at')
             ->when($filters['district_id'] ?? null, fn ($query, int $districtId) => $query->whereHas('project', fn ($query) => $query->where('district_id', $districtId)))
             ->when($filters['publisher_id'] ?? null, fn ($query, int $agencyId) => $query->where('agency_id', $agencyId))
-            ->when($filters['date_from'] ?? null, fn ($query, string $date) => $query->whereDate('created_at', '>=', $date))
-            ->when($filters['date_to'] ?? null, fn ($query, string $date) => $query->whereDate('created_at', '<=', $date))
-            ->latest()
+            ->when($filters['date_from'] ?? null, fn ($query, string $date) => $query->whereDate(DB::raw('COALESCE(published_at, created_at)'), '>=', $date))
+            ->when($filters['date_to'] ?? null, fn ($query, string $date) => $query->whereDate(DB::raw('COALESCE(published_at, created_at)'), '<=', $date))
+            ->orderByRaw('COALESCE(published_at, created_at) DESC')
+            ->orderByDesc('id')
             ->limit($limit)
             ->get()
             ->map(/** @return TimelineItem */ fn (Tender $tender): array => [
@@ -100,7 +103,7 @@ class PublicRecentlyIndexedService
                 'summary' => str($tender->description)->limit(170)->toString(),
                 'publisher' => $this->relatedString($tender, 'agency.name') ?? 'Public procurement registry',
                 'geography' => $this->relatedString($tender, 'project.district.name'),
-                'source_class' => 'Government',
+                'source_class' => 'government',
                 'indexed_at' => $this->timestamp($tender, 'published_at'),
                 'url' => route('public.procurement.show', $tender),
             ])->all());
@@ -124,6 +127,7 @@ class PublicRecentlyIndexedService
             ->when($filters['date_from'] ?? null, fn ($query, string $date) => $query->whereDate('created_at', '>=', $date))
             ->when($filters['date_to'] ?? null, fn ($query, string $date) => $query->whereDate('created_at', '<=', $date))
             ->latest()
+            ->orderByDesc('id')
             ->limit($limit)
             ->get()
             ->map(/** @return TimelineItem */ fn (Document $document): array => [
@@ -132,7 +136,7 @@ class PublicRecentlyIndexedService
                 'summary' => str($document->description)->limit(170)->toString(),
                 'publisher' => 'CivicLens public document registry',
                 'geography' => null,
-                'source_class' => 'Government',
+                'source_class' => 'government',
                 'indexed_at' => $this->timestamp($document),
                 'url' => route('public.documents.download', $document),
             ])->all());

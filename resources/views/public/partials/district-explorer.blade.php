@@ -1,5 +1,5 @@
 @php
-    $fallbackParameters = $dhakaDistrict ? ['district_id' => $dhakaDistrict->id] : [];
+    $fallbackParameters = ($dhakaDistrict ?? null) ? ['district_id' => $dhakaDistrict->id] : [];
 @endphp
 
 <div
