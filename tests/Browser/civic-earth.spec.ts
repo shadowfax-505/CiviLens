@@ -207,6 +207,28 @@ test.describe('CivicLens Earth journey', () => {
     await expect(page.locator('[data-civic-earth]')).toHaveCount(0);
   });
 
+  test('keeps a styled NASA fallback when the renderer module cannot load', async ({ page }) => {
+    let rendererRequests = 0;
+    await page.route('**/build/assets/civic-earth-*.js', (route) => {
+      rendererRequests += 1;
+
+      return route.abort();
+    });
+    await page.goto(`${enabledBaseUrl}/`, { waitUntil: 'domcontentloaded' });
+
+    const journey = page.locator('[data-civic-earth]');
+    const fallback = journey.locator('.civic-earth__fallback');
+    await expect(journey).toBeVisible();
+    await expect(journey).toHaveClass(/has-renderer-fallback/);
+    await expect(fallback).toHaveCSS(
+      'background-image',
+      /nasa-blue-marble-2004-12-5400x2700\.jpg/,
+    );
+    await expect(fallback).toHaveCSS('position', 'absolute');
+    expect(rendererRequests).toBeGreaterThan(0);
+    await expectNonBlankImage(await screenshotElement(page, journey));
+  });
+
   test('keeps the validated local fallback visible when the runtime image fails', async ({ page }, testInfo) => {
     let runtimeRequests = 0;
     await page.route('**/nasa-blue-marble-cloud-observation-composite-5400x2700.jpg', (route) => {
