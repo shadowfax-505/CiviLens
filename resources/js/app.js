@@ -1,5 +1,9 @@
 import Alpine from 'alpinejs';
 import L from 'leaflet';
+import './civic-earth/civic-earth.css';
+import './civic-earth/civic-earth-overlays.css';
+import './civic-earth/civic-earth-responsive.css';
+import { bootstrapCivicEarth } from './civic-earth/bootstrap.js';
 
 window.Alpine = Alpine;
 Alpine.start();
@@ -341,4 +345,8 @@ ready(() => {
     initializeLeafletPickers();
     initializeLeafletStaticMaps();
     initializeProjectPortfolioMaps();
+
+    document.querySelectorAll('[data-civic-earth]').forEach((root) => {
+        void bootstrapCivicEarth(root);
+    });
 });

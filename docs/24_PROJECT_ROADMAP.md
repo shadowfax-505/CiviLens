@@ -14,5 +14,8 @@ OCR preparation, anomaly table design, explainability policy, and v2 backlog.
 
 ## Phase 4: V2 Platform
 
-Public API, maps, semantic search, AI-assisted insights, and production monitoring.
+Role-specific interfaces, the page-scroll Earth-to-Dhaka journey, district exploration, heterogeneous public-source ingestion, a recently indexed timeline, Bangla/English OCR, blind review, subject response, and versioned publication.
 
+## Phase 5: Governed Intelligence
+
+Shadow-mode open-source model evaluation, evidence-bound candidate generation, semantic search over reviewed material, public APIs, governed exports, data-quality reporting, and production monitoring.
