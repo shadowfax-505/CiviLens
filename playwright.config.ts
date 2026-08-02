@@ -4,6 +4,8 @@ const browserDatabase = 'database/browser.sqlite';
 const browserEnv = {
   ...process.env,
   APP_ENV: 'testing',
+  APP_NAME: process.env.APP_NAME ?? 'CivicLens',
+  APP_KEY: process.env.APP_KEY ?? 'base64:MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=',
   APP_DEBUG: 'true',
   APP_URL: 'http://127.0.0.1:8000',
   DB_CONNECTION: 'sqlite',
