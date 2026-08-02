@@ -14,6 +14,7 @@ The mission is to help people inspect public delivery and raise evidence-backed 
 - Prefer precision and abstention over speculative coverage.
 - Keep every public summary short, neutral, source-attributed, and linked to the publisher's original page.
 - Treat official and non-governmental sources as distinct evidence classes; never imply that one independently confirms the other unless the records actually agree.
+- Retain acquired source snapshots privately for reproducible extraction, change detection, review, and audit; never expose a private snapshot as a public download without an explicit rights decision.
 - Do not collect NID documents, NID numbers, NID-derived metadata, or NID hashes. Account trust uses verified email, optional two-factor authentication, and account history.
 - Do not retain precise browser coordinates. Resolve location ephemerally and store only district preferences selected by an authenticated user.
 - No production workflow depends on a privately owned high-end GPU.
@@ -43,15 +44,17 @@ The mission is to help people inspect public delivery and raise evidence-backed 
 ### Stage 3 — v2B source ingestion
 
 - Introduce an allowlisted source registry for government, nonprofit, research, watchdog, and other public-interest publishers.
-- Crawl only public resources under documented rate limits, robots/terms decisions, retry budgets, and content-size limits.
+- Discover resources through APIs or feeds first, then sitemaps and direct downloads, static HTML, and isolated browser rendering only for approved JavaScript-only sources.
+- Crawl only public resources under documented rate limits, robots/terms decisions, retry budgets, content-size limits, host/path allowlists, redirect validation, and SSRF controls.
 - Store an immutable acquisition record, checksum, retrieval metadata, declared license, source class, and original URL.
-- Quarantine changed, malformed, unexpectedly large, or unsafe content before parsing.
+- Preserve checksum-protected private artifact versions, deduplicate unchanged content, and record supersession when publisher content changes.
+- Quarantine malformed, unexpectedly large, redirected-to-unapproved, structurally changed, or unsafe content before parsing.
 
 ### Stage 4 — v2B document extraction
 
-- Extract embedded text before OCR.
+- Extract native HTML, PDF, Office, CSV, JSON, XML, metadata, and tables before OCR.
 - Run CPU-first Tesseract `ben+eng` for Bangla, English, and mixed documents.
-- Permit one enhanced second pass for low-confidence pages, then abstain to manual review.
+- Send only scanned or low-text pages to OCR, permit one enhanced second pass for low-confidence pages, then abstain to manual review.
 - Keep layout, table, page-image, and text extraction as versioned outputs of an extraction run.
 - Run parsers and future vision models in isolated workers with no application secrets, tools, or unrestricted network access.
 
@@ -108,7 +111,7 @@ Every acquired resource must record:
 - acquisition method, crawler version, retry count, and immutable artifact reference;
 - supersession relationship when a publisher changes or removes a document.
 
-Public pages display publisher attribution, a short approved summary, metadata, and the original publisher link. CivicLens does not republish full third-party documents unless the license and publication policy explicitly allow it.
+The immutable artifact is private by default. Public pages display publisher attribution, a short approved summary, metadata, and the original publisher link. CivicLens does not republish full third-party documents unless the license and publication policy explicitly allow it.
 
 ## Geographic Contract
 
@@ -131,6 +134,8 @@ Distributed training is optional and requires compatible machines, a fast networ
 - Reviewer blindness breaches: 0.
 - Precise browser coordinates persisted: 0.
 - Public source links resolving to the original publisher: 100% at publication time.
+- Unchanged acquisitions creating duplicate artifact versions: 0.
+- Crawler requests escaping approved public hosts or reaching private/link-local networks: 0.
 - OCR quality measured separately for Bangla, English, mixed text, tables, scans, and native PDFs.
 - Accessibility: keyboard, touch, reduced motion, dark mode, and WCAG 2.2 AA checks on every public critical path.
 - Security: parser isolation, upload/content limits, SSRF controls, malware scanning, authorization regression tests, and immutable audit events.
@@ -141,4 +146,4 @@ Distributed training is optional and requires compatible machines, a fast networ
 - Complete: locally packaged Cesium, validated gap-free NASA imagery, fail-closed imagery refresh, permission-safe public markers, and static fallback.
 - Complete: normal page scrolling drives the exact nine-stage Earth journey on desktop and mobile.
 - Next: role-specific application shells and the district preference/location consent contract.
-- Then: source registry and recently indexed read model before any crawler or OCR execution.
+- Then: source registry and recently indexed read model before governed connectors, native extraction, or OCR execution.
