@@ -7,7 +7,11 @@ import {
     progressForStage,
     stageIndexForKey,
 } from './journey-config.js';
-import { createCleanupRegistry, shouldConsumeWheel } from './lifecycle.js';
+import {
+    createCleanupRegistry,
+    documentJourneyProgress,
+    documentJourneyTarget,
+} from './lifecycle.js';
 
 const select = (root, name) => root.querySelector(`[data-earth-${name}]`);
 const formatAltitude = (metres) => metres >= 1000
@@ -19,8 +23,14 @@ function setCalibration(layer, values) {
 }
 
 function scrollToStage(scroll, index, reducedMotion) {
-    scroll.scrollTo({
-        top: (scroll.scrollHeight - scroll.clientHeight) * progressForStage(index),
+    const journeyTop = scroll.getBoundingClientRect().top + window.scrollY;
+
+    window.scrollTo({
+        top: documentJourneyTarget({
+            journeyTop,
+            journeyHeight: scroll.scrollHeight,
+            viewportHeight: window.innerHeight,
+        }, progressForStage(index)),
         behavior: reducedMotion ? 'auto' : 'smooth',
     });
 }
@@ -41,24 +51,14 @@ function setupJourneyControls(root, scroll, draw, reducedMotion, cleanup) {
         });
     });
 
-    const handleWheel = (event) => {
-        if (!shouldConsumeWheel({
-            scrollTop: scroll.scrollTop,
-            scrollHeight: scroll.scrollHeight,
-            clientHeight: scroll.clientHeight,
-            deltaY: event.deltaY,
-        })) {
-            return;
-        }
-
-        event.preventDefault();
-        scroll.scrollTop += event.deltaY;
-    };
-
     const handleKeydown = (event) => {
-        const current = computeJourneyState(
-            scroll.scrollTop / Math.max(scroll.scrollHeight - scroll.clientHeight, 1),
-        ).stageIndex;
+        const journeyTop = scroll.getBoundingClientRect().top + window.scrollY;
+        const current = computeJourneyState(documentJourneyProgress({
+            journeyTop,
+            journeyHeight: scroll.scrollHeight,
+            viewportHeight: window.innerHeight,
+            scrollY: window.scrollY,
+        })).stageIndex;
         const next = stageIndexForKey(event.key, current);
 
         if (next === null) {
@@ -70,14 +70,15 @@ function setupJourneyControls(root, scroll, draw, reducedMotion, cleanup) {
     };
 
     const handleScroll = () => draw();
+    const handleResize = () => draw();
 
-    scroll.addEventListener('wheel', handleWheel, { passive: false, capture: true });
     scroll.addEventListener('keydown', handleKeydown);
-    scroll.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleResize, { passive: true });
 
-    cleanup.add(() => scroll.removeEventListener('wheel', handleWheel, { capture: true }));
     cleanup.add(() => scroll.removeEventListener('keydown', handleKeydown));
-    cleanup.add(() => scroll.removeEventListener('scroll', handleScroll));
+    cleanup.add(() => window.removeEventListener('scroll', handleScroll));
+    cleanup.add(() => window.removeEventListener('resize', handleResize));
 }
 
 function updateContent(root, state) {
@@ -297,7 +298,12 @@ export function initializeCivicEarth(root) {
 
     const draw = () => {
         frame = 0;
-        const rawProgress = scroll.scrollTop / Math.max(scroll.scrollHeight - scroll.clientHeight, 1);
+        const rawProgress = documentJourneyProgress({
+            journeyTop: scroll.getBoundingClientRect().top + window.scrollY,
+            journeyHeight: scroll.scrollHeight,
+            viewportHeight: window.innerHeight,
+            scrollY: window.scrollY,
+        });
         let state = computeJourneyState(rawProgress);
 
         if (reducedMotion) {
