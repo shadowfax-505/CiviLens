@@ -90,6 +90,7 @@ class DatabaseSeeder extends Seeder
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Intelligence', 'slug' => config('civiclens.permissions.intelligence_manage'), 'description' => 'Manage rule-based intelligence indicators, evidence review, and processing readiness.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Submit Reports', 'slug' => config('civiclens.permissions.reports_submit'), 'description' => 'Submit civic reports and field updates.'],
             ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Citizen Reports', 'slug' => config('civiclens.permissions.citizen_reports_manage'), 'description' => 'Moderate public citizen reports and status workflows.'],
+            ['permission_group_id' => $projectGroup->id, 'name' => 'Manage Sources', 'slug' => config('civiclens.permissions.sources_manage'), 'description' => 'Govern approved publishers, acquisition endpoints, and private source artifacts.'],
         ])->map(fn (array $permission) => Permission::query()->firstOrCreate(
             ['slug' => $permission['slug']],
             $permission,

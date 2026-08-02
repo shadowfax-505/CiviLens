@@ -297,6 +297,18 @@ Analytics web endpoints support the following filter parameters where applicable
 
 Analytics routes are protected by `AnalyticsPolicy`. Results must remain permission-aware and must not expose records users cannot access.
 
+## Governed Source Administration
+
+Stage 3 adds authenticated administrator web routes; these are not public APIs:
+
+- `GET /admin/sources` lists approved publishers, endpoints, health, run counts, and pause state.
+- `POST /admin/sources/publishers` approves a publisher and explicit source class.
+- `POST /admin/sources/endpoints` validates and registers an HTTPS endpoint with exact hosts and operational limits.
+- `PATCH /admin/sources/endpoints/{endpoint}/pause` and `/resume` provide reversible crawl controls.
+- `POST /admin/sources/endpoints/{endpoint}/run` queues one idempotent discovery job.
+
+All routes require `sources.manage` or the administrator role. No route exposes acquired artifact bodies or private storage paths. `GET /admin/system/metrics` adds aggregate ingestion health only; `/healthz` remains public-safe and does not expose publisher URLs, crawl errors, or artifact metadata.
+
 ## V2 Expansion Notes
 
 Create an OpenAPI document and split public API contracts from private admin APIs.

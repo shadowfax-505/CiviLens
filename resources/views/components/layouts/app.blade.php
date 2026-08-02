@@ -45,6 +45,7 @@
         ['label' => 'Procurement', 'route' => route('admin.procurement.tenders.index'), 'show' => $user?->can('viewAny', App\Models\Tender::class) === true],
         ['label' => 'Contractors', 'route' => route('admin.contractors.organizations.index'), 'show' => $user?->can('viewAny', App\Models\Organization::class) === true],
         ['label' => 'Documents', 'route' => route('admin.documents.index'), 'show' => $user?->can('viewAny', App\Models\Document::class) === true],
+        ['label' => 'Sources', 'route' => route('admin.sources.index'), 'show' => $user?->can('viewAny', App\Models\SourcePublisher::class) === true],
         ['label' => 'Citizen reports', 'route' => route('admin.citizen-reports.index'), 'show' => $user?->can('viewAny', App\Models\CitizenReport::class) === true],
         ['label' => 'Staff requests', 'route' => route('admin.change-requests.index'), 'show' => $isAdministrator || $isStaff],
         ['label' => 'Analytics', 'route' => route('admin.analytics.index'), 'show' => $user?->can('viewAny', App\Models\AnalyticsReport::class) === true],

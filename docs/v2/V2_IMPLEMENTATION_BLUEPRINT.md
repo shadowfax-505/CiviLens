@@ -148,4 +148,5 @@ Distributed training is optional and requires compatible machines, a fast networ
 - Complete: shared semantic UI foundations with distinct public, citizen, staff, and administrator shells.
 - Complete: interaction-gated ephemeral location resolution, Dhaka fallback, and authenticated district-ID preferences without coordinate retention.
 - Complete: the compatibility recently-indexed read model over existing public-safe projects, procurement, and documents, including validated type, district, publisher, date, and source-class filters.
-- Next: the governed source registry, immutable acquisition ledger, connector jobs, and publisher-backed timeline projection before native extraction or OCR execution.
+- Complete: the governed source registry, government/non-government publisher classes, API/feed, sitemap/direct-download, static-HTML, and isolated-browser connector contracts, scheduled idempotent jobs, conditional cursors, DNS-pinned HTTPS retrieval, redirect and content limits, MIME checks, malware quarantine, immutable private artifact versions, checksum deduplication, supersession, pause/resume controls, and admin-only ingestion metrics.
+- Next: promote accepted artifacts into existing document versions and run native extraction before selective OCR. Publisher-backed public timeline projection remains blocked on Stage 5 review and publication approval.
