@@ -1,7 +1,4 @@
 import 'cesium/Build/Cesium/Widgets/widgets.css';
-import './civic-earth.css';
-import './civic-earth-overlays.css';
-import './civic-earth-responsive.css';
 
 import {
     CHAPTERS,
