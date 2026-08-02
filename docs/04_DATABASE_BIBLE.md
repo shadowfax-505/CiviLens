@@ -385,4 +385,15 @@ The custom role foundation seeds `admin`, `staff`, and `citizen` roles. See `doc
 
 ## V2 Expansion Notes
 
+### Governed Source Acquisition
+
+- `source_publishers` stores the approved publisher identity, government/non-government source class, canonical source URL, attribution, rights decision, active state, and non-authoritative metadata.
+- `source_endpoints` stores the connector type, exact approved hosts and path prefixes, robots/terms access decision and review date, schedule, request rate, timeout, content limit, conditional cursor, health, pause state, and operator provenance.
+- `source_crawl_runs` stores immutable run identity, before/after cursors, lifecycle state, counts, bounded error summary, and timestamps.
+- `discovered_resources` deduplicates a canonical URL per endpoint through `(source_endpoint_id, canonical_url_hash)` and tracks the latest observation without exposing the privately stored body.
+- `source_artifact_versions` stores content-addressed private storage metadata, SHA-256, safe HTTP metadata, malware/quarantine state, retrieval time, and supersession. `(discovered_resource_id, sha256)` prevents unchanged content from producing another version; `(discovered_resource_id, version_number)` preserves deterministic history.
+- `source_activities` is append-only and records publisher/endpoint approval, queueing, crawl discovery, artifact acquisition/quarantine, and pause/resume events with nullable actor and source references.
+
+Artifact rows cannot be deleted and their evidence fields cannot be mutated. The only permitted later update is an additive `document_version_id` link when Stage 4 promotes a clean artifact into the existing document lifecycle. Rollback drops the acquisition tables in reverse foreign-key order and never touches existing document or civic-domain records.
+
 Introduce AI tables only when the ingestion and review workflow exists. Keep AI outputs separate from source facts. Future GIS work may add spatial indexes, map tiles, and GeoJSON validation around the Sprint 02 geography tables without replacing the normalized hierarchy.

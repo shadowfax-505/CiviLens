@@ -22,6 +22,7 @@
 - Request and correlation IDs.
 - Release version metadata.
 - Procurement plan approval, bid opening, evaluation completion, award approval, variation approval, milestone completion, and contract closeout events.
+- Source endpoint health, pause state, crawl run completion/failure, quarantine volume, and ingestion queue latency.
 
 ## Current Observability Layer
 
@@ -31,6 +32,7 @@
 - Sprint 11 public portal events are logged for citizen report submission/status/archive, public search, public document download, and public project view activity.
 - Sprint 12 procurement lifecycle events are logged for plan approval, bid opening, evaluation completion, award approval, variation approval, milestone completion, and contract closeout.
 - Sprint 13 adds `/healthz` for app/database/cache/storage/queue/scheduler/integrity readiness, `/version` for deploy metadata, `/admin/system/metrics` for authorized operator metrics, and `civic_intelligence_runs` for scheduled deterministic engine status.
+- V2 Stage 3 adds administrator-only ingestion aggregates to `/admin/system/metrics`: active publishers, endpoints, paused/failing endpoints, recent runs/failures, and quarantined artifact count. Publisher URLs and errors remain outside public `/healthz`.
 - `RequestCorrelation` attaches `X-Request-Id` to responses and structured log context.
 - `SecurityHeaders` attaches baseline defensive headers to every response.
 - `intelligence_rule_audits` records rule-management changes and execution events for operational review.

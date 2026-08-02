@@ -63,6 +63,7 @@ This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read t
 - [Analytics Module](modules/analytics/README.md) - business intelligence dashboards, KPI engine, snapshots, CSV/spreadsheet/PDF reports, alerts, and chart-ready analytics.
 - [Intelligence Module](modules/intelligence/README.md) - Civic Integrity Engine runs, rule management, rule-based indicators, evidence review, processing readiness, and explainability governance.
 - [Public Module](modules/public/README.md) - public transparency portal, safe browsing, public search, staff change requests, and citizen report moderation.
+- [Governed Source Acquisition](modules/sources/README.md) - approved publishers, secure connectors, immutable private artifacts, quarantine, and crawl operations.
 - [Sprints](sprints/Sprint-01-Foundation.md) - delivery plans.
 - [V2 Upgrade Path](v2/V2_UPGRADE_PATH.md) - controlled evolution after v1.
 - [V2 Implementation Blueprint](v2/V2_IMPLEMENTATION_BLUEPRINT.md) - staged public UX, source ingestion, OCR, review, geospatial, compute, and release contracts.

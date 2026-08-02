@@ -88,6 +88,10 @@ Persistence is limited to rule definitions, advisory indicators, source-linked e
 
 Public Transparency is implemented as a public-safe read layer over source domains. `PublicVisibilityService`, public listing/detail services, and report workflow services centralize what guests and citizens can see. Citizen reports are moderated records with UUID tracking and append-only activities; they do not publish unreviewed citizen-submitted text as source civic facts.
 
+## V2 Stage 3 Foundation
+
+Governed acquisition is an additive module around the existing Document domain. Approved `SourcePublisher` and `SourceEndpoint` records drive provider-neutral connectors. Discovery creates canonical resource rows and rate-limited artifact jobs. HTTPS allowlisting, public DNS validation and pinning, manual redirect validation, byte limits, MIME inspection, malware quarantine, private storage enforcement, conditional cursors, SHA-256 deduplication, and immutable artifact versions are centralized in ingestion services. Acquisition never publishes or mutates operational civic records.
+
 ## V2 Guardrail
 
 Do not merge real OCR extraction, LLM calls, embeddings, semantic search, vector search, or automated legal conclusions into v1 without ADR approval.

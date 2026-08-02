@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Contracts\Ingestion\ArtifactFetcher;
+use App\Contracts\Ingestion\BrowserRenderProvider;
+use App\Contracts\Ingestion\MalwareScanner;
+use App\Contracts\Ingestion\NetworkAddressResolver;
 use App\Contracts\Search\SearchProvider;
 use App\Events\AlertTriggered;
 use App\Events\AnalyticsCacheRefreshed;
@@ -52,6 +56,7 @@ use App\Events\SnapshotGenerated;
 use App\Events\SuggestionGenerated;
 use App\Events\TenderPublished;
 use App\Events\VariationApproved;
+use App\Jobs\FetchDiscoveredResourceArtifact;
 use App\Jobs\NotifyCitizenReportSubmitted;
 use App\Listeners\LogDomainEvent;
 use App\Models\AdministrativeUnion;
@@ -72,6 +77,8 @@ use App\Models\IntelligenceRule;
 use App\Models\Organization;
 use App\Models\ProcurementPlan;
 use App\Models\Project;
+use App\Models\SourceEndpoint;
+use App\Models\SourcePublisher;
 use App\Models\Tender;
 use App\Models\Upazila;
 use App\Models\User;
@@ -86,11 +93,18 @@ use App\Policies\ManageReferenceDataPolicy;
 use App\Policies\OrganizationPolicy;
 use App\Policies\ProcurementPlanPolicy;
 use App\Policies\ProjectPolicy;
+use App\Policies\SourcePublisherPolicy;
 use App\Policies\TenderPolicy;
 use App\Policies\UserPolicy;
+use App\Services\Ingestion\ClamAvMalwareScanner;
+use App\Services\Ingestion\NativeNetworkAddressResolver;
+use App\Services\Ingestion\SecureArtifactFetcher;
+use App\Services\Ingestion\UnavailableBrowserRenderProvider;
 use App\Services\Search\DatabaseSearchProvider;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -100,6 +114,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(NetworkAddressResolver::class, NativeNetworkAddressResolver::class);
+        $this->app->bind(MalwareScanner::class, ClamAvMalwareScanner::class);
+        $this->app->bind(ArtifactFetcher::class, SecureArtifactFetcher::class);
+        $this->app->bind(BrowserRenderProvider::class, UnavailableBrowserRenderProvider::class);
+
         $this->app->bind(SearchProvider::class, function ($app): SearchProvider {
             return match (config('civiclens.search.provider', 'database')) {
                 'database' => $app->make(DatabaseSearchProvider::class),
@@ -113,6 +132,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('source-fetch', function (FetchDiscoveredResourceArtifact $job): Limit {
+            $endpoint = SourceEndpoint::query()->find($job->endpointId);
+            $perMinute = $endpoint instanceof SourceEndpoint ? $endpoint->rate_limit_per_minute : 1;
+
+            return Limit::perMinute(max(1, $perMinute))->by('source-endpoint:'.$job->endpointId);
+        });
+
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Country::class, ManageReferenceDataPolicy::class);
         Gate::policy(Division::class, ManageReferenceDataPolicy::class);
@@ -131,6 +157,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Organization::class, OrganizationPolicy::class);
         Gate::policy(Document::class, DocumentPolicy::class);
         Gate::policy(Project::class, ProjectPolicy::class);
+        Gate::policy(SourcePublisher::class, SourcePublisherPolicy::class);
         Gate::policy(Budget::class, BudgetPolicy::class);
         Gate::policy(Tender::class, TenderPolicy::class);
         Gate::policy(CitizenReport::class, CitizenReportPolicy::class);

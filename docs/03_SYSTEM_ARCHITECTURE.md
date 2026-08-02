@@ -62,6 +62,14 @@ Report generation remains inside the Analytics module through `ReportBuilder`, w
 
 Add OCR workers, vector search, map services, and public API gateways behind clear interfaces.
 
+## V2 Governed Source Acquisition
+
+The ingestion module extends the document boundary rather than replacing it. `source_publishers` and `source_endpoints` define administrator-approved government and non-government sources. `SourceConnector` implementations discover resources through API/feed, sitemap, direct-download, static-HTML, or an isolated browser provider. `RunSourceEndpointCrawl` records a crawl run and dispatches separately rate-limited `FetchDiscoveredResourceArtifact` jobs.
+
+`ApprovedSourceUrlGuard` requires HTTPS, exact endpoint host allowlisting, public DNS results, and standard ports. `SafeHttpTransport` pins the resolved public address when cURL is available, revalidates every redirect, disables automatic redirects, bounds response bytes, and accepts only safe conditional headers. `SecureArtifactFetcher` checks the declared and detected media types and requires malware status `clean` before an artifact can leave quarantine.
+
+`source_artifact_versions` is the private immutable acquisition ledger. Content-addressed paths, SHA-256 uniqueness, and `supersedes_id` preserve changed publisher versions without duplicating unchanged content. Stage 4 may link an accepted artifact to an existing `document_version`; no acquisition record directly mutates projects, budgets, procurement, contractors, agencies, or public projections.
+
 ## Change-Request Governance and Citizen Safety
 
 Staff submit structured change proposals through the Change Request module; administrators remain the only users who mutate operational source records. A proposal can be reviewed and then marked as applied only after the administrator completes the normal source-record workflow. This marker writes an immutable proposal audit activity and never applies payload data automatically.

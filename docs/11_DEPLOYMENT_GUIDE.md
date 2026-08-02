@@ -118,8 +118,22 @@ Historical RC1 Docker validation used production image targets and an isolated D
 
 ## Scheduler
 
-The scheduler should run continuously in production. Sprint 13 part 1 schedules `civiclens:integrity-run` daily at 02:15 to generate deterministic civic integrity indicators from active rules.
+The scheduler should run continuously in production. Sprint 13 part 1 schedules `civiclens:integrity-run` daily at 02:15 to generate deterministic civic integrity indicators from active rules. V2 Stage 3 schedules `civiclens:sources-dispatch` every five minutes; it dispatches only due, active, unpaused allowlisted endpoints and does no remote work inside the scheduler process.
+
+## Governed Acquisition Runtime
+
+Keep `INGESTION_ENABLED=false` until the first source cohort, durable private `INGESTION_ARTIFACT_DISK`, Redis-backed rate limits, supervised `ingestion` queue workers, egress controls, and malware scanner are ready. The browser-render provider is intentionally unavailable by default; configure it only as an isolated worker with no application secrets and no unrestricted network access.
+
+Every enabled acquisition worker must have:
+
+- HTTPS egress restricted to approved public publisher hosts, with DNS pinning left enabled;
+- access to the private artifact disk but no public web mount for `ingestion/`;
+- ClamAV-compatible `clamdscan` access or a replacement bound to `MalwareScanner`;
+- queue retry and failure monitoring;
+- limits equal to or stricter than the committed discovery and artifact byte caps.
+
+Scanner failure is fail-closed: the snapshot is retained in the private quarantine path and cannot become an accepted document input. A deployment may use an external ClamAV daemon or a dedicated scanning worker; the application contract remains provider-neutral. Set `INGESTION_ENABLED=false` to stop new scheduled discovery immediately, and use the endpoint pause controls for cohort-level rollback. Existing artifacts and audit history are never deleted by rollback.
 
 ## V2 Expansion Notes
 
-Add separate workers for OCR, indexing, analytics, and public API workloads.
+Add separate workers for OCR, indexing, analytics, and public API workloads. Keep ingestion and parser/OCR workers independently scalable.
