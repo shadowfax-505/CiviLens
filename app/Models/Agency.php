@@ -206,7 +206,9 @@ class Agency extends Model implements Searchable
 
     public function searchVisibility(): string
     {
-        return 'internal';
+        return $this->status === 'active' && $this->trashed() === false
+            ? 'public'
+            : 'internal';
     }
 
     public function searchMetadata(): array

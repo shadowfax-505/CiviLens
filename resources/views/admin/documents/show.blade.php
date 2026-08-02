@@ -66,7 +66,7 @@
                 class="md:col-span-2"
             />
             <input name="reason" class="rounded border px-3 py-2 text-slate-950" placeholder="Version reason">
-            <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950 md:col-span-3">Create version</button>
+            <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950 md:col-span-3">Create version</button>
         </form>
     </section>
     @endcan

@@ -19,7 +19,7 @@ class ExecutiveDashboardController extends Controller
     {
         $user = $request->user();
 
-        if ($user instanceof User && $user->hasRole(config('civiclens.roles.citizen'))) {
+        if ($user instanceof User && $user->can('viewDashboard', CitizenReport::class)) {
             $reports = CitizenReport::query()
                 ->with(['category', 'status'])
                 ->where('submitter_id', $user->id)

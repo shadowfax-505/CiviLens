@@ -18,6 +18,7 @@ class ChangeRequestController extends Controller
         'documents' => 'Documents',
         'contractors' => 'Contractors',
         'procurement' => 'Procurement',
+        'budgets' => 'Budgets',
         'agencies' => 'Agencies',
     ];
 

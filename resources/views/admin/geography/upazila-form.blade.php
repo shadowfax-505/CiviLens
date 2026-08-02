@@ -13,6 +13,6 @@
         <input name="name" value="{{ old('name', $upazila->name) }}" placeholder="Upazila name" class="rounded border px-3 py-2 text-slate-950">
         <input name="code" value="{{ old('code', $upazila->code) }}" placeholder="Code" class="rounded border px-3 py-2 text-slate-950">
         <x-leaflet-coordinate-picker :lat="$upazila->latitude" :lng="$upazila->longitude" label="Upazila / city map pin" />
-        <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save upazila</button>
+        <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save upazila</button>
     </form>
 </x-layouts.app>
