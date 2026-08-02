@@ -4,6 +4,14 @@ export async function loginAsAdmin(page: Page) {
   await signIn(page, 'admin@civiclens.test', 'password', 'CivicLens Dashboard');
 }
 
+export async function loginAsStaff(page: Page) {
+  await signIn(page, 'staff@civiclens.test', 'password', 'CivicLens Dashboard');
+}
+
+export async function loginAsCitizen(page: Page) {
+  await signIn(page, 'citizen@civiclens.test', 'password', 'My reports and public information');
+}
+
 export async function registerCitizen(page: Page, email: string) {
   const heading = 'Verify your email';
 

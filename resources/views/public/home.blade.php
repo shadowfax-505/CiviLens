@@ -1,4 +1,4 @@
-<x-layouts.app title="About CivicLens">
+<x-layouts.app title="CivicLens — Public evidence for every district" shell="public" :immersive="$earthJourneyEnabled ?? false">
     {{-- ═══════════════════════════════════════════════════════════════
          HERO
     ═══════════════════════════════════════════════════════════════ --}}
@@ -22,9 +22,7 @@
                 CivicLens is a civic intelligence command center for projects, budgets, procurement, contractors, documents, analytics, and integrity review. It turns fragmented public delivery records into elegant, auditable, permission-aware insight.
             </p>
             <div class="mt-8 flex flex-wrap items-center gap-3">
-                <a class="cl-button-primary !px-6 !py-2.5 !text-sm !font-extrabold" href="{{ route('public.projects.index') }}">
-                    Explore public projects
-                </a>
+                @include('public.partials.district-explorer')
                 <a class="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/8 px-5 py-2.5 text-sm font-bold text-white no-underline backdrop-blur transition hover:border-white/40 hover:bg-white/15" href="{{ route('public.search') }}">
                     Search the evidence
                     <svg class="h-4 w-4 opacity-70" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
@@ -48,6 +46,86 @@
         </div>
         </section>
     @endif
+
+    <div class="cl-public-story">
+    <section class="cl-about-fade" id="recently-indexed" aria-labelledby="recently-indexed-title">
+        <div class="grid gap-6 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
+            <div>
+                <p class="cl-kicker">Public evidence stream</p>
+                <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white" id="recently-indexed-title">Recently indexed</h2>
+                <p class="mt-3 max-w-xl text-sm leading-7 cl-muted">One calm timeline for newly published projects, procurement, and documents. Every item is public-safe and links to its source record.</p>
+
+                <form class="cl-form-card mt-6 grid gap-3 sm:grid-cols-2" method="GET" action="{{ route('public.home') }}">
+                    <label class="grid gap-1.5 text-xs font-bold">
+                        Record type
+                        <select name="timeline_type">
+                            <option value="">Everything</option>
+                            <option value="project" @selected(($timelineFilters['timeline_type'] ?? '') === 'project')>Projects</option>
+                            <option value="procurement" @selected(($timelineFilters['timeline_type'] ?? '') === 'procurement')>Procurement</option>
+                            <option value="document" @selected(($timelineFilters['timeline_type'] ?? '') === 'document')>Documents</option>
+                        </select>
+                    </label>
+                    <label class="grid gap-1.5 text-xs font-bold">
+                        District
+                        <select name="district_id">
+                            <option value="">All districts</option>
+                            @foreach ($districts as $district)
+                                <option value="{{ $district->id }}" @selected(($timelineFilters['district_id'] ?? null) == $district->id)>{{ $district->name }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="grid gap-1.5 text-xs font-bold">
+                        Publisher
+                        <select name="publisher_id">
+                            <option value="">All publishers</option>
+                            @foreach ($publishers as $publisher)
+                                <option value="{{ $publisher->id }}" @selected(($timelineFilters['publisher_id'] ?? null) == $publisher->id)>{{ $publisher->name }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="grid gap-1.5 text-xs font-bold">
+                        Source class
+                        <select name="source_class">
+                            <option value="">All approved sources</option>
+                            <option value="government" @selected(($timelineFilters['source_class'] ?? '') === 'government')>Government</option>
+                            <option value="non-government" @selected(($timelineFilters['source_class'] ?? '') === 'non-government')>Non-governmental</option>
+                        </select>
+                    </label>
+                    <label class="grid gap-1.5 text-xs font-bold">
+                        From
+                        <input name="date_from" type="date" value="{{ $timelineFilters['date_from'] ?? '' }}">
+                    </label>
+                    <label class="grid gap-1.5 text-xs font-bold">
+                        To
+                        <input name="date_to" type="date" value="{{ $timelineFilters['date_to'] ?? '' }}">
+                    </label>
+                    <button class="cl-button-primary sm:col-span-2" type="submit">Apply timeline filters</button>
+                </form>
+            </div>
+
+            <div class="cl-timeline" aria-live="polite">
+                @forelse ($recentlyIndexed as $item)
+                    <a class="cl-timeline-item" href="{{ $item['url'] }}">
+                        <div class="flex flex-wrap items-center gap-2 text-[0.68rem] font-extrabold uppercase tracking-wider">
+                            <span class="cl-chip">{{ $item['type'] }}</span>
+                            <span class="cl-muted">{{ str($item['source_class'])->headline() }}</span>
+                            <time class="ml-auto cl-muted" datetime="{{ $item['indexed_at']->toAtomString() }}">{{ $item['indexed_at']->diffForHumans() }}</time>
+                        </div>
+                        <h3 class="text-base font-black text-slate-950 dark:text-white">{{ $item['title'] }}</h3>
+                        @if ($item['summary'])
+                            <p class="text-sm leading-6 cl-muted">{{ $item['summary'] }}</p>
+                        @endif
+                        <p class="text-xs font-bold cl-muted">{{ collect([$item['publisher'], $item['geography']])->filter()->join(' · ') }}</p>
+                    </a>
+                @empty
+                    <div class="cl-card">
+                        <p class="font-bold text-slate-950 dark:text-white">No approved records match these filters.</p>
+                        <p class="mt-2 text-sm cl-muted">Try a wider date range or clear one of the filters.</p>
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </section>
 
     {{-- ═══════════════════════════════════════════════════════════════
          MISSION & VISION
@@ -142,4 +220,5 @@
             </a>
         </div>
     </section>
+    </div>
 </x-layouts.app>
