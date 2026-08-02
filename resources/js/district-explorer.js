@@ -48,6 +48,12 @@ export function initializeDistrictExplorers() {
             return;
         }
 
+        const setStatus = (message) => {
+            if (status) {
+                status.textContent = message;
+            }
+        };
+
         button.addEventListener('click', () => {
             if (button.getAttribute('aria-busy') === 'true') {
                 return;
@@ -55,10 +61,10 @@ export function initializeDistrictExplorers() {
 
             button.setAttribute('aria-busy', 'true');
             button.disabled = true;
-            status.textContent = 'Finding your district…';
+            setStatus('Finding your district…');
 
             const useFallback = () => {
-                status.textContent = 'Location unavailable. Opening Dhaka.';
+                setStatus('Location unavailable. Opening Dhaka.');
                 navigateTo(element.dataset.fallbackUrl, '/public/projects');
             };
 

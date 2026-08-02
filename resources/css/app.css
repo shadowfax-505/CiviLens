@@ -501,7 +501,11 @@
     .cl-role-nav__link.is-active {
         background: color-mix(in srgb, var(--cl-shell-accent) 11%, transparent);
         color: var(--cl-shell-accent);
-        outline: none;
+    }
+
+    .cl-role-nav__link:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--cl-ring) 44%, transparent);
+        outline-offset: 2px;
     }
 
     .cl-role-nav__link.is-active > span {
@@ -1175,6 +1179,10 @@
 
     .cl-card,
     .cl-button-primary,
+    .cl-button,
+    .cl-district-explorer__button,
+    .cl-about-nav-link,
+    .cl-about-nav-link .cl-about-nav-arrow,
     .cl-role-nav__link,
     .cl-timeline-item {
         transform: none !important;

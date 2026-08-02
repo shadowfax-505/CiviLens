@@ -108,7 +108,7 @@
                     <a class="cl-timeline-item" href="{{ $item['url'] }}">
                         <div class="flex flex-wrap items-center gap-2 text-[0.68rem] font-extrabold uppercase tracking-wider">
                             <span class="cl-chip">{{ $item['type'] }}</span>
-                            <span class="cl-muted">{{ $item['source_class'] }}</span>
+                            <span class="cl-muted">{{ str($item['source_class'])->headline() }}</span>
                             <time class="ml-auto cl-muted" datetime="{{ $item['indexed_at']->toAtomString() }}">{{ $item['indexed_at']->diffForHumans() }}</time>
                         </div>
                         <h3 class="text-base font-black text-slate-950 dark:text-white">{{ $item['title'] }}</h3>
