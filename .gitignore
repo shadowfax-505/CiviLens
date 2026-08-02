@@ -61,6 +61,7 @@ Thumbs.db
 /resources/views/vendor/pagination/
 
 # Local files
+.worktrees/
 *.sqlite
 *.sqlite3
 *.tmp
