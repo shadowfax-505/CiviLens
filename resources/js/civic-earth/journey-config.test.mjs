@@ -8,7 +8,7 @@ import {
     progressForStage,
     stageIndexForKey,
 } from './journey-config.js';
-import { createCleanupRegistry, shouldConsumeWheel } from './lifecycle.js';
+import { createCleanupRegistry, documentJourneyProgress, documentJourneyTarget } from './lifecycle.js';
 
 const APPROVED_CHAPTERS = [
     {
@@ -165,16 +165,17 @@ test('stage progress and keyboard navigation are deterministic and bounded', () 
     assert.equal(stageIndexForKey('Enter', 4), null);
 });
 
-test('wheel input is consumed only when the inner journey can scroll in that direction', () => {
-    const dimensions = { scrollHeight: 800, clientHeight: 200 };
+test('document scroll drives the journey without an inner scroll trap', () => {
+    const metrics = { journeyTop: 100, journeyHeight: 900, viewportHeight: 100 };
 
-    assert.equal(shouldConsumeWheel({ ...dimensions, scrollTop: 0, deltaY: -1 }), false);
-    assert.equal(shouldConsumeWheel({ ...dimensions, scrollTop: 0, deltaY: 1 }), true);
-    assert.equal(shouldConsumeWheel({ ...dimensions, scrollTop: 300, deltaY: -1 }), true);
-    assert.equal(shouldConsumeWheel({ ...dimensions, scrollTop: 600, deltaY: 1 }), false);
-    assert.equal(shouldConsumeWheel({ ...dimensions, scrollTop: 600, deltaY: -1 }), true);
-    assert.equal(shouldConsumeWheel({ scrollHeight: 200, clientHeight: 200, scrollTop: 0, deltaY: 1 }), false);
-    assert.equal(shouldConsumeWheel({ ...dimensions, scrollTop: 300, deltaY: 0 }), false);
+    assert.equal(documentJourneyProgress({ ...metrics, scrollY: 0 }), 0);
+    assert.equal(documentJourneyProgress({ ...metrics, scrollY: 100 }), 0);
+    assert.equal(documentJourneyProgress({ ...metrics, scrollY: 500 }), 0.5);
+    assert.equal(documentJourneyProgress({ ...metrics, scrollY: 900 }), 1);
+    assert.equal(documentJourneyProgress({ ...metrics, scrollY: 1200 }), 1);
+    assert.equal(documentJourneyProgress({ journeyTop: 100, journeyHeight: 100, viewportHeight: 100, scrollY: 150 }), 0);
+    assert.equal(documentJourneyTarget(metrics, 0.5), 500);
+    assert.equal(documentJourneyTarget(metrics, 5), 900);
 });
 
 test('cleanup registry runs each teardown once in reverse registration order', () => {

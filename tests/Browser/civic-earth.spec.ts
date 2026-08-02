@@ -33,8 +33,10 @@ async function selectStage(page: Page, stage: string) {
 async function setExactStage(page: Page, index: number) {
   const scroll = page.locator('[data-earth-scroll]');
   await scroll.evaluate((element, stageIndex) => {
-    element.scrollTop = (element.scrollHeight - element.clientHeight) * (stageIndex / 8);
-    element.dispatchEvent(new Event('scroll'));
+    const journeyTop = element.getBoundingClientRect().top + window.scrollY;
+    const journeyDistance = element.scrollHeight - window.innerHeight;
+    window.scrollTo(0, journeyTop + (journeyDistance * (stageIndex / 8)));
+    window.dispatchEvent(new Event('scroll'));
   }, index);
   await page.evaluate(() => new Promise<void>((resolve) => {
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
@@ -107,7 +109,7 @@ test.describe('CivicLens Earth journey', () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test('supports bounded wheel and keyboard navigation before continuing the page', async ({ page }, testInfo) => {
+  test('uses document wheel and keyboard navigation before continuing into page content', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name.includes('mobile'), 'Desktop wheel coverage; mobile native scrolling has a dedicated test.');
     const journey = await openJourney(page);
     const scroll = journey.locator('[data-earth-scroll]');
@@ -122,21 +124,19 @@ test.describe('CivicLens Earth journey', () => {
     await scroll.press('ArrowUp');
     await expect(journey.locator('[data-earth-step]')).toHaveText('01 · Earth system');
 
-    const box = await scroll.boundingBox();
+    const box = await journey.locator('.civic-earth__stage').boundingBox();
     expect(box).not.toBeNull();
     await page.mouse.move(box!.x + (box!.width / 2), box!.y + (box!.height / 2));
+    const pageStart = await page.evaluate(() => window.scrollY);
     await page.mouse.wheel(0, 700);
-    await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(pageStart);
+    await expect(journey.locator('[data-earth-step]')).not.toHaveText('01 · Earth system');
 
-    await scroll.evaluate((element) => {
-      element.scrollTop = element.scrollHeight - element.clientHeight;
-      element.dispatchEvent(new Event('scroll'));
-    });
-    const innerMaximum = await scroll.evaluate((element) => element.scrollHeight - element.clientHeight);
+    await setExactStage(page, 8);
     const pageBefore = await page.evaluate(() => window.scrollY);
     await page.mouse.wheel(0, 900);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(pageBefore);
-    expect(await scroll.evaluate((element) => Math.round(element.scrollTop))).toBe(Math.round(innerMaximum));
+    await expect(page.getByText('Our Mission')).toBeVisible();
   });
 
   test('supports native mobile scrolling and keeps responsive text inside the scene', async ({ page }, testInfo) => {
@@ -146,8 +146,8 @@ test.describe('CivicLens Earth journey', () => {
     const stage = journey.locator('.civic-earth__stage');
     const copy = journey.locator('.civic-earth__copy');
 
-    await expect(scroll).toHaveCSS('overflow-y', 'auto');
-    const box = await scroll.boundingBox();
+    await expect(scroll).toHaveCSS('overflow-y', 'visible');
+    const box = await journey.locator('.civic-earth__stage').boundingBox();
     expect(box).not.toBeNull();
     const client = await page.context().newCDPSession(page);
     const x = Math.round(box!.x + (box!.width / 2));
@@ -163,7 +163,7 @@ test.describe('CivicLens Earth journey', () => {
       });
     }
     await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
     const [stageBox, copyBox] = await Promise.all([stage.boundingBox(), copy.boundingBox()]);
     expect(stageBox).not.toBeNull();
@@ -176,16 +176,16 @@ test.describe('CivicLens Earth journey', () => {
 
   test('honours reduced motion and dark mode without removing stage navigation', async ({ page }) => {
     await page.addInitScript(() => {
-      const original = Element.prototype.scrollTo;
+      const original = window.scrollTo;
       const observed: string[] = [];
       Reflect.set(window, '__civicEarthScrollBehaviors', observed);
-      Element.prototype.scrollTo = function (...parameters: unknown[]) {
+      window.scrollTo = function (...parameters: Parameters<typeof window.scrollTo>) {
         const options = parameters[0];
         if (typeof options === 'object' && options !== null && 'behavior' in options) {
           observed.push(String((options as ScrollToOptions).behavior));
         }
 
-        return (original as (...args: unknown[]) => void).apply(this, parameters);
+        return original.apply(window, parameters);
       };
     });
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
@@ -195,7 +195,7 @@ test.describe('CivicLens Earth journey', () => {
     await page.getByRole('button', { name: 'Go to 05 · South Asia' }).click();
     await expect(page.locator('[data-earth-step]')).toHaveText('05 · South Asia');
     await expect(page.locator('html')).toHaveClass(/dark/);
-    await expect(scroll).toHaveCSS('scroll-snap-type', /mandatory/);
+    await expect(scroll).toHaveCSS('overflow-y', 'visible');
     await expect(journey.locator('[data-earth-card-title]')).toBeVisible();
     expect(await page.evaluate(() => Reflect.get(window, '__civicEarthScrollBehaviors'))).toContain('auto');
   });
