@@ -10,11 +10,11 @@ Procurement, budgets, audit reports, and agency publications are distributed acr
 
 ## Decision
 
-V2 uses an allowlisted source registry that supports government, nonprofit, research, watchdog, and other public-interest publishers. Each acquisition records source class, publisher, original URL, retrieval facts, license or rights decision, checksum, dates, language, geography, and supersession state.
+V2 uses an allowlisted source registry that supports government, nonprofit, research, watchdog, and other public-interest publishers. Acquisition prefers APIs or feeds, then sitemaps and direct downloads, static HTML, and isolated browser rendering only for approved JavaScript-only sources. Each acquisition records source class, publisher, original URL, retrieval facts, license or rights decision, checksum, dates, language, geography, and supersession state.
 
 Official records and non-governmental analysis remain visibly distinct. Cross-source corroboration is a reviewer-visible relationship, not an automatic truth score. Public output contains only metadata, a short approved source-attributed summary, and a link to the publisher's original source unless separate rights permit republication.
 
-Crawlers honor documented access constraints, bounded rates, content limits, and removal/correction workflows. Public-interest purpose does not remove provenance, security, privacy, or publisher-rights obligations.
+Crawlers honor documented access constraints, bounded rates, content limits, host/path allowlists, redirect validation, SSRF controls, and removal/correction workflows. CivicLens retains checksum-protected snapshots privately for reproducible extraction, change detection, review, and audit; it never exposes those snapshots publicly without an explicit rights decision. Public-interest purpose does not remove provenance, security, privacy, or publisher-rights obligations.
 
 ## Consequences
 
