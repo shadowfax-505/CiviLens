@@ -9,9 +9,11 @@
 
 ## Next
 
-- Add the source registry, acquisition ledger, and immutable artifact versions.
+- Add the allowlisted source registry, acquisition ledger, and private immutable artifact versions.
+- Implement API/feed, sitemap/direct-download, static-HTML, and isolated browser connectors in that order.
 - Onboard procurement, budget, audit, and agency sources from government and non-governmental publishers.
-- Promote processing placeholders into isolated native-text and Tesseract `ben+eng` workers.
+- Add conditional retrieval, checksum deduplication, supersession, quarantine, rate limits, redirect validation, and SSRF controls.
+- Promote processing placeholders into isolated native-text and selective Tesseract `ben+eng` workers.
 - Implement extraction runs, page evidence, layout/table outputs, confidence, retry, and abstention states.
 - Implement blind review assignment, tie-break, subject response, re-review, and publication versions.
 
