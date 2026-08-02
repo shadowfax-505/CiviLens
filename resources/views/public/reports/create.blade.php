@@ -40,7 +40,7 @@
             </label>
             <x-upload-zone name="attachment" label="Upload supporting files" hint="Optional: PDF, image, or office document up to 10 MB." accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.zip" />
             @error('attachment')<span class="block text-sm text-red-600">{{ $message }}</span>@enderror
-            <button class="rounded-lg bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950">Submit</button>
+            <button type="submit" class="rounded-lg bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950">Submit</button>
         </form>
     </section>
 </x-layouts.app>

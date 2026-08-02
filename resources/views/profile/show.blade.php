@@ -21,13 +21,13 @@
                 </div>
                 <label class="grid gap-2 text-sm font-semibold">
                     Name
-                    <input name="name" value="{{ old('name', $user->name) }}">
+                    <input name="name" autocomplete="name" value="{{ old('name', $user->name) }}">
                 </label>
                 <label class="grid gap-2 text-sm font-semibold">
                     Email
-                    <input name="email" type="email" value="{{ old('email', $user->email) }}">
+                    <input name="email" type="email" autocomplete="email" value="{{ old('email', $user->email) }}">
                 </label>
-                <button class="cl-button-primary" type="submit">Save settings</button>
+                <button type="submit" class="cl-button-primary">Save settings</button>
             </form>
 
             <form method="POST" action="{{ route('profile.avatar') }}" enctype="multipart/form-data" class="cl-form-card space-y-4">
@@ -43,7 +43,7 @@
                     hint="PNG, JPG, GIF, or WebP up to 2 MB. Click or drag and drop."
                     required
                 />
-                <button class="cl-button-primary" type="submit">Upload avatar</button>
+                <button type="submit" class="cl-button-primary">Upload avatar</button>
             </form>
 
             <form method="POST" action="{{ route('profile.password') }}" class="cl-form-card space-y-4">
@@ -53,10 +53,10 @@
                     <p class="cl-kicker">Security</p>
                     <h2 class="cl-card-title mt-1">Change Password</h2>
                 </div>
-                <input name="current_password" type="password" placeholder="Current password">
-                <input name="password" type="password" placeholder="New password">
-                <input name="password_confirmation" type="password" placeholder="Confirm password">
-                <button class="cl-button-primary" type="submit">Change password</button>
+                <input name="current_password" type="password" autocomplete="current-password" placeholder="Current password">
+                <input name="password" type="password" autocomplete="new-password" placeholder="New password">
+                <input name="password_confirmation" type="password" autocomplete="new-password" placeholder="Confirm password">
+                <button type="submit" class="cl-button-primary">Change password</button>
             </form>
 
             <form method="POST" action="{{ route('profile.notifications') }}" class="cl-form-card space-y-5">
@@ -87,7 +87,7 @@
                     </div>
                 </fieldset>
 
-                <button class="cl-button-primary" type="submit">Save preferences</button>
+                <button type="submit" class="cl-button-primary">Save preferences</button>
             </form>
         </div>
 

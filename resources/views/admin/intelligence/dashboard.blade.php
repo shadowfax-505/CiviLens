@@ -13,7 +13,7 @@
                     <a href="{{ route('admin.intelligence.processing-jobs.index') }}" class="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-400">Processing Queue</a>
                     <form method="POST" action="{{ route('admin.intelligence.engine.run') }}">
                         @csrf
-                        <button class="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400">Run Civic Integrity Engine</button>
+                        <button type="submit" class="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400">Run Civic Integrity Engine</button>
                     </form>
                 </div>
             </div>

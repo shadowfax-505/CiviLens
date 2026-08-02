@@ -35,7 +35,7 @@
             </label>
             <input type="hidden" name="status" value="draft">
             <div class="md:col-span-2">
-                <button class="rounded-lg bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950">Save plan</button>
+                <button type="submit" class="rounded-lg bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950">Save plan</button>
             </div>
         </form>
     </section>

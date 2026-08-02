@@ -19,7 +19,7 @@
                         @foreach ($activeAnalyticsFilters as $name => $value)
                             <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                         @endforeach
-                        <button class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-blue-50">Generate Snapshot Now</button>
+                        <button type="submit" class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-blue-50">Generate Snapshot Now</button>
                     </form>
                     <form method="POST" action="{{ route('admin.analytics.reports.csv') }}">
                         @csrf
@@ -27,7 +27,7 @@
                         @foreach ($activeAnalyticsFilters as $name => $value)
                             <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                         @endforeach
-                        <button class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-blue-50">Download CSV Now</button>
+                        <button type="submit" class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-blue-50">Download CSV Now</button>
                     </form>
                 </div>
             </div>
@@ -97,7 +97,7 @@
                 </select>
             </label>
             <div class="flex items-end">
-                <button class="w-full rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">Apply Filters</button>
+                <button type="submit" class="w-full rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">Apply Filters</button>
             </div>
         </form>
 

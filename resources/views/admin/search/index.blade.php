@@ -96,7 +96,7 @@
                     <input type="hidden" name="direction" value="{{ $query->direction }}">
                     <label class="mt-4 block text-sm font-semibold" for="saved-name">Name</label>
                     <input id="saved-name" name="name" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-950" placeholder="Bridge monitoring">
-                    <button class="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white hover:bg-emerald-500">Save</button>
+                    <button type="submit" class="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white hover:bg-emerald-500">Save</button>
                 </form>
 
                 <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">

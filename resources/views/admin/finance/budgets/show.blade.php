@@ -6,6 +6,9 @@
             <p class="mt-2 text-slate-600 dark:text-slate-300">{{ $budget->notes }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
+            @if (auth()->user()?->hasRole(config('civiclens.roles.staff')) === true)
+                <a href="{{ route('admin.change-requests.create', ['module' => 'budgets', 'operation' => 'update', 'subject_type' => App\Models\Budget::class, 'subject_id' => $budget->id, 'subject_label' => $budget->project?->name ?? 'Budget #'.$budget->id, 'subject_url' => route('admin.finance.budgets.show', $budget)]) }}" class="rounded border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">Request change</a>
+            @endif
             <a href="{{ route('admin.finance.budgets.edit', $budget) }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Edit</a>
             @if ($budget->archived_at)
                 <form method="POST" action="{{ route('admin.finance.budgets.restore', $budget) }}">@csrf @method('PATCH')<button class="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Restore</button></form>
@@ -30,7 +33,7 @@
                 <input name="new_allocation" type="number" min="0" step="0.01" placeholder="New allocation" class="rounded border px-3 py-2 text-slate-950">
                 <input name="approval_date" type="date" class="rounded border px-3 py-2 text-slate-950">
                 <textarea name="reason" placeholder="Reason" class="rounded border px-3 py-2 text-slate-950"></textarea>
-                <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Record revision</button>
+                <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Record revision</button>
             </form>
             <ol class="mt-5 space-y-2">
                 @forelse ($budget->revisions as $revision)
@@ -53,7 +56,7 @@
                 <input name="amount" type="number" min="0" step="0.01" placeholder="Amount" class="rounded border px-3 py-2 text-slate-950">
                 <input name="transaction_date" type="date" class="rounded border px-3 py-2 text-slate-950">
                 <textarea name="description" placeholder="Description" class="rounded border px-3 py-2 text-slate-950"></textarea>
-                <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Record transaction</button>
+                <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Record transaction</button>
             </form>
             <ol class="mt-5 space-y-2">
                 @forelse ($budget->transactions as $transaction)

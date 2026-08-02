@@ -30,6 +30,12 @@ class UserAdministrationService
         $roles = Role::query()->whereIn('id', $roleIds)->pluck('id')->all();
         if ($roles !== []) {
             $user->roles()->sync($roles);
+        } else {
+            $citizenId = Role::query()->where('slug', config('civiclens.roles.citizen'))->value('id');
+            if ($citizenId !== null) {
+                $user->roles()->sync([$citizenId]);
+                $roles = [$citizenId];
+            }
         }
 
         $this->activityLogger->log($user, 'admin.created', $request, $actor, [

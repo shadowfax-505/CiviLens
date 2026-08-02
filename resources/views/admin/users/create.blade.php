@@ -11,19 +11,19 @@
             <div class="grid gap-4 md:grid-cols-2">
                 <label class="block">
                     <span class="text-sm font-medium">Name</span>
-                    <input name="name" value="{{ old('name') }}" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-950" required>
+                    <input name="name" autocomplete="name" value="{{ old('name') }}" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-950" required>
                 </label>
                 <label class="block">
                     <span class="text-sm font-medium">Email</span>
-                    <input name="email" type="email" value="{{ old('email') }}" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-950" required>
+                    <input name="email" type="email" autocomplete="email" value="{{ old('email') }}" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-950" required>
                 </label>
                 <label class="block">
                     <span class="text-sm font-medium">Temporary Password</span>
-                    <input name="password" type="password" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-950" required>
+                    <input name="password" type="password" autocomplete="new-password" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-950" required>
                 </label>
                 <label class="block">
                     <span class="text-sm font-medium">Confirm Password</span>
-                    <input name="password_confirmation" type="password" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-950" required>
+                    <input name="password_confirmation" type="password" autocomplete="new-password" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-950" required>
                 </label>
             </div>
 
@@ -45,7 +45,7 @@
             </div>
 
             <div class="flex gap-3">
-                <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create User</button>
+                <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Create User</button>
                 <a href="{{ route('admin.users.index') }}" class="rounded border px-4 py-2 text-sm font-semibold dark:border-slate-700">Cancel</a>
             </div>
         </form>

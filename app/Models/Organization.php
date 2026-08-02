@@ -113,7 +113,21 @@ class Organization extends Model implements Searchable
 
     public function searchVisibility(): string
     {
-        return 'internal';
+        if ($this->status !== 'active' || $this->archived_at !== null) {
+            return 'internal';
+        }
+
+        if ($this->profile === null) {
+            return 'internal';
+        }
+
+        return $this->profile->is_public === true
+            && $this->profile->is_active === true
+            && $this->profile->is_suspended === false
+            && $this->profile->is_blacklisted === false
+            && $this->profile->archived_at === null
+            ? 'public'
+            : 'internal';
     }
 
     public function searchMetadata(): array

@@ -61,7 +61,7 @@
                             @endforeach
                         </select>
                         <textarea name="review_notes" class="w-full rounded-2xl border border-slate-300 px-4 py-3 dark:border-slate-700 dark:bg-slate-950" rows="4" placeholder="Review notes">{{ $changeRequest->review_notes }}</textarea>
-                        <button class="rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-500">Save Review</button>
+                        <button type="submit" class="rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-500">Save Review</button>
                     </form>
                 @endif
 

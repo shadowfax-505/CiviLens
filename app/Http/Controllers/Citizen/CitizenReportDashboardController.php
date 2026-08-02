@@ -14,6 +14,7 @@ class CitizenReportDashboardController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User, 403);
+        abort_unless($request->user()?->can('viewDashboard', CitizenReport::class) === true, 403);
 
         return view('citizen.reports.index', [
             'reports' => CitizenReport::query()

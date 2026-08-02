@@ -32,7 +32,7 @@
                 <option value="{{ $country->id }}" @selected(old('country_id', $agency->country_id) == $country->id)>{{ $country->name }}</option>
             @endforeach
         </select>
-        <input name="email" value="{{ old('email', $agency->email) }}" placeholder="Email" class="rounded border px-3 py-2 text-slate-950">
+        <input name="email" type="email" autocomplete="email" value="{{ old('email', $agency->email) }}" placeholder="Email" class="rounded border px-3 py-2 text-slate-950">
         <input name="phone" value="{{ old('phone', $agency->phone) }}" placeholder="Phone" class="rounded border px-3 py-2 text-slate-950">
         <input name="website" value="{{ old('website', $agency->website) }}" placeholder="Website" class="rounded border px-3 py-2 text-slate-950">
         <input name="contact_person" value="{{ old('contact_person', $agency->contact_person) }}" placeholder="Contact person" class="rounded border px-3 py-2 text-slate-950">
@@ -52,6 +52,6 @@
             </div>
         </fieldset>
 
-        <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save agency</button>
+        <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save agency</button>
     </form>
 </x-layouts.app>

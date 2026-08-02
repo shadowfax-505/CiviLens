@@ -13,6 +13,16 @@ class CitizenReportPolicy
             || $user->hasPermission(config('civiclens.permissions.citizen_reports_manage'));
     }
 
+    public function viewDashboard(User $user, CitizenReport|string|null $report = null): bool
+    {
+        if ($user->hasRole(config('civiclens.roles.admin'))) {
+            return false;
+        }
+
+        return $user->hasRole(config('civiclens.roles.citizen'))
+            || $user->hasPermission(config('civiclens.permissions.reports_submit'));
+    }
+
     public function view(User $user, CitizenReport $report): bool
     {
         return $this->viewAny($user) || $report->submitter_id === $user->id;

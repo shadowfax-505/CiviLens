@@ -17,6 +17,6 @@
             </select>
         </label>
         <x-leaflet-coordinate-picker :lat="$country->latitude" :lng="$country->longitude" label="Country map pin" />
-        <button class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save country</button>
+        <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-white dark:bg-white dark:text-slate-950 md:col-span-2">Save country</button>
     </form>
 </x-layouts.app>

@@ -5,7 +5,9 @@
                 <p class="text-sm font-semibold uppercase text-emerald-700">Planning</p>
                 <h1 class="text-3xl font-bold">Procurement Plans</h1>
             </div>
-            <a class="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950" href="{{ route('admin.procurement.plans.create') }}">Create plan</a>
+            @can('create', App\Models\ProcurementPlan::class)
+                <a class="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950" href="{{ route('admin.procurement.plans.create') }}">Create plan</a>
+            @endcan
         </div>
         <div class="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
             @forelse ($plans as $plan)

@@ -46,7 +46,7 @@
                 <textarea name="financial_proposal_summary" placeholder="Financial proposal summary" class="rounded border px-3 py-2 text-slate-950"></textarea>
                 <input name="status" value="submitted" class="rounded border px-3 py-2 text-slate-950">
                 <textarea name="notes" placeholder="Notes" class="rounded border px-3 py-2 text-slate-950"></textarea>
-                <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Record bid</button>
+                <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Record bid</button>
             </form>
             <ol class="mt-5 space-y-2">
                 @forelse ($tender->bidSubmissions as $bid)
@@ -72,7 +72,7 @@
                 <input name="max_score" type="number" min="1" step="0.01" value="100" class="rounded border px-3 py-2 text-slate-950">
                 <input name="weight" type="number" min="0" max="100" step="0.01" placeholder="Weight" class="rounded border px-3 py-2 text-slate-950">
                 <textarea name="description" placeholder="Description" class="rounded border px-3 py-2 text-slate-950"></textarea>
-                <button class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Add criterion</button>
+                <button type="submit" class="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">Add criterion</button>
             </form>
             @foreach ($tender->bidSubmissions as $bid)
                 <form method="POST" action="{{ route('admin.procurement.bid-submissions.scores.store', $bid) }}" class="mt-4 grid gap-2 rounded border p-3 dark:border-slate-800">

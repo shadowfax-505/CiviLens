@@ -3,6 +3,7 @@
 namespace App\Services\PublicPortal;
 
 use App\Models\Agency;
+use App\Models\ContractorProfile;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\Project;
@@ -34,6 +35,19 @@ class PublicVisibilityService
 
     public function organizationIsPublic(Organization $organization): bool
     {
-        return $organization->status === 'active' && $organization->archived_at === null;
+        if ($organization->status !== 'active' || $organization->archived_at !== null) {
+            return false;
+        }
+
+        $profile = $organization->profile;
+        if (! $profile instanceof ContractorProfile) {
+            return false;
+        }
+
+        return $profile->is_public === true
+            && $profile->is_active === true
+            && $profile->is_suspended === false
+            && $profile->is_blacklisted === false
+            && $profile->archived_at === null;
     }
 }
