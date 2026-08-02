@@ -25,5 +25,11 @@ CivicLens should feel trustworthy, calm, and data-rich. Interfaces should priori
 
 ## V2 Expansion Notes
 
-Add maps, richer visual analytics, and public data explorer workflows.
+V2 uses shared tokens and accessible components within four distinct shells:
 
+- Public: Earth-to-Dhaka narrative, district exploration, recently indexed sources, and evidence search.
+- Citizen: saved districts, major-change notifications, report submission, and follow-up.
+- Staff: assigned work, guided source-data proposals, document processing, and review queues.
+- Administrator: access control, source governance, publication, rules, auditing, and operations.
+
+The globe uses normal document scrolling with a sticky scene, never a nested scroll trap. Every shell requires responsive, keyboard, reduced-motion, and dark-mode verification. Presentation may hide irrelevant actions, but authorization remains enforced by policies and middleware.
