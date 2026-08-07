@@ -96,6 +96,9 @@ use App\Policies\ProjectPolicy;
 use App\Policies\SourcePublisherPolicy;
 use App\Policies\TenderPolicy;
 use App\Policies\UserPolicy;
+use App\Services\Extraction\NativeExtractorRegistry;
+use App\Services\Extraction\PdfNativeTextExtractor;
+use App\Services\Extraction\PlainTextNativeExtractor;
 use App\Services\Ingestion\ClamAvMalwareScanner;
 use App\Services\Ingestion\NativeNetworkAddressResolver;
 use App\Services\Ingestion\SecureArtifactFetcher;
@@ -118,6 +121,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(MalwareScanner::class, ClamAvMalwareScanner::class);
         $this->app->bind(ArtifactFetcher::class, SecureArtifactFetcher::class);
         $this->app->bind(BrowserRenderProvider::class, UnavailableBrowserRenderProvider::class);
+
+        $this->app->singleton(NativeExtractorRegistry::class, fn ($app): NativeExtractorRegistry => new NativeExtractorRegistry([
+            $app->make(PdfNativeTextExtractor::class),
+            $app->make(PlainTextNativeExtractor::class),
+        ]));
 
         $this->app->bind(SearchProvider::class, function ($app): SearchProvider {
             return match (config('civiclens.search.provider', 'database')) {

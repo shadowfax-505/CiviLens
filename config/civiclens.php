@@ -43,6 +43,29 @@ return [
         'sources_manage' => 'sources.manage',
     ],
 
+    'extraction' => [
+        'pdftotext_binary' => env('EXTRACTION_PDFTOTEXT_BINARY', 'pdftotext'),
+        'pdfinfo_binary' => env('EXTRACTION_PDFINFO_BINARY', 'pdfinfo'),
+        'process_timeout_seconds' => (int) env('EXTRACTION_PROCESS_TIMEOUT', 60),
+        'max_pages' => (int) env('EXTRACTION_MAX_PAGES', 500),
+        'max_bytes' => (int) env('EXTRACTION_MAX_BYTES', 52428800),
+        // Characters per square inch below which a page is treated as lacking a usable
+        // text layer and routed to OCR. Reported alongside results so the operating
+        // point is reproducible rather than implicit.
+        'native_density_threshold' => (float) env('EXTRACTION_NATIVE_DENSITY_THRESHOLD', 1.5),
+        'default_page_width_points' => 595.276,
+        'default_page_height_points' => 841.89,
+        'native_media_types' => [
+            'application/pdf' => 'pdf',
+            'text/plain' => 'text',
+            'text/html' => 'text',
+            'text/csv' => 'text',
+            'text/xml' => 'text',
+            'application/xml' => 'text',
+            'application/json' => 'text',
+        ],
+    ],
+
     'documents' => [
         'disk' => env('DOCUMENT_STORAGE_DISK', env('FILESYSTEM_DISK', 'local')),
         'max_upload_kb' => (int) env('DOCUMENT_MAX_UPLOAD_KB', 20480),
