@@ -4,6 +4,7 @@ All notable changes to CivicLens are tracked here.
 
 ## [Unreleased]
 
+- Added the additive extraction measurement spine (`extraction_runs`, `extraction_pages`, `extraction_fields`) recording per-page routing decisions and per-field confidence, nonconformity scores, evidence spans, calibration splits, and reviewed outcomes grouped by publisher and script class.
 - Fixed source-acquisition DNS pinning that silently did not apply when a URL carried a trailing-dot, uppercase, or explicitly-ported host, and made unavailable pinning fail closed instead of sending unpinned requests.
 - Added the rollout-guarded, exact nine-stage Earth-to-Bangladesh journey with pinned local Cesium assets, validated local NASA imagery, resilient three-layer fallback behavior, weekly review-only MODIS candidate preparation, and desktop/mobile Playwright coverage.
 - Changed public search pagination to stream the bounded indexed result window, preserving visibility filtering without materializing the full window in memory.
