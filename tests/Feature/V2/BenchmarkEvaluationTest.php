@@ -8,6 +8,7 @@ use App\Services\Extraction\BenchmarkEvaluationService;
 use App\Services\Extraction\BenchmarkManifestReader;
 use App\Services\Extraction\ConformalCalibrator;
 use App\Services\Extraction\FieldValueMatcher;
+use App\Services\Extraction\KeyValueExtractor;
 use App\Services\Extraction\PageRasterizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Symfony\Component\Process\Process;
@@ -115,32 +116,31 @@ it('folds bengali digits and whitespace but does not invent agreement', function
         ->and($matcher->matches('', 'anything'))->toBeFalse();
 });
 
-it('records real outcomes for gold fields the engine did and did not find', function (): void {
+it('records real outcomes from labels present on the page', function (): void {
+    // The fixture page reads "Ministry of Finance budget line item 000
+    // allocation 1000000 BDT". Field keys are the printed labels; the gold value
+    // is what should follow them.
     $manifest = benchmarkManifest([
-        'present_phrase' => 'Ministry of Finance',
-        'present_amount' => '1000000',
-        'absent_phrase' => 'Ministry of Absolutely Nothing',
+        'allocation' => '1000000',
+        'Finance' => 'budget',
+        'NoSuchLabelOnThisPage' => 'irrelevant',
     ]);
 
     $summary = app(BenchmarkEvaluationService::class)->evaluate($manifest, 'fixture');
 
-    expect($summary['pages'])->toBe(1)
-        ->and($summary['fields'])->toBe(3)
+    expect($summary['fields'])->toBe(3)
         ->and($summary['correct'])->toBe(2)
         ->and($summary['field_accuracy'])->toBe(0.6667);
 
     $fields = ExtractionField::query()->get()->keyBy('field_key');
 
-    expect($fields['present_phrase']->is_correct)->toBeTrue()
-        ->and($fields['present_phrase']->gold_source)->toBe('benchmark')
-        ->and($fields['present_phrase']->extracted_value)->toBe('Ministry of Finance')
-        ->and($fields['absent_phrase']->is_correct)->toBeFalse()
-        ->and($fields['absent_phrase']->extracted_value)->toBeNull()
-        ->and($fields['absent_phrase']->gold_value)->toBe('Ministry of Absolutely Nothing')
-        ->and($fields['present_amount']->nonconformity_score)->toBeGreaterThan(0.0)
-        ->and($fields['present_amount']->nonconformity_score)->toBeLessThan(0.5)
-        ->and($fields['present_amount']->publisher_group)->toBe('mof')
-        ->and($fields['present_amount']->calibration_split)->toBe('calibration');
+    expect($fields['allocation']->is_correct)->toBeTrue()
+        ->and($fields['allocation']->extracted_value)->toContain('1000000')
+        ->and($fields['allocation']->gold_source)->toBe('benchmark')
+        ->and($fields['NoSuchLabelOnThisPage']->is_correct)->toBeFalse()
+        ->and($fields['NoSuchLabelOnThisPage']->extracted_value)->toBeNull()
+        ->and($fields['NoSuchLabelOnThisPage']->nonconformity_score)->toBe(1.0)
+        ->and($fields['allocation']->publisher_group)->toBe('mof');
 })->skip(fn (): bool => benchmarkToolchainMissing(), 'poppler or tesseract is not installed');
 
 it('records a benchmark run without fabricating a source artifact', function (): void {
@@ -158,7 +158,7 @@ it('records a benchmark run without fabricating a source artifact', function ():
 
 it('produces fields the conformal calibrator can consume', function (): void {
     app(BenchmarkEvaluationService::class)->evaluate(
-        benchmarkManifest(['a' => 'Ministry of Finance', 'b' => 'allocation', 'c' => 'nonexistent phrase here']),
+        benchmarkManifest(['allocation' => '1000000', 'Finance' => 'budget', 'item' => '000']),
         'fixture',
     );
 
@@ -199,21 +199,21 @@ it('gives fields on one page distinct nonconformity scores', function (): void {
     // to one value, and conformal calibration can only accept or reject a run of
     // ties whole, so no threshold ever satisfies the bound.
     $manifest = benchmarkManifest([
-        'phrase' => 'Ministry of Finance',
-        'amount' => '1000000',
-        'item' => 'budget line item 000',
-        'absent' => 'Department of Nothing At All',
+        'allocation' => '1000000',
+        'Finance' => 'budget',
+        'item' => '000',
+        'NoSuchLabelOnThisPage' => 'irrelevant',
     ]);
 
     app(BenchmarkEvaluationService::class)->evaluate($manifest, 'fixture');
 
     $scores = ExtractionField::query()->pluck('nonconformity_score')->all();
-    $matched = ExtractionField::query()->where('is_correct', true)->pluck('nonconformity_score')->unique();
+    $predicted = ExtractionField::query()->whereNotNull('extracted_value')->pluck('nonconformity_score');
 
     expect(count($scores))->toBe(4)
         ->and(collect($scores)->unique()->count())->toBeGreaterThan(1)
-        ->and($matched->count())->toBeGreaterThan(1)
-        ->and(ExtractionField::query()->where('is_correct', false)->sole()->nonconformity_score)->toBe(1.0);
+        ->and($predicted->count())->toBeGreaterThan(1)
+        ->and(ExtractionField::query()->whereNull('extracted_value')->sole()->nonconformity_score)->toBe(1.0);
 })->skip(fn (): bool => benchmarkToolchainMissing(), 'poppler or tesseract is not installed');
 
 it('scores a field by its weakest supporting word rather than the average', function (): void {
@@ -224,4 +224,76 @@ it('scores a field by its weakest supporting word rather than the average', func
 
     expect($span)->toBe([99.0, 10.0])
         ->and(min($span))->toBe(10.0);
+});
+
+/** @return list<RecognizedWord> */
+function formLine(array $spec): array
+{
+    $words = [];
+    $x = 100;
+
+    foreach ($spec as [$text, $conf, $gap]) {
+        $x += $gap;
+        $words[] = new RecognizedWord($text, $conf, $x, 200, 20 * mb_strlen($text), 30);
+        $x += 20 * mb_strlen($text);
+    }
+
+    return $words;
+}
+
+it('predicts a value from the label position without consulting the gold', function (): void {
+    $words = formLine([['Name', 95.0, 0], [':', 90.0, 5], ['Alvi', 72.0, 10], ['Sarkar', 41.0, 10]]);
+
+    $prediction = app(KeyValueExtractor::class)->extract('Name', $words);
+
+    expect($prediction['value'])->toBe(': Alvi Sarkar')
+        ->and($prediction['confidences'])->toBe([90.0, 72.0, 41.0])
+        ->and(min($prediction['confidences']))->toBe(41.0);
+});
+
+it('stops reading at a column gap so it does not swallow the next label', function (): void {
+    // "Name: Alvi" then a wide gap then "Age: 40" -- reading to end of line would
+    // merge two fields into one value.
+    $words = formLine([['Name', 95.0, 0], ['Alvi', 80.0, 10], ['Age', 93.0, 400], ['40', 88.0, 10]]);
+
+    $prediction = app(KeyValueExtractor::class)->extract('Name', $words);
+
+    expect($prediction['value'])->toBe('Alvi')
+        ->and($prediction['confidences'])->toBe([80.0]);
+});
+
+it('returns nothing when the label is absent or nothing follows it', function (): void {
+    $extractor = app(KeyValueExtractor::class);
+    $words = formLine([['Name', 95.0, 0], ['Alvi', 80.0, 10]]);
+
+    expect($extractor->extract('Address', $words))->toBeNull()
+        ->and($extractor->extract('Alvi', $words))->toBeNull()
+        ->and($extractor->extract('', $words))->toBeNull()
+        ->and($extractor->extract('Name', []))->toBeNull();
+});
+
+it('ignores words on other lines when reading a value', function (): void {
+    $words = [
+        new RecognizedWord('Name', 95.0, 100, 200, 80, 30),
+        new RecognizedWord('Alvi', 80.0, 200, 205, 80, 30),
+        new RecognizedWord('Elsewhere', 70.0, 300, 600, 180, 30),
+    ];
+
+    $prediction = app(KeyValueExtractor::class)->extract('Name', $words);
+
+    expect($prediction['value'])->toBe('Alvi');
+});
+
+it('can be wrong on its own terms rather than by construction', function (): void {
+    // The predictor reads what is beside the label. If that is not the gold
+    // value, the field is incorrect *and* still carries a real confidence --
+    // which is exactly what a non-circular score requires.
+    $words = formLine([['Name', 95.0, 0], ['Wrong', 66.0, 10]]);
+
+    $prediction = app(KeyValueExtractor::class)->extract('Name', $words);
+    $matcher = new FieldValueMatcher;
+
+    expect($prediction['value'])->toBe('Wrong')
+        ->and($matcher->matches('Alvi Sarkar', $prediction['value']))->toBeFalse()
+        ->and(min($prediction['confidences']))->toBe(66.0);
 });
