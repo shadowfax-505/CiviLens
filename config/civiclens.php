@@ -42,6 +42,15 @@ return [
         'citizen_reports_manage' => 'citizen_reports.manage',
     ],
 
+    'seeding' => [
+        'allowed_environments' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('CIVICLENS_SEEDING_ENVIRONMENTS', 'local,testing')),
+        ))),
+        'baseline_password' => env('CIVICLENS_SEEDING_PASSWORD'),
+        'insecure_default_environments' => ['local', 'testing'],
+    ],
+
     'documents' => [
         'disk' => env('DOCUMENT_STORAGE_DISK', env('FILESYSTEM_DISK', 'local')),
         'max_upload_kb' => (int) env('DOCUMENT_MAX_UPLOAD_KB', 20480),

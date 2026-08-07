@@ -51,6 +51,7 @@ use App\Models\TenderStatus;
 use App\Models\Upazila;
 use App\Models\User;
 use App\Services\Search\SearchIndexingService;
+use Database\Seeders\Concerns\GuardsSeedingEnvironment;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -58,8 +59,12 @@ use Illuminate\Support\Str;
 
 class DemoCivicLensSeeder extends Seeder
 {
+    use GuardsSeedingEnvironment;
+
     public function run(): void
     {
+        $this->guardSeedingEnvironment();
+
         $adminRole = Role::query()->where('slug', 'admin')->firstOrFail();
         $staffRole = Role::query()->where('slug', 'staff')->firstOrFail();
         $citizenRole = Role::query()->where('slug', 'citizen')->firstOrFail();
@@ -274,7 +279,7 @@ class DemoCivicLensSeeder extends Seeder
             ['email' => $email],
             [
                 'name' => $name,
-                'password' => 'password',
+                'password' => $this->seedingPassword(),
                 'email_verified_at' => now(),
                 'is_active' => true,
                 'locked_at' => null,
