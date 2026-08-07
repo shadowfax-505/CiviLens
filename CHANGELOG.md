@@ -4,6 +4,7 @@ All notable changes to CivicLens are tracked here.
 
 ## [Unreleased]
 
+- Added benchmark evaluation that converts a gold-annotated corpus into real calibration fields through the production OCR path, with manifest-relative image resolution that refuses paths escaping the manifest directory, conservative value matching including Bengali digit folding, and benchmark runs recorded without fabricating a source artifact.
 - Added group-conditional split-conformal calibration over extracted fields with a distribution-free false-acceptance bound per publisher and script class, deny-by-default deferral for uncertifiable or uncalibrated groups, and `civiclens:calibration-report` contrasting group-conditional and pooled thresholds on held-out data.
 - Added selective OCR for pages without a usable text layer: Tesseract `ben+eng` with per-word confidence, exactly one enhanced higher-resolution pass, and abstention to manual review when confidence stays below the configured threshold, plus abstention-rate, enhanced-pass-recovery, and per-script confidence reporting.
 - Added native-first extraction with per-page routing: poppler-backed PDF text-layer reading and in-process plain-text handling, page classification as Bengali/Latin/mixed, a configurable characters-per-square-inch threshold that decides whether a page needs OCR, and `civiclens:extraction-summary` reporting the born-digital share with its per-script breakdown.
