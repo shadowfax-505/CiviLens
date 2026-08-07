@@ -4,6 +4,7 @@ All notable changes to CivicLens are tracked here.
 
 ## [Unreleased]
 
+- Added selective OCR for pages without a usable text layer: Tesseract `ben+eng` with per-word confidence, exactly one enhanced higher-resolution pass, and abstention to manual review when confidence stays below the configured threshold, plus abstention-rate, enhanced-pass-recovery, and per-script confidence reporting.
 - Added native-first extraction with per-page routing: poppler-backed PDF text-layer reading and in-process plain-text handling, page classification as Bengali/Latin/mixed, a configurable characters-per-square-inch threshold that decides whether a page needs OCR, and `civiclens:extraction-summary` reporting the born-digital share with its per-script breakdown.
 - Added the additive extraction measurement spine (`extraction_runs`, `extraction_pages`, `extraction_fields`) recording per-page routing decisions and per-field confidence, nonconformity scores, evidence spans, calibration splits, and reviewed outcomes grouped by publisher and script class.
 - Fixed source-acquisition DNS pinning that silently did not apply when a URL carried a trailing-dot, uppercase, or explicitly-ported host, and made unavailable pinning fail closed instead of sending unpinned requests.

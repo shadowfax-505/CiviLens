@@ -82,6 +82,16 @@ Extraction reads native content before considering OCR. `NativeExtractorRegistry
 
 Runs and pages land in the extraction measurement spine. `ExtractionRoutingReport` derives the born-digital share, which is the denominator for every later OCR claim — the share of pages that never need OCR and, inverted, the share of compute an OCR-always pipeline spends for nothing.
 
+## V2 Selective OCR and Abstention
+
+`SelectiveOcrService` runs only on pages the native routing could not satisfy. Each page is rasterized by `PageRasterizer` through poppler and recognized by an `OcrEngine`; `TesseractOcrEngine` is the default binding and parses Tesseract's TSV output, averaging confidence over recognized words only. Structural TSV rows report `-1` and are excluded, because averaging them in would drag every page toward a meaningless figure.
+
+Exactly one enhanced pass is permitted, at higher resolution and a different page-segmentation mode. A page still below the acceptance threshold **abstains**: the confidence is recorded, a reason is stored, and no text is kept. An abstention is a recorded outcome, not a failure — the pipeline declines to contribute text nobody vouched for rather than publishing a low-confidence guess. The better of the two confidences is retained on the abstained row so the calibration record shows how close the page came.
+
+`OcrPageResult::$meanConfidence` is null when nothing was recognized, deliberately distinct from a confidence of zero. "The engine saw nothing" and "the engine saw something and doubted it" are different events, and only the second is a calibration signal.
+
+The acceptance threshold is configuration. `civiclens:extraction-summary` reports it alongside the abstention rate, the enhanced-pass recovery rate, and the confidence distribution **per script class** — pooled figures can look healthy while a low-resource subset fails, which is the same reason calibration has to be group-conditional.
+
 ## Change-Request Governance and Citizen Safety
 
 Staff submit structured change proposals through the Change Request module; administrators remain the only users who mutate operational source records. A proposal can be reviewed and then marked as applied only after the administrator completes the normal source-record workflow. This marker writes an immutable proposal audit activity and never applies payload data automatically.
