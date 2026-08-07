@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SourceArtifactVersion extends Model
 {
@@ -67,5 +68,10 @@ class SourceArtifactVersion extends Model
     public function supersedes(): BelongsTo
     {
         return $this->belongsTo(self::class, 'supersedes_id');
+    }
+
+    public function extractionRuns(): HasMany
+    {
+        return $this->hasMany(ExtractionRun::class);
     }
 }

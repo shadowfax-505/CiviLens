@@ -2,6 +2,7 @@
 
 use App\Jobs\RunSourceEndpointCrawl;
 use App\Models\SourceEndpoint;
+use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Intelligence\CivicIntegrityEngineService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -43,6 +44,20 @@ Artisan::command('civiclens:sources-dispatch', function (): int {
 
     return 0;
 })->purpose('Dispatch due allowlisted source acquisition jobs');
+
+Artisan::command('civiclens:extraction-summary', function (ExtractionRoutingReport $report): int {
+    $summary = $report->build();
+
+    if ($summary['total_pages'] === 0) {
+        $this->comment('No extraction pages have been recorded yet.');
+
+        return 0;
+    }
+
+    $this->line(json_encode($summary, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Report native versus OCR-required page routing across recorded extractions');
 
 Schedule::command('civiclens:integrity-run')
     ->dailyAt('02:15')
