@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Contracts\Extraction\OcrEngine;
 use App\Contracts\Ingestion\ArtifactFetcher;
 use App\Contracts\Ingestion\BrowserRenderProvider;
 use App\Contracts\Ingestion\MalwareScanner;
@@ -99,6 +100,7 @@ use App\Policies\UserPolicy;
 use App\Services\Extraction\NativeExtractorRegistry;
 use App\Services\Extraction\PdfNativeTextExtractor;
 use App\Services\Extraction\PlainTextNativeExtractor;
+use App\Services\Extraction\TesseractOcrEngine;
 use App\Services\Ingestion\ClamAvMalwareScanner;
 use App\Services\Ingestion\NativeNetworkAddressResolver;
 use App\Services\Ingestion\SecureArtifactFetcher;
@@ -121,6 +123,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(MalwareScanner::class, ClamAvMalwareScanner::class);
         $this->app->bind(ArtifactFetcher::class, SecureArtifactFetcher::class);
         $this->app->bind(BrowserRenderProvider::class, UnavailableBrowserRenderProvider::class);
+
+        $this->app->bind(OcrEngine::class, TesseractOcrEngine::class);
 
         $this->app->singleton(NativeExtractorRegistry::class, fn ($app): NativeExtractorRegistry => new NativeExtractorRegistry([
             $app->make(PdfNativeTextExtractor::class),
