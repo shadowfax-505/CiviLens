@@ -13,6 +13,7 @@ class ExtractionRun extends Model
 
     protected $fillable = [
         'uuid',
+        'benchmark',
         'source_artifact_version_id',
         'triggered_by',
         'status',
