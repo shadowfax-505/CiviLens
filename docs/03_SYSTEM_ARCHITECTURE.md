@@ -106,6 +106,16 @@ The acceptance threshold is configuration. `civiclens:extraction-summary` report
 
 Decisions deny by default: a missing group, an uncertifiable group, or a missing score all defer to a human. `civiclens:calibration-report` prints the per-group thresholds, the uncertifiable groups, and the realized risk of both strategies on held-out data.
 
+## V2 Benchmark Evaluation
+
+`BenchmarkEvaluationService` turns a gold-annotated corpus into real calibration data. Until it exists every calibration figure is synthetic: the conformal machinery can be validated, but no empirical claim can be made about any document population.
+
+Benchmarks are **referenced, never vendored**. `BenchmarkManifestReader` reads a manifest that names page images relative to its own directory, so a corpus that cannot be redistributed — BaFCo is CC-BY-NC-4.0, not the CC BY 4.0 its paper page suggests — stays outside the repository while its structure stays reproducible from a committed manifest. A manifest is treated as data, not instructions: image paths are resolved with `realpath` and refused if they escape the manifest directory, because the manifest may be authored by whoever published the benchmark.
+
+Each gold field becomes one `extraction_fields` row carrying a genuine prediction, outcome, and nonconformity score derived from the real OCR pass. `FieldValueMatcher` normalizes conservatively — case folding, Unicode whitespace collapsing, and Bengali-to-ASCII digit folding, nothing more. Fuzzy matching or punctuation stripping would manufacture agreement the engine did not earn, and the calibration guarantee is only as honest as this comparison.
+
+A benchmark run is not an acquisition, so `extraction_runs.source_artifact_version_id` is nullable and the run records which `benchmark` it came from. Borrowing an artifact row would put a fabricated acquisition record in the provenance ledger.
+
 ## Change-Request Governance and Citizen Safety
 
 Staff submit structured change proposals through the Change Request module; administrators remain the only users who mutate operational source records. A proposal can be reviewed and then marked as applied only after the administrator completes the normal source-record workflow. This marker writes an immutable proposal audit activity and never applies payload data automatically.
