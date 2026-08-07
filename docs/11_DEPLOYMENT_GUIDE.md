@@ -126,7 +126,7 @@ Keep `INGESTION_ENABLED=false` until the first source cohort, durable private `I
 
 Every enabled acquisition worker must have:
 
-- HTTPS egress restricted to approved public publisher hosts, with DNS pinning left enabled;
+- HTTPS egress restricted to approved public publisher hosts, with DNS pinning left enabled. Pinning is fail-closed: when `CURLOPT_RESOLVE` is unavailable or `INGESTION_PIN_RESOLVED_ADDRESS=false`, ingestion refuses to send the request. `INGESTION_ALLOW_UNPINNED_EGRESS=true` overrides that refusal and must stay `false` outside egress-proxy environments where `CURLOPT_RESOLVE` is actively wrong; `ext-curl` is a hard runtime requirement;
 - access to the private artifact disk but no public web mount for `ingestion/`;
 - ClamAV-compatible `clamdscan` access or a replacement bound to `MalwareScanner`;
 - queue retry and failure monitoring;

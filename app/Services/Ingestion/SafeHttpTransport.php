@@ -3,12 +3,15 @@
 namespace App\Services\Ingestion;
 
 use App\Data\Ingestion\SafeHttpResponse;
+use App\Data\Ingestion\ValidatedSourceUrl;
 use App\Exceptions\Ingestion\AcquisitionFailed;
+use App\Exceptions\Ingestion\UnsafeSourceUrl;
 use App\Models\SourceEndpoint;
 use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Psr7\UriResolver;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class SafeHttpTransport
 {
@@ -26,7 +29,7 @@ class SafeHttpTransport
 
         while (true) {
             $validated = $this->urlGuard->validate($currentUrl, $endpoint);
-            $response = $this->request($validated->url, $validated->host, $validated->ipAddress, $endpoint, $requestHeaders);
+            $response = $this->request($validated, $endpoint, $requestHeaders);
 
             if (in_array($response->status(), [301, 302, 303, 307, 308], true)) {
                 if ($redirectsRemaining <= 0) {
@@ -80,7 +83,7 @@ class SafeHttpTransport
     }
 
     /** @param array<string, string> $requestHeaders */
-    private function request(string $url, string $host, string $ipAddress, SourceEndpoint $endpoint, array $requestHeaders): Response
+    private function request(ValidatedSourceUrl $validated, SourceEndpoint $endpoint, array $requestHeaders): Response
     {
         $options = [
             'allow_redirects' => false,
@@ -89,8 +92,15 @@ class SafeHttpTransport
         ];
 
         if (defined('CURLOPT_RESOLVE') && (bool) config('civiclens.ingestion.pin_resolved_address', true)) {
-            $pinnedAddress = str_contains($ipAddress, ':') ? '['.$ipAddress.']' : $ipAddress;
-            $options['curl'] = [CURLOPT_RESOLVE => [$host.':443:'.$pinnedAddress]];
+            $options['curl'] = [CURLOPT_RESOLVE => [$this->resolveEntry($validated)]];
+        } elseif (! (bool) config('civiclens.ingestion.allow_unpinned_egress', false)) {
+            throw new UnsafeSourceUrl('Refusing to fetch a source without a pinned resolved address.');
+        } else {
+            Log::warning('Ingestion egress is not address-pinned.', [
+                'endpoint_id' => $endpoint->id,
+                'host' => $validated->host,
+                'ip_address' => $validated->ipAddress,
+            ]);
         }
 
         return Http::accept('*/*')
@@ -99,7 +109,14 @@ class SafeHttpTransport
             ->connectTimeout(min(10, max(1, $endpoint->timeout_seconds)))
             ->timeout(max(1, $endpoint->timeout_seconds))
             ->withOptions($options)
-            ->get($url);
+            ->get($validated->url);
+    }
+
+    private function resolveEntry(ValidatedSourceUrl $validated): string
+    {
+        $address = str_contains($validated->ipAddress, ':') ? '['.$validated->ipAddress.']' : $validated->ipAddress;
+
+        return $validated->host.':'.$validated->port.':'.$address;
     }
 
     /**
