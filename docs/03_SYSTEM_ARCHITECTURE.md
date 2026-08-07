@@ -92,6 +92,20 @@ Exactly one enhanced pass is permitted, at higher resolution and a different pag
 
 The acceptance threshold is configuration. `civiclens:extraction-summary` reports it alongside the abstention rate, the enhanced-pass recovery rate, and the confidence distribution **per script class** — pooled figures can look healthy while a low-resource subset fails, which is the same reason calibration has to be group-conditional.
 
+## V2 Group-Conditional Conformal Calibration
+
+`ConformalCalibrator` fits a split-conformal acceptance threshold over `extraction_fields`, separately for each publisher x script group. `FieldDecisionService` applies those thresholds and records an accept or defer decision with the alpha in force.
+
+**What is guaranteed.** For a field drawn exchangeably from the same group as its calibration set, the construction controls the false acceptance rate `P(field auto-accepted AND wrong) <= alpha`. That is an unconditional joint probability. It is deliberately not `P(wrong | accepted)`, which is a ratio of two random quantities and is not what this bounds; the conditional rate is computed and reported as an empirical diagnostic, never as a guarantee.
+
+**Why a field-level loss.** Sequence metrics such as character error rate are non-decomposable and cannot carry a distribution-free bound. A per-field 0/1 loss is bounded and decomposable, so the standard conformal risk control argument applies — and field correctness is also the quantity governance depends on.
+
+**Why per group.** A threshold fitted across every publisher and script at once can report a healthy pooled rate while a low-resource subset fails badly, because the majority group dominates the average. On a representative corpus the pooled threshold satisfied alpha overall at 0.048 while the Bengali subgroup realized 0.525 — an order of magnitude over the same alpha, hidden entirely by the aggregate. Group-conditional calibration brought that subgroup to 0.025.
+
+**Small groups.** The finite-sample correction contributes `1/(n+1)` to the risk bound, so a group with fewer than `1/alpha - 1` calibration examples cannot satisfy it at any threshold. Such a group is reported as uncertifiable and every field in it is deferred. This is the Mondrian small-group problem stated exactly, and it constrains low-resource groups first, which is why it is surfaced rather than smoothed over.
+
+Decisions deny by default: a missing group, an uncertifiable group, or a missing score all defer to a human. `civiclens:calibration-report` prints the per-group thresholds, the uncertifiable groups, and the realized risk of both strategies on held-out data.
+
 ## Change-Request Governance and Citizen Safety
 
 Staff submit structured change proposals through the Change Request module; administrators remain the only users who mutate operational source records. A proposal can be reviewed and then marked as applied only after the administrator completes the normal source-record workflow. This marker writes an immutable proposal audit activity and never applies payload data automatically.
