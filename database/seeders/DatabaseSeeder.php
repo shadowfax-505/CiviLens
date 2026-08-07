@@ -48,11 +48,13 @@ use App\Models\TenderCategory;
 use App\Models\TenderStatus;
 use App\Models\User;
 use App\Services\Search\SearchIndexingService;
+use Database\Seeders\Concerns\GuardsSeedingEnvironment;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
+    use GuardsSeedingEnvironment;
     use WithoutModelEvents;
 
     /**
@@ -60,6 +62,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->guardSeedingEnvironment();
+
         $accessGroup = PermissionGroup::query()->firstOrCreate(
             ['slug' => 'access-management'],
             ['name' => 'Access Management', 'description' => 'Identity, users, roles, and permissions.'],
@@ -129,7 +133,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test User',
-                'password' => 'password',
+                'password' => $this->seedingPassword(),
                 'email_verified_at' => now(),
                 'is_active' => true,
                 'locked_at' => null,
