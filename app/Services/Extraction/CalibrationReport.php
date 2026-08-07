@@ -48,21 +48,41 @@ class CalibrationReport
         $total = (clone $scored)->count();
 
         if ($total === 0) {
-            return ['checked' => 0, 'suspected' => false, 'reason' => null];
+            return ['checked' => 0, 'decidable' => false, 'suspected' => null, 'reason' => 'Undecidable: no scored fields with known outcomes.'];
         }
 
-        $worstCorrect = (clone $scored)->where('is_correct', true)->max('nonconformity_score');
-        $incorrectBelow = $worstCorrect === null
-            ? 0
-            : (clone $scored)->where('is_correct', false)->where('nonconformity_score', '<', (float) $worstCorrect)->count();
+        $correctCount = (clone $scored)->where('is_correct', true)->count();
+        $incorrectCount = (clone $scored)->where('is_correct', false)->count();
         $distinct = (clone $scored)->distinct()->count('nonconformity_score');
 
-        $suspected = $worstCorrect !== null && $incorrectBelow === 0;
+        // Separation is only meaningful when both outcomes are present. A corpus
+        // that is all-correct or all-incorrect cannot demonstrate leakage or rule
+        // it out, and reporting "clear" there would be the same false confidence
+        // this check exists to prevent.
+        if ($correctCount === 0 || $incorrectCount === 0) {
+            return [
+                'checked' => $total,
+                'distinct_scores' => $distinct,
+                'correct' => $correctCount,
+                'incorrect' => $incorrectCount,
+                'incorrect_scoring_below_worst_correct' => null,
+                'decidable' => false,
+                'suspected' => null,
+                'reason' => 'Undecidable: the scored set contains only one outcome, so score and label cannot be separated or shown to overlap.',
+            ];
+        }
+
+        $worstCorrect = (float) (clone $scored)->where('is_correct', true)->max('nonconformity_score');
+        $incorrectBelow = (clone $scored)->where('is_correct', false)->where('nonconformity_score', '<', $worstCorrect)->count();
+        $suspected = $incorrectBelow === 0;
 
         return [
             'checked' => $total,
             'distinct_scores' => $distinct,
+            'correct' => $correctCount,
+            'incorrect' => $incorrectCount,
             'incorrect_scoring_below_worst_correct' => $incorrectBelow,
+            'decidable' => true,
             'suspected' => $suspected,
             'reason' => $suspected
                 ? 'No incorrect field scores below the worst correct field. The nonconformity score likely derives from the gold value rather than an independent prediction, which makes any guarantee computed from it vacuous.'

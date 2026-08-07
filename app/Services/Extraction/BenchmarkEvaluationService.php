@@ -24,6 +24,7 @@ class BenchmarkEvaluationService
         private readonly BenchmarkManifestReader $reader,
         private readonly OcrEngine $engine,
         private readonly FieldValueMatcher $matcher,
+        private readonly KeyValueExtractor $extractor,
         private readonly ScriptClassifier $scripts,
     ) {}
 
@@ -71,11 +72,16 @@ class BenchmarkEvaluationService
             ]);
 
             foreach ($page->goldFields as $key => $goldValue) {
-                $span = $this->matcher->locate($goldValue, $result->words);
-                $this->recordField($run, $extractionPage, $page, $key, $goldValue, $result->text, $span);
+                // The field key is the printed label. Predict from the label's
+                // position, never by searching for the gold value, so the score
+                // stays independent of the outcome it is meant to rank.
+                $prediction = $this->extractor->extract($key, $result->words);
+                $isCorrect = $prediction !== null && $this->matcher->matches($goldValue, $prediction['value']);
+
+                $this->recordField($run, $extractionPage, $page, $key, $goldValue, $prediction, $isCorrect);
                 $fields++;
 
-                if ($span !== null) {
+                if ($isCorrect) {
                     $correct++;
                 }
             }
@@ -102,32 +108,31 @@ class BenchmarkEvaluationService
         ];
     }
 
-    /** @param list<float>|null $span */
+    /** @param array{value: string, confidences: list<float>}|null $prediction */
     private function recordField(
         ExtractionRun $run,
         ExtractionPage $page,
         BenchmarkPage $benchmarkPage,
         string $key,
         string $goldValue,
-        string $recognizedText,
-        ?array $span,
+        ?array $prediction,
+        bool $correct,
     ): void {
-        $correct = $span !== null;
-        $confidence = $this->spanConfidence($span);
+        $confidence = $this->spanConfidence($prediction['confidences'] ?? null);
 
         ExtractionField::query()->create([
             'extraction_run_id' => $run->getKey(),
             'extraction_page_id' => $page->getKey(),
             'field_key' => $key,
             'field_type' => 'string',
-            'extracted_value' => $correct ? $goldValue : null,
-            'normalized_value' => $correct ? $this->matcher->normalize($goldValue) : null,
+            'extracted_value' => $prediction['value'] ?? null,
+            'normalized_value' => $prediction === null ? null : $this->matcher->normalize($prediction['value']),
             // The manifest declares the script class of the page; the classifier
             // sees only what the engine produced. Trust the annotation, since a
             // group label derived from a bad read would corrupt the partition.
             'script_class' => $benchmarkPage->scriptClass !== 'unknown'
                 ? $benchmarkPage->scriptClass
-                : $this->scripts->classify($recognizedText),
+                : $this->scripts->classify($prediction['value'] ?? ''),
             'publisher_group' => $benchmarkPage->publisherGroup,
             'calibration_split' => $benchmarkPage->split,
             'confidence' => $confidence,
