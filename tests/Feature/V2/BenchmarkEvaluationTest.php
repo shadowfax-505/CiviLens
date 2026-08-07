@@ -7,6 +7,7 @@ use App\Models\ExtractionRun;
 use App\Services\Extraction\BenchmarkEvaluationService;
 use App\Services\Extraction\BenchmarkManifestReader;
 use App\Services\Extraction\ConformalCalibrator;
+use App\Services\Extraction\CorpusLegibilityProbe;
 use App\Services\Extraction\FieldValueMatcher;
 use App\Services\Extraction\KeyValueExtractor;
 use App\Services\Extraction\PageRasterizer;
@@ -297,3 +298,47 @@ it('can be wrong on its own terms rather than by construction', function (): voi
         ->and($matcher->matches('Alvi Sarkar', $prediction['value']))->toBeFalse()
         ->and(min($prediction['confidences']))->toBe(66.0);
 });
+
+it('separates recognition failure from extraction failure', function (): void {
+    // "allocation" and "1000000" are both printed on the fixture page, so both
+    // are recognizable; the third label is not on the page at all.
+    $manifest = benchmarkManifest([
+        'allocation' => '1000000',
+        'Finance' => 'budget',
+    ]);
+
+    $summary = app(CorpusLegibilityProbe::class)->probe($manifest);
+
+    expect($summary['pages'])->toBe(1)
+        ->and($summary['fields'])->toBe(2)
+        ->and($summary['label_recognition_rate'])->toBe(1.0)
+        ->and($summary['value_recognition_rate'])->toBe(1.0)
+        ->and($summary['extraction_ceiling'])->toBe($summary['value_recognition_rate'])
+        ->and($summary['by_script']['en']['fields'])->toBe(2)
+        ->and($summary['verdict'])->toStartWith('Legible');
+})->skip(fn (): bool => benchmarkToolchainMissing(), 'poppler or tesseract is not installed');
+
+it('reports a partly legible corpus as competing only for the recognized share', function (): void {
+    $summary = app(CorpusLegibilityProbe::class)->probe(benchmarkManifest([
+        'allocation' => '1000000',
+        'Finance' => 'budget',
+        'GhostLabel' => 'GhostValue',
+    ]));
+
+    expect($summary['value_recognition_rate'])->toBeGreaterThan(0.5)
+        ->and($summary['value_recognition_rate'])->toBeLessThan(0.75)
+        ->and($summary['verdict'])->toContain('Partially legible');
+})->skip(fn (): bool => benchmarkToolchainMissing(), 'poppler or tesseract is not installed');
+
+it('calls a corpus intractable when its values are unrecognized', function (): void {
+    $manifest = benchmarkManifest([
+        'GhostLabelOne' => 'GhostValueOne',
+        'GhostLabelTwo' => 'GhostValueTwo',
+    ]);
+
+    $summary = app(CorpusLegibilityProbe::class)->probe($manifest);
+
+    expect($summary['value_recognition_rate'])->toBe(0.0)
+        ->and($summary['verdict'])->toContain('Intractable')
+        ->and($summary['verdict'])->toContain('not the extractor');
+})->skip(fn (): bool => benchmarkToolchainMissing(), 'poppler or tesseract is not installed');
