@@ -10,12 +10,32 @@ use App\Services\Extraction\PdfNativeTextExtractor;
 use App\Services\Extraction\ScriptClassifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Process\Process;
 
 uses(RefreshDatabase::class);
 
 function extractionFixture(string $name): string
 {
     return __DIR__.'/../../Fixtures/Extraction/'.$name;
+}
+
+/**
+ * Poppler is a real runtime dependency, so CI installs it and verifies it before
+ * the suite runs. This guard only spares a local machine that has not installed
+ * it yet; it cannot silently hide missing coverage on CI, because the workflow
+ * step fails outright when pdftotext is absent.
+ */
+function popplerMissing(): bool
+{
+    static $missing = null;
+
+    if ($missing === null) {
+        $process = new Process([(string) config('civiclens.extraction.pdftotext_binary', 'pdftotext'), '-v']);
+        $process->run();
+        $missing = ! $process->isSuccessful();
+    }
+
+    return $missing;
 }
 
 function storedArtifact(string $fixture, string $mediaType = 'application/pdf'): SourceArtifactVersion
@@ -61,7 +81,7 @@ it('reads the text layer and page geometry from a born-digital pdf', function ()
         ->and($result->pages[0]->text)->toContain('Ministry of Finance')
         ->and($result->pages[0]->widthPoints)->toBe(595.276)
         ->and($result->pages[0]->characterCount())->toBeGreaterThan(2000);
-});
+})->skip(fn (): bool => popplerMissing(), 'poppler is not installed');
 
 it('routes a dense text layer to native and an absent one to ocr', function (): void {
     $policy = new PageRoutingPolicy;
@@ -108,7 +128,7 @@ it('records a completed native run with page level measurements', function (): v
         ->and($page->extracted_text)->toContain('Ministry of Finance')
         ->and($page->content_hash)->toHaveLength(64)
         ->and($page->text_layer_density)->toBeGreaterThan(1.5);
-});
+})->skip(fn (): bool => popplerMissing(), 'poppler is not installed');
 
 it('routes a pdf without a text layer to ocr and stores no text for it', function (): void {
     $artifact = storedArtifact('no-text-layer.pdf');
@@ -124,7 +144,7 @@ it('routes a pdf without a text layer to ocr and stores no text for it', functio
         ->and($page->text_layer_density)->toBe(0.0)
         ->and($page->extracted_text)->toBeNull()
         ->and($page->confidence)->toBeNull();
-});
+})->skip(fn (): bool => popplerMissing(), 'poppler is not installed');
 
 it('refuses to extract a quarantined artifact', function (): void {
     $artifact = storedArtifact('native-text.pdf');
@@ -162,7 +182,7 @@ it('reports the born-digital share and its per-script breakdown', function (): v
         ->and($summary['threshold_chars_per_square_inch'])->toBe(1.5)
         ->and($summary['native_share_by_script']['en'])->toBe(1.0)
         ->and($summary['native_share_by_script']['unknown'])->toBe(0.0);
-});
+})->skip(fn (): bool => popplerMissing(), 'poppler is not installed');
 
 it('reports nothing rather than a misleading zero on an empty corpus', function (): void {
     expect(app(ExtractionRoutingReport::class)->build()['born_digital_share'])->toBeNull();

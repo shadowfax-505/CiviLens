@@ -27,6 +27,12 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      - name: Install native extraction toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils
+          pdftotext -v
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
