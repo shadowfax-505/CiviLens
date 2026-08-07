@@ -83,6 +83,7 @@ return [
         'absolute_max_content_bytes' => (int) env('INGESTION_ABSOLUTE_MAX_BYTES', 52428800),
         'max_discovered_per_run' => (int) env('INGESTION_MAX_DISCOVERED_PER_RUN', 250),
         'pin_resolved_address' => filter_var(env('INGESTION_PIN_RESOLVED_ADDRESS', true), FILTER_VALIDATE_BOOL),
+        'allow_unpinned_egress' => filter_var(env('INGESTION_ALLOW_UNPINNED_EGRESS', false), FILTER_VALIDATE_BOOL),
         'malware_scanner_binary' => env('INGESTION_MALWARE_SCANNER_BINARY', 'clamdscan'),
         'malware_scan_timeout_seconds' => (int) env('INGESTION_MALWARE_SCAN_TIMEOUT', 30),
         'allowed_media_types' => [

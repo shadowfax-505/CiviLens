@@ -59,6 +59,14 @@ The final deep review confirmed and remediated seven medium/P2 paths without cha
 
 Thirteen additional candidates remain explicit follow-up items in the scan coverage (cross-tender foreign-key binding, final-administrator races, cookie/HTTPS provider configuration, analytics retention, metrics permissions, health metadata, and change-request upload deployment preconditions). They were not silently suppressed or promoted without the fixture or deployment evidence required to validate them safely.
 
+## Source Acquisition Egress Controls
+
+`ApprovedSourceUrlGuard` resolves an approved host and `SafeHttpTransport` pins that resolved address through `CURLOPT_RESOLVE`, so the address checked is the address contacted. Two defects broke that guarantee and are now closed.
+
+The guard canonicalized the host for the allowlist check and DNS resolve but returned the caller's original URL, so a trailing dot, uppercase host, or explicit `:443` left the pin entry and the request URL disagreeing — cURL treated them as different hosts, ignored the pin, and resolved independently. `ValidatedSourceUrl` now carries a canonical URL and the validated port, and the pin is built from the same values used for the request. Non-ASCII hosts are rejected outright, because cURL punycodes after validation and would produce the same mismatch.
+
+Pinning also failed open: when `CURLOPT_RESOLVE` was undefined or `pin_resolved_address` was false, the request was sent unpinned with no signal. It is now fail-closed — `UnsafeSourceUrl` is thrown and nothing leaves the process. `INGESTION_ALLOW_UNPINNED_EGRESS` (default `false`) is the only way to proceed unpinned, and it logs a warning on every request. Egress failures stay hard failures and never become quarantine; quarantine remains reserved for malware-scan outcomes, so a redirected response is never written to storage.
+
 ## V2 Expansion Notes
 
 Add threat modeling for public APIs, rate limiting by tier, data provenance signatures, and model governance controls.

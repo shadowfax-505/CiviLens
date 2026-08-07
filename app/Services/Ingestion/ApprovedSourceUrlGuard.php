@@ -32,6 +32,7 @@ class ApprovedSourceUrlGuard
         }
 
         $host = strtolower(rtrim((string) ($parts['host'] ?? ''), '.'));
+        $port = (int) ($parts['port'] ?? 443);
         $configuredHosts = $endpoint->allowed_hosts;
         $allowedHosts = collect(is_array($configuredHosts) ? $configuredHosts : [])
             ->filter(fn (mixed $allowed): bool => is_string($allowed))
@@ -80,6 +81,10 @@ class ApprovedSourceUrlGuard
             throw new UnsafeSourceUrl('IP-literal source hosts are not allowed.');
         }
 
+        if (preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/', $host) !== 1) {
+            throw new UnsafeSourceUrl('Source URL host must be an ASCII domain name.');
+        }
+
         $addresses = $this->resolver->resolve($host);
 
         if ($addresses === []) {
@@ -92,9 +97,23 @@ class ApprovedSourceUrlGuard
             }
         }
 
-        $normalizedUrl = $this->withoutFragment($url);
+        return new ValidatedSourceUrl($this->canonicalize($url, $host, $port), $host, $addresses[0], $port);
+    }
 
-        return new ValidatedSourceUrl($normalizedUrl, $host, $addresses[0]);
+    private function canonicalize(string $url, string $host, int $port): string
+    {
+        $withoutFragment = $this->withoutFragment($url);
+        $separator = strpos($withoutFragment, '://');
+
+        if ($separator === false) {
+            throw new UnsafeSourceUrl('Source URL is not an absolute HTTPS URL.');
+        }
+
+        $authorityStart = $separator + 3;
+        $authorityLength = strcspn($withoutFragment, '/?#', $authorityStart);
+        $authority = $port === 443 ? $host : $host.':'.$port;
+
+        return 'https://'.$authority.substr($withoutFragment, $authorityStart + $authorityLength);
     }
 
     private function withoutFragment(string $url): string
