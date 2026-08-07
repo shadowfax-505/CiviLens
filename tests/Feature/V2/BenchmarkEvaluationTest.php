@@ -1,5 +1,6 @@
 <?php
 
+use App\Data\Extraction\RecognizedWord;
 use App\Exceptions\Extraction\ExtractionFailed;
 use App\Models\ExtractionField;
 use App\Models\ExtractionRun;
@@ -168,3 +169,59 @@ it('produces fields the conformal calibrator can consume', function (): void {
     expect($calibration)->not->toBeNull()
         ->and($calibration->calibrationSize)->toBe(3);
 })->skip(fn (): bool => benchmarkToolchainMissing(), 'poppler or tesseract is not installed');
+
+it('locates the shortest run of words backing a value and returns their confidences', function (): void {
+    $matcher = new FieldValueMatcher;
+    $words = [
+        new RecognizedWord('Ministry', 95.0),
+        new RecognizedWord('of', 88.0),
+        new RecognizedWord('Finance', 41.0),
+        new RecognizedWord('allocation', 77.0),
+        new RecognizedWord('Ministry', 60.0),
+    ];
+
+    expect($matcher->locate('Ministry of Finance', $words))->toBe([95.0, 88.0, 41.0])
+        ->and($matcher->locate('allocation', $words))->toBe([77.0])
+        ->and($matcher->locate('Department of Health', $words))->toBeNull()
+        ->and($matcher->locate('', $words))->toBeNull()
+        ->and($matcher->locate('anything', []))->toBeNull();
+});
+
+it('folds bengali digits when locating a span', function (): void {
+    $matcher = new FieldValueMatcher;
+    $words = [new RecognizedWord('মোট', 90.0), new RecognizedWord('১২৩৪৫', 33.0)];
+
+    expect($matcher->locate('12345', $words))->toBe([33.0]);
+});
+
+it('gives fields on one page distinct nonconformity scores', function (): void {
+    // The defect this guards: scoring every field with the page mean ties them
+    // to one value, and conformal calibration can only accept or reject a run of
+    // ties whole, so no threshold ever satisfies the bound.
+    $manifest = benchmarkManifest([
+        'phrase' => 'Ministry of Finance',
+        'amount' => '1000000',
+        'item' => 'budget line item 000',
+        'absent' => 'Department of Nothing At All',
+    ]);
+
+    app(BenchmarkEvaluationService::class)->evaluate($manifest, 'fixture');
+
+    $scores = ExtractionField::query()->pluck('nonconformity_score')->all();
+    $matched = ExtractionField::query()->where('is_correct', true)->pluck('nonconformity_score')->unique();
+
+    expect(count($scores))->toBe(4)
+        ->and(collect($scores)->unique()->count())->toBeGreaterThan(1)
+        ->and($matched->count())->toBeGreaterThan(1)
+        ->and(ExtractionField::query()->where('is_correct', false)->sole()->nonconformity_score)->toBe(1.0);
+})->skip(fn (): bool => benchmarkToolchainMissing(), 'poppler or tesseract is not installed');
+
+it('scores a field by its weakest supporting word rather than the average', function (): void {
+    $matcher = new FieldValueMatcher;
+    $words = [new RecognizedWord('alpha', 99.0), new RecognizedWord('beta', 10.0)];
+
+    $span = $matcher->locate('alpha beta', $words);
+
+    expect($span)->toBe([99.0, 10.0])
+        ->and(min($span))->toBe(10.0);
+});

@@ -4,6 +4,8 @@ All notable changes to CivicLens are tracked here.
 
 ## [Unreleased]
 
+- Changed field nonconformity to the weakest word of the span backing the value instead of the page mean, which previously tied every field on a page to one score and made group calibration unable to certify anything.
+- Added a label-leakage check that flags a nonconformity score which separates correct from incorrect perfectly, the signature of a score derived from the gold value rather than an independent prediction.
 - Added benchmark evaluation that converts a gold-annotated corpus into real calibration fields through the production OCR path, with manifest-relative image resolution that refuses paths escaping the manifest directory, conservative value matching including Bengali digit folding, and benchmark runs recorded without fabricating a source artifact.
 - Added group-conditional split-conformal calibration over extracted fields with a distribution-free false-acceptance bound per publisher and script class, deny-by-default deferral for uncertifiable or uncalibrated groups, and `civiclens:calibration-report` contrasting group-conditional and pooled thresholds on held-out data.
 - Added selective OCR for pages without a usable text layer: Tesseract `ben+eng` with per-word confidence, exactly one enhanced higher-resolution pass, and abstention to manual review when confidence stays below the configured threshold, plus abstention-rate, enhanced-pass-recovery, and per-script confidence reporting.

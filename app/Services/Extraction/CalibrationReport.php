@@ -26,7 +26,47 @@ class CalibrationReport
             'groups' => $groupwise->map(fn (GroupCalibration $c): array => $c->toArray())->values()->all(),
             'uncertifiable_groups' => $groupwise->reject(fn (GroupCalibration $c): bool => $c->certifiable())
                 ->map(fn (GroupCalibration $c): string => $c->key())->values()->all(),
+            'label_leakage' => $this->labelLeakage(),
             'realized' => $this->realized($groupwise, $pooled, $alpha, $split),
+        ];
+    }
+
+    /**
+     * Detect a nonconformity score that already knows the answer.
+     *
+     * If no incorrect field scores below the worst correct field, the score
+     * separates outcomes perfectly. In practice that means the score was derived
+     * from the gold value rather than predicted independently of it, and any
+     * guarantee computed on top of it is vacuous. This is cheap to check and
+     * catastrophic to miss, so it is reported beside every calibration.
+     *
+     * @return array<string, mixed>
+     */
+    private function labelLeakage(): array
+    {
+        $scored = ExtractionField::query()->calibratable();
+        $total = (clone $scored)->count();
+
+        if ($total === 0) {
+            return ['checked' => 0, 'suspected' => false, 'reason' => null];
+        }
+
+        $worstCorrect = (clone $scored)->where('is_correct', true)->max('nonconformity_score');
+        $incorrectBelow = $worstCorrect === null
+            ? 0
+            : (clone $scored)->where('is_correct', false)->where('nonconformity_score', '<', (float) $worstCorrect)->count();
+        $distinct = (clone $scored)->distinct()->count('nonconformity_score');
+
+        $suspected = $worstCorrect !== null && $incorrectBelow === 0;
+
+        return [
+            'checked' => $total,
+            'distinct_scores' => $distinct,
+            'incorrect_scoring_below_worst_correct' => $incorrectBelow,
+            'suspected' => $suspected,
+            'reason' => $suspected
+                ? 'No incorrect field scores below the worst correct field. The nonconformity score likely derives from the gold value rather than an independent prediction, which makes any guarantee computed from it vacuous.'
+                : null,
         ];
     }
 
