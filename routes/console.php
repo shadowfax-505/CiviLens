@@ -2,6 +2,7 @@
 
 use App\Jobs\RunSourceEndpointCrawl;
 use App\Models\SourceEndpoint;
+use App\Services\Extraction\CalibrationReport;
 use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Intelligence\CivicIntegrityEngineService;
 use Illuminate\Foundation\Inspiring;
@@ -58,6 +59,23 @@ Artisan::command('civiclens:extraction-summary', function (ExtractionRoutingRepo
 
     return 0;
 })->purpose('Report native versus OCR-required page routing across recorded extractions');
+
+Artisan::command('civiclens:calibration-report {--alpha=0.05} {--split=test}', function (CalibrationReport $report): int {
+    $alphaOption = $this->option('alpha');
+    $splitOption = $this->option('split');
+    $alpha = is_numeric($alphaOption) ? (float) $alphaOption : 0.0;
+    $split = is_string($splitOption) && $splitOption !== '' ? $splitOption : 'test';
+
+    if ($alpha <= 0.0 || $alpha >= 1.0) {
+        $this->error('Alpha must be a number between 0 and 1 exclusive.');
+
+        return 1;
+    }
+
+    $this->line(json_encode($report->build($alpha, $split), JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Report group-conditional conformal calibration and its realized risk');
 
 Schedule::command('civiclens:integrity-run')
     ->dailyAt('02:15')
