@@ -25,6 +25,7 @@ use App\Services\Ingestion\SourceRegistryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
@@ -74,6 +75,77 @@ it('revalidates redirects and rejects an allowlisted redirect that resolves priv
 
     expect(fn () => app(SafeHttpTransport::class)->get('https://data.example/start', $endpoint))
         ->toThrow(UnsafeSourceUrl::class);
+});
+
+it('canonicalizes the source URL authority so the request host matches the pinned host', function (): void {
+    bindSourceAddresses(['data.example' => ['93.184.216.34']]);
+    $endpoint = SourceEndpoint::factory()->make();
+
+    $validated = app(ApprovedSourceUrlGuard::class)
+        ->validate('https://DATA.example.:443/publications/budget%20one.pdf?q=%2Fa#frag', $endpoint);
+
+    expect($validated->url)->toBe('https://data.example/publications/budget%20one.pdf?q=%2Fa')
+        ->and($validated->host)->toBe('data.example')
+        ->and($validated->port)->toBe(443);
+});
+
+it('rejects a non-ascii source host that curl would punycode after validation', function (): void {
+    bindSourceAddresses(['münchen.example' => ['93.184.216.34']]);
+    $endpoint = SourceEndpoint::factory()->make(['allowed_hosts' => ['münchen.example']]);
+
+    expect(fn () => app(ApprovedSourceUrlGuard::class)->validate('https://münchen.example/file.pdf', $endpoint))
+        ->toThrow(UnsafeSourceUrl::class, 'ASCII domain name');
+});
+
+it('pins the resolved address to the exact host used for the request', function (): void {
+    bindSourceAddresses(['data.example' => ['93.184.216.34']]);
+    $endpoint = SourceEndpoint::factory()->make();
+    $pin = null;
+
+    Http::fake(function (ClientRequest $request, array $options) use (&$pin) {
+        $pin = array_values($options['curl'] ?? [])[0][0] ?? null;
+
+        return Http::response('body', 200, ['Content-Type' => 'text/plain']);
+    });
+
+    $response = app(SafeHttpTransport::class)->get('https://data.example./publication.pdf', $endpoint);
+
+    expect($response->url)->toBe('https://data.example/publication.pdf')
+        ->and($pin)->toBe('data.example:443:93.184.216.34');
+
+    Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://data.example/publication.pdf');
+});
+
+it('refuses to fetch a source when resolved-address pinning is unavailable', function (): void {
+    bindSourceAddresses(['data.example' => ['93.184.216.34']]);
+    config()->set('civiclens.ingestion.pin_resolved_address', false);
+    $endpoint = SourceEndpoint::factory()->make();
+    Http::fake(['https://data.example/publication.pdf' => Http::response('body', 200, ['Content-Type' => 'text/plain'])]);
+
+    expect(fn () => app(SafeHttpTransport::class)->get('https://data.example/publication.pdf', $endpoint))
+        ->toThrow(UnsafeSourceUrl::class, 'pinned resolved address');
+
+    Http::assertNothingSent();
+});
+
+it('warns when operators explicitly allow unpinned ingestion egress', function (): void {
+    bindSourceAddresses(['data.example' => ['93.184.216.34']]);
+    config()->set('civiclens.ingestion.pin_resolved_address', false);
+    config()->set('civiclens.ingestion.allow_unpinned_egress', true);
+    Log::spy();
+    $endpoint = SourceEndpoint::factory()->make();
+    $captured = 'unset';
+
+    Http::fake(function (ClientRequest $request, array $options) use (&$captured) {
+        $captured = $options['curl'] ?? null;
+
+        return Http::response('body', 200, ['Content-Type' => 'text/plain']);
+    });
+
+    expect(app(SafeHttpTransport::class)->get('https://data.example/publication.pdf', $endpoint)->content)->toBe('body')
+        ->and($captured)->toBeNull();
+
+    Log::shouldHaveReceived('warning')->once();
 });
 
 it('stops responses that exceed the configured content limit', function (): void {
