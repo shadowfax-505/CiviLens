@@ -38,6 +38,16 @@ class ExtractionRoutingReport
             'native_pages' => $nativePages,
             'ocr_required_pages' => $totalPages - $nativePages,
             'born_digital_share' => $totalPages > 0 ? round($nativePages / $totalPages, 4) : null,
+            'accept_confidence' => (float) config('civiclens.extraction.ocr.accept_confidence', 80.0),
+            'pages_by_path' => $pages
+                ->groupBy('extraction_path')
+                ->map(fn ($rows): int => (int) $rows->sum('total'))
+                ->all(),
+            'abstention_rate' => $totalPages > 0
+                ? round((int) $pages->where('extraction_path', SelectiveOcrService::ABSTAINED)->sum('total') / $totalPages, 4)
+                : null,
+            'enhanced_pass_recovery' => $this->enhancedRecovery(),
+            'ocr_confidence_by_script' => $this->confidenceByScript(),
             'pages_by_script' => $pages
                 ->groupBy('script_class')
                 ->map(fn ($rows): int => (int) $rows->sum('total'))
@@ -52,5 +62,54 @@ class ExtractionRoutingReport
                 })
                 ->all(),
         ];
+    }
+
+    /**
+     * How often the one permitted enhanced pass rescued a page that the primary
+     * pass could not accept. A low value argues the second pass is not paying for
+     * its compute; a high value argues the primary operating point is set wrong.
+     *
+     * @return array<string, mixed>
+     */
+    private function enhancedRecovery(): array
+    {
+        $enhanced = ExtractionPage::query()->where('extraction_path', SelectiveOcrService::ENHANCED)->count();
+        $abstained = ExtractionPage::query()->where('extraction_path', SelectiveOcrService::ABSTAINED)->count();
+        $attempted = $enhanced + $abstained;
+
+        return [
+            'pages_entering_enhanced_pass' => $attempted,
+            'recovered' => $enhanced,
+            'recovery_rate' => $attempted > 0 ? round($enhanced / $attempted, 4) : null,
+        ];
+    }
+
+    /**
+     * Confidence distribution per script class. Reported per script rather than
+     * pooled because a pooled figure can look healthy while the low-resource
+     * subset fails — the same reason calibration has to be group-conditional.
+     *
+     * @return array<string, array<string, float|int|null>>
+     */
+    private function confidenceByScript(): array
+    {
+        return ExtractionPage::query()
+            ->whereNotNull('confidence')
+            ->whereIn('extraction_path', [SelectiveOcrService::PRIMARY, SelectiveOcrService::ENHANCED, SelectiveOcrService::ABSTAINED])
+            ->get(['script_class', 'confidence'])
+            ->groupBy('script_class')
+            ->map(function ($rows): array {
+                $values = $rows->pluck('confidence')->map(fn ($value): float => (float) $value)->sort()->values()->all();
+                $count = count($values);
+
+                return [
+                    'pages' => $count,
+                    'mean' => round(array_sum($values) / $count, 2),
+                    'median' => round($values[intdiv($count, 2)], 2),
+                    'min' => round($values[0], 2),
+                    'max' => round($values[$count - 1], 2),
+                ];
+            })
+            ->all();
     }
 }

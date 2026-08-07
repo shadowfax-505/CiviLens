@@ -52,26 +52,31 @@ class ExtractionRun extends Model
         ];
     }
 
+    /** @return BelongsTo<SourceArtifactVersion, self> */
     public function artifactVersion(): BelongsTo
     {
         return $this->belongsTo(SourceArtifactVersion::class, 'source_artifact_version_id');
     }
 
+    /** @return BelongsTo<User, self> */
     public function triggeredBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'triggered_by');
     }
 
+    /** @return BelongsTo<User, self> */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
+    /** @return HasMany<ExtractionPage, self> */
     public function pages(): HasMany
     {
         return $this->hasMany(ExtractionPage::class);
     }
 
+    /** @return HasMany<ExtractionField, self> */
     public function fields(): HasMany
     {
         return $this->hasMany(ExtractionField::class);

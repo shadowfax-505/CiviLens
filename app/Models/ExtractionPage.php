@@ -38,11 +38,13 @@ class ExtractionPage extends Model
         ];
     }
 
+    /** @return BelongsTo<ExtractionRun, self> */
     public function run(): BelongsTo
     {
         return $this->belongsTo(ExtractionRun::class, 'extraction_run_id');
     }
 
+    /** @return HasMany<ExtractionField, self> */
     public function fields(): HasMany
     {
         return $this->hasMany(ExtractionField::class);
