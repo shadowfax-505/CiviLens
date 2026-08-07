@@ -71,10 +71,11 @@ class BenchmarkEvaluationService
             ]);
 
             foreach ($page->goldFields as $key => $goldValue) {
-                $this->recordField($run, $extractionPage, $page, $key, $goldValue, $result->text, $result->meanConfidence);
+                $span = $this->matcher->locate($goldValue, $result->words);
+                $this->recordField($run, $extractionPage, $page, $key, $goldValue, $result->text, $span);
                 $fields++;
 
-                if ($this->matcher->matches($goldValue, $result->text)) {
+                if ($span !== null) {
                     $correct++;
                 }
             }
@@ -101,6 +102,7 @@ class BenchmarkEvaluationService
         ];
     }
 
+    /** @param list<float>|null $span */
     private function recordField(
         ExtractionRun $run,
         ExtractionPage $page,
@@ -108,9 +110,10 @@ class BenchmarkEvaluationService
         string $key,
         string $goldValue,
         string $recognizedText,
-        ?float $confidence,
+        ?array $span,
     ): void {
-        $correct = $this->matcher->matches($goldValue, $recognizedText);
+        $correct = $span !== null;
+        $confidence = $this->spanConfidence($span);
 
         ExtractionField::query()->create([
             'extraction_run_id' => $run->getKey(),
@@ -138,7 +141,25 @@ class BenchmarkEvaluationService
     }
 
     /**
-     * Lower is more conforming. A page the engine could not read at all has no
+     * The weakest word in the supporting span, not its average.
+     *
+     * A field is only as trustworthy as its least legible word: one garbled
+     * digit in an amount makes the whole value wrong, and averaging would hide
+     * that behind the surrounding words.
+     *
+     * @param  list<float>|null  $span
+     */
+    private function spanConfidence(?array $span): ?float
+    {
+        if ($span === null || $span === []) {
+            return null;
+        }
+
+        return round(min($span), 4);
+    }
+
+    /**
+     * Lower is more conforming. A field with no supporting span has no
      * confidence, which is maximal nonconformity rather than zero.
      */
     private function nonconformity(?float $confidence): float

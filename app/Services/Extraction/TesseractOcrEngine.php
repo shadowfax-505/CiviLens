@@ -4,6 +4,7 @@ namespace App\Services\Extraction;
 
 use App\Contracts\Extraction\OcrEngine;
 use App\Data\Extraction\OcrPageResult;
+use App\Data\Extraction\RecognizedWord;
 use App\Exceptions\Extraction\ExtractionFailed;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\Process;
@@ -29,10 +30,12 @@ class TesseractOcrEngine implements OcrEngine
             'tsv',
         ]);
 
-        [$words, $confidences] = $this->parse($tsv);
+        $words = $this->parse($tsv);
+        $confidences = array_map(fn (RecognizedWord $word): float => $word->confidence, $words);
 
         return new OcrPageResult(
-            implode(' ', $words),
+            $words,
+            implode(' ', array_map(fn (RecognizedWord $word): string => $word->text, $words)),
             $confidences === [] ? null : round(array_sum($confidences) / count($confidences), 4),
             count($words),
             'tesseract',
@@ -48,12 +51,11 @@ class TesseractOcrEngine implements OcrEngine
      * non-negative confidence and non-empty text are recognized words. Structural
      * rows report -1 and would drag any mean toward nonsense if averaged in.
      *
-     * @return array{list<string>, list<float>}
+     * @return list<RecognizedWord>
      */
     private function parse(string $tsv): array
     {
         $words = [];
-        $confidences = [];
 
         foreach (array_slice(preg_split('/\R/', $tsv) ?: [], 1) as $line) {
             $columns = explode("\t", $line);
@@ -69,11 +71,10 @@ class TesseractOcrEngine implements OcrEngine
                 continue;
             }
 
-            $words[] = $text;
-            $confidences[] = (float) $confidence;
+            $words[] = new RecognizedWord($text, (float) $confidence);
         }
 
-        return [$words, $confidences];
+        return $words;
     }
 
     private function binary(): string
