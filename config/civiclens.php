@@ -55,6 +55,21 @@ return [
         'native_density_threshold' => (float) env('EXTRACTION_NATIVE_DENSITY_THRESHOLD', 1.5),
         'default_page_width_points' => 595.276,
         'default_page_height_points' => 841.89,
+        'ocr' => [
+            'tesseract_binary' => env('EXTRACTION_TESSERACT_BINARY', 'tesseract'),
+            'pdftoppm_binary' => env('EXTRACTION_PDFTOPPM_BINARY', 'pdftoppm'),
+            'languages' => env('EXTRACTION_OCR_LANGUAGES', 'ben+eng'),
+            'primary_dpi' => (int) env('EXTRACTION_OCR_PRIMARY_DPI', 150),
+            'enhanced_dpi' => (int) env('EXTRACTION_OCR_ENHANCED_DPI', 300),
+            'primary_psm' => (int) env('EXTRACTION_OCR_PRIMARY_PSM', 3),
+            'enhanced_psm' => (int) env('EXTRACTION_OCR_ENHANCED_PSM', 6),
+            // Mean per-word confidence at or above which a pass is accepted. Below it,
+            // exactly one enhanced pass is permitted; still below, the page abstains to
+            // manual review rather than publishing text nobody vouched for.
+            'accept_confidence' => (float) env('EXTRACTION_OCR_ACCEPT_CONFIDENCE', 80.0),
+            'timeout_seconds' => (int) env('EXTRACTION_OCR_TIMEOUT', 120),
+        ],
+
         'native_media_types' => [
             'application/pdf' => 'pdf',
             'text/plain' => 'text',
