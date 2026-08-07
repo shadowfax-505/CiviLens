@@ -8,5 +8,6 @@ final readonly class ValidatedSourceUrl
         public string $url,
         public string $host,
         public string $ipAddress,
+        public int $port,
     ) {}
 }
