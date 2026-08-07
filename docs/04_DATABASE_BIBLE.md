@@ -396,4 +396,16 @@ The custom role foundation seeds `admin`, `staff`, and `citizen` roles. See `doc
 
 Artifact rows cannot be deleted and their evidence fields cannot be mutated. The only permitted later update is an additive `document_version_id` link when Stage 4 promotes a clean artifact into the existing document lifecycle. Rollback drops the acquisition tables in reverse foreign-key order and never touches existing document or civic-domain records.
 
+### Extraction Measurement Spine
+
+- `extraction_runs` records one extraction attempt against one immutable `source_artifact_versions` row: engine, engine version, config hash, language hint, routing decision, per-path page counters, wall time, peak memory, failure reason, and reviewer acceptance. Multiple runs per artifact are intentional — comparing engines and versions on identical bytes is only possible if the artifact is fixed and the run is not.
+- `extraction_pages` records the per-page routing outcome: detected script class, text-layer density, which path produced the text (`native`, `ocr_primary`, `ocr_enhanced`, `abstained`), confidence, extracted text, content hash, and timing. `(extraction_run_id, page_number)` is unique.
+- `extraction_fields` is the unit that quality guarantees are defined over. It stores the extracted and normalized value, evidence page and character offsets, confidence, nonconformity score, prediction-set size, accept/defer decision and the alpha in force, the calibration split, and the gold value with its outcome once reviewed.
+
+Field-level rather than page-level is a deliberate choice with two independent justifications. Sequence metrics such as character error rate are non-decomposable and cannot carry distribution-free risk guarantees, whereas a bounded per-field loss can. Field correctness is also the quantity that governance actually depends on — whether a contract amount is right, not whether mean character accuracy is high.
+
+`(publisher_group, script_class, is_correct)` is indexed because calibration is group-conditional. A guarantee computed marginally across all publishers can report healthy coverage while a low-resource subset fails badly, since the majority group dominates the average; the group columns are denormalized onto the row so per-group quantiles do not require joining back through runs and artifacts. `calibration_split` keeps calibration/test partitions reproducible across reruns.
+
+Runs cascade to their pages and fields, so a discarded run leaves no orphan measurements. Source artifacts remain undeletable and unmutated underneath — an extraction run references an artifact, never modifies one. `document_ocr_metadata` stays a projection of the latest accepted extraction rather than a second source of truth.
+
 Introduce AI tables only when the ingestion and review workflow exists. Keep AI outputs separate from source facts. Future GIS work may add spatial indexes, map tiles, and GeoJSON validation around the Sprint 02 geography tables without replacing the normalized hierarchy.
