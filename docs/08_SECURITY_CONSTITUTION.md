@@ -59,6 +59,14 @@ The final deep review confirmed and remediated seven medium/P2 paths without cha
 
 Thirteen additional candidates remain explicit follow-up items in the scan coverage (cross-tender foreign-key binding, final-administrator races, cookie/HTTPS provider configuration, analytics retention, metrics permissions, health metadata, and change-request upload deployment preconditions). They were not silently suppressed or promoted without the fixture or deployment evidence required to validate them safely.
 
+## Seeding Controls
+
+Database seeders are privileged bootstrap code, not deployment tooling. `DatabaseSeeder` and `DemoCivicLensSeeder` both call `guardSeedingEnvironment()` before writing anything and abort unless the current environment appears in `civiclens.seeding.allowed_environments` (`CIVICLENS_SEEDING_ENVIRONMENTS`, default `local,testing`). An empty allow-list denies every environment, so omitting the variable in production fails closed.
+
+Seeded account passwords come from `civiclens.seeding.baseline_password` (`CIVICLENS_SEEDING_PASSWORD`). The historical `password` literal survives only inside `local` and `testing`; any other environment must supply a password explicitly or seeding aborts. Production reference data ships through migrations, never through a seeder.
+
+Severity note: before this control, `php artisan db:seed` against production would have created — or reset — `test@example.com` as a verified, active administrator with the password `password`.
+
 ## V2 Expansion Notes
 
 Add threat modeling for public APIs, rate limiting by tier, data provenance signatures, and model governance controls.
