@@ -4,6 +4,7 @@ All notable changes to CivicLens are tracked here.
 
 ## [Unreleased]
 
+- Fixed database seeders creating a verified, active administrator with a predictable password in any environment; seeding is now denied by default outside `local`/`testing` and account passwords must be supplied through `CIVICLENS_SEEDING_PASSWORD`.
 - Added the rollout-guarded, exact nine-stage Earth-to-Bangladesh journey with pinned local Cesium assets, validated local NASA imagery, resilient three-layer fallback behavior, weekly review-only MODIS candidate preparation, and desktop/mobile Playwright coverage.
 - Changed public search pagination to stream the bounded indexed result window, preserving visibility filtering without materializing the full window in memory.
 - Added role-aware shared navigation/search, safer document downloads, and a staff change-request workflow for projects, documents, contractors, procurement, and agencies.
