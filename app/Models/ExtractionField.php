@@ -71,16 +71,19 @@ class ExtractionField extends Model
         return $query->where('publisher_group', $publisherGroup)->where('script_class', $scriptClass);
     }
 
+    /** @return BelongsTo<ExtractionRun, self> */
     public function run(): BelongsTo
     {
         return $this->belongsTo(ExtractionRun::class, 'extraction_run_id');
     }
 
+    /** @return BelongsTo<ExtractionPage, self> */
     public function page(): BelongsTo
     {
         return $this->belongsTo(ExtractionPage::class, 'extraction_page_id');
     }
 
+    /** @return BelongsTo<User, self> */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');

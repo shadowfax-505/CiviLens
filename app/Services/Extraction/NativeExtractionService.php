@@ -8,7 +8,6 @@ use App\Models\ExtractionRun;
 use App\Models\SourceArtifactVersion;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -18,6 +17,7 @@ class NativeExtractionService
         private readonly NativeExtractorRegistry $registry,
         private readonly PageRoutingPolicy $routing,
         private readonly ScriptClassifier $scripts,
+        private readonly ArtifactWorkspace $workspace,
     ) {}
 
     public function extract(SourceArtifactVersion $artifact, ?User $actor = null): ExtractionRun
@@ -41,7 +41,7 @@ class NativeExtractionService
         $temporaryPath = null;
 
         try {
-            $temporaryPath = $this->materialize($artifact);
+            $temporaryPath = $this->workspace->materialize($artifact);
             $result = $this->registry->for($artifact->media_type)->extract($temporaryPath);
 
             return $this->record($run, $result);
@@ -54,9 +54,7 @@ class NativeExtractionService
 
             throw $exception;
         } finally {
-            if ($temporaryPath !== null) {
-                @unlink($temporaryPath);
-            }
+            $this->workspace->discard($temporaryPath);
         }
     }
 
@@ -99,40 +97,6 @@ class NativeExtractionService
         });
 
         return $run->refresh();
-    }
-
-    /**
-     * Artifacts live on a private disk that may not be local, so extraction works
-     * against a short-lived 0600 copy rather than assuming a filesystem path. The
-     * caller never sees the storage path.
-     */
-    private function materialize(SourceArtifactVersion $artifact): string
-    {
-        $disk = Storage::disk($artifact->storage_disk);
-
-        if (! $disk->exists($artifact->storage_path)) {
-            throw new ExtractionFailed('Stored artifact is no longer available.');
-        }
-
-        if ($artifact->byte_size > (int) config('civiclens.extraction.max_bytes', 52428800)) {
-            throw new ExtractionFailed('Artifact exceeds the configured extraction byte limit.');
-        }
-
-        $temporaryPath = tempnam(sys_get_temp_dir(), 'civiclens-extraction-');
-
-        if ($temporaryPath === false) {
-            throw new ExtractionFailed('Unable to prepare the artifact for extraction.');
-        }
-
-        chmod($temporaryPath, 0600);
-
-        if (file_put_contents($temporaryPath, $disk->get($artifact->storage_path), LOCK_EX) === false) {
-            @unlink($temporaryPath);
-
-            throw new ExtractionFailed('Unable to prepare the artifact for extraction.');
-        }
-
-        return $temporaryPath;
     }
 
     /**
