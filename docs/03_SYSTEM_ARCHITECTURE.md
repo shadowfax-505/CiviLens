@@ -70,6 +70,18 @@ The ingestion module extends the document boundary rather than replacing it. `so
 
 `source_artifact_versions` is the private immutable acquisition ledger. Content-addressed paths, SHA-256 uniqueness, and `supersedes_id` preserve changed publisher versions without duplicating unchanged content. Stage 4 may link an accepted artifact to an existing `document_version`; no acquisition record directly mutates projects, budgets, procurement, contractors, agencies, or public projections.
 
+## V2 Native Extraction and Page Routing
+
+Extraction reads native content before considering OCR. `NativeExtractorRegistry` selects an implementation of `NativeTextExtractor` by media type: `PdfNativeTextExtractor` shells out to poppler through `Symfony\Component\Process` with array arguments, no shell interpolation, and a configured timeout; `PlainTextNativeExtractor` handles text, HTML, CSV, XML, and JSON in process. `pdfinfo` supplies the authoritative page count and page geometry, and `pdftotext` emits the whole document in one call with pages separated by form feeds.
+
+`NativeExtractionService` copies the artifact from its private disk into a short-lived `0600` temporary file, so extraction never assumes a local filesystem path and no storage path reaches a caller or a failure message. Quarantined artifacts are refused outright. Failures mark the run `failed` with a generic reason and still record `completed_at`.
+
+`PageRoutingPolicy` decides per page whether the text layer is usable. The metric is characters per square inch rather than a raw character count, because a sparse A3 page and a dense A5 page can carry identical character counts while meaning opposite things. The threshold is configuration, not a constant — it is an operating point that has to be reported and varied rather than assumed, and `civiclens:extraction-summary` prints it alongside every result.
+
+`ScriptClassifier` labels each page `bn`, `en`, `mixed`, or `unknown` from Unicode ranges alone. The label is deliberately independent of extraction confidence: a page's script is a property of the document, not of how well an engine read it, and group-conditional calibration later partitions on this value.
+
+Runs and pages land in the extraction measurement spine. `ExtractionRoutingReport` derives the born-digital share, which is the denominator for every later OCR claim — the share of pages that never need OCR and, inverted, the share of compute an OCR-always pipeline spends for nothing.
+
 ## Change-Request Governance and Citizen Safety
 
 Staff submit structured change proposals through the Change Request module; administrators remain the only users who mutate operational source records. A proposal can be reviewed and then marked as applied only after the administrator completes the normal source-record workflow. This marker writes an immutable proposal audit activity and never applies payload data automatically.
