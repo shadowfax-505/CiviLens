@@ -85,6 +85,12 @@ return [
         ],
     ],
 
+    'intelligence' => [
+        // Fewest comparable procurements required before a peer comparison is
+        // stated at all. Below this a difference is sampling noise.
+        'minimum_peer_cohort' => (int) env('CIVICLENS_MINIMUM_PEER_COHORT', 8),
+    ],
+
     'documents' => [
         'disk' => env('DOCUMENT_STORAGE_DISK', env('FILESYSTEM_DISK', 'local')),
         'max_upload_kb' => (int) env('DOCUMENT_MAX_UPLOAD_KB', 20480),
