@@ -4,6 +4,7 @@ All notable changes to CivicLens are tracked here.
 
 ## [Unreleased]
 
+- Documented ADR-015 recording that filled-form corpora are bounded by handwritten-value recognition rather than extraction logic, measured across six Tesseract engine configurations and four input scales.
 - Added a corpus legibility probe that separates recognition failure from extraction failure and reports the value-recognition ceiling no extractor can exceed, with `civiclens:probe-legibility`.
 - Added a geometric key-to-value extractor that proposes a field value from the printed label's position without consulting the gold value, removing the circularity that made benchmark scores a function of their own labels.
 - Fixed the label-leakage check reporting "clear" on a corpus containing only one outcome, where separation is undecidable rather than absent.
