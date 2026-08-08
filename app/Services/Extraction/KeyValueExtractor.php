@@ -52,7 +52,7 @@ class KeyValueExtractor
             return null;
         }
 
-        $firstIndex = (int) array_key_first($candidates);
+        $firstIndex = array_key_first($candidates);
 
         return $value + ['signals' => new FieldExtractionSignals(
             true,
