@@ -11,6 +11,14 @@ use Symfony\Component\Process\Process;
 
 class TesseractOcrEngine implements OcrEngine
 {
+    private const LEFT_COLUMN = 6;
+
+    private const TOP_COLUMN = 7;
+
+    private const WIDTH_COLUMN = 8;
+
+    private const HEIGHT_COLUMN = 9;
+
     private const CONFIDENCE_COLUMN = 10;
 
     private const TEXT_COLUMN = 11;
@@ -71,7 +79,14 @@ class TesseractOcrEngine implements OcrEngine
                 continue;
             }
 
-            $words[] = new RecognizedWord($text, (float) $confidence);
+            $words[] = new RecognizedWord(
+                $text,
+                (float) $confidence,
+                (int) $columns[self::LEFT_COLUMN],
+                (int) $columns[self::TOP_COLUMN],
+                (int) $columns[self::WIDTH_COLUMN],
+                (int) $columns[self::HEIGHT_COLUMN],
+            );
         }
 
         return $words;
