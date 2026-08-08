@@ -4,7 +4,9 @@ namespace App\Data\Extraction;
 
 final readonly class OcrPageResult
 {
+    /** @param list<RecognizedWord> $words */
     public function __construct(
+        public array $words,
         public string $text,
         public ?float $meanConfidence,
         public int $wordCount,

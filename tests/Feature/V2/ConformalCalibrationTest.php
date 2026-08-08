@@ -151,3 +151,30 @@ it('states what it guarantees and what it only measures', function (): void {
         ->and($report['alpha'])->toBe(0.05)
         ->and($report['minimum_calibration_size'])->toBe(19);
 });
+
+it('flags a nonconformity score that already knows the answer', function (): void {
+    // Correct fields score low, incorrect fields score high, with no overlap --
+    // the signature of a score derived from the gold value rather than predicted.
+    seedFields('leaky', 'bn', 'calibration', [
+        [0.10, true], [0.20, true], [0.30, true],
+        [0.90, false], [0.95, false], [1.00, false],
+    ]);
+
+    $leakage = app(CalibrationReport::class)->build(0.05)['label_leakage'];
+
+    expect($leakage['suspected'])->toBeTrue()
+        ->and($leakage['incorrect_scoring_below_worst_correct'])->toBe(0)
+        ->and($leakage['reason'])->toContain('vacuous');
+});
+
+it('does not flag leakage when outcomes overlap in score', function (): void {
+    seedFields('honest', 'bn', 'calibration', [
+        [0.10, true], [0.20, false], [0.30, true], [0.40, false], [0.50, true],
+    ]);
+
+    $leakage = app(CalibrationReport::class)->build(0.05)['label_leakage'];
+
+    expect($leakage['suspected'])->toBeFalse()
+        ->and($leakage['reason'])->toBeNull()
+        ->and($leakage['incorrect_scoring_below_worst_correct'])->toBeGreaterThan(0);
+});
