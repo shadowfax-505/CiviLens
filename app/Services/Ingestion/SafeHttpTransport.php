@@ -20,6 +20,31 @@ class SafeHttpTransport
     /** @param array<string, string> $requestHeaders */
     public function get(string $url, SourceEndpoint $endpoint, ?int $maximumBytes = null, array $requestHeaders = []): SafeHttpResponse
     {
+        return $this->send($url, $endpoint, null, $maximumBytes, $requestHeaders);
+    }
+
+    /**
+     * Submit a form-encoded request to an allowlisted endpoint.
+     *
+     * Some publishers serve their public listings only through a POST form
+     * rather than a URL. The safety properties are identical to a GET and are
+     * not relaxed for it: the same host allowlist, the same fail-closed address
+     * pinning, the same per-hop revalidation, and the same byte ceiling.
+     *
+     * @param  array<string, scalar>  $form
+     * @param  array<string, string>  $requestHeaders
+     */
+    public function post(string $url, SourceEndpoint $endpoint, array $form, ?int $maximumBytes = null, array $requestHeaders = []): SafeHttpResponse
+    {
+        return $this->send($url, $endpoint, $form, $maximumBytes, $requestHeaders);
+    }
+
+    /**
+     * @param  array<string, scalar>|null  $form  null sends a GET
+     * @param  array<string, string>  $requestHeaders
+     */
+    private function send(string $url, SourceEndpoint $endpoint, ?array $form, ?int $maximumBytes, array $requestHeaders): SafeHttpResponse
+    {
         $limit = min(
             max(1, $maximumBytes ?? $endpoint->max_content_bytes),
             (int) config('civiclens.ingestion.absolute_max_content_bytes', 52428800),
@@ -29,7 +54,7 @@ class SafeHttpTransport
 
         while (true) {
             $validated = $this->urlGuard->validate($currentUrl, $endpoint);
-            $response = $this->request($validated, $endpoint, $requestHeaders);
+            $response = $this->request($validated, $endpoint, $requestHeaders, $form);
 
             if (in_array($response->status(), [301, 302, 303, 307, 308], true)) {
                 if ($redirectsRemaining <= 0) {
@@ -44,6 +69,14 @@ class SafeHttpTransport
 
                 $currentUrl = (string) UriResolver::resolve(new Uri($validated->url), new Uri($location));
                 $redirectsRemaining--;
+
+                // 303 always becomes a GET, and 301/302 are universally treated
+                // that way in practice. Only 307/308 preserve the method and
+                // body, so a form is dropped for the others rather than being
+                // silently resubmitted to a different resource.
+                if ($form !== null && ! in_array($response->status(), [307, 308], true)) {
+                    $form = null;
+                }
 
                 continue;
             }
@@ -82,8 +115,11 @@ class SafeHttpTransport
         }
     }
 
-    /** @param array<string, string> $requestHeaders */
-    private function request(ValidatedSourceUrl $validated, SourceEndpoint $endpoint, array $requestHeaders): Response
+    /**
+     * @param  array<string, string>  $requestHeaders
+     * @param  array<string, scalar>|null  $form
+     */
+    private function request(ValidatedSourceUrl $validated, SourceEndpoint $endpoint, array $requestHeaders, ?array $form = null): Response
     {
         $options = [
             'allow_redirects' => false,
@@ -103,13 +139,16 @@ class SafeHttpTransport
             ]);
         }
 
-        return Http::accept('*/*')
+        $request = Http::accept('*/*')
             ->withUserAgent((string) config('civiclens.ingestion.user_agent'))
             ->withHeaders([...$requestHeaders, 'Accept-Encoding' => 'identity'])
             ->connectTimeout(min(10, max(1, $endpoint->timeout_seconds)))
             ->timeout(max(1, $endpoint->timeout_seconds))
-            ->withOptions($options)
-            ->get($validated->url);
+            ->withOptions($options);
+
+        return $form === null
+            ? $request->get($validated->url)
+            : $request->asForm()->post($validated->url, $form);
     }
 
     private function resolveEntry(ValidatedSourceUrl $validated): string
