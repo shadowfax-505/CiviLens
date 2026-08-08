@@ -2,6 +2,7 @@
 
 use App\Jobs\RunSourceEndpointCrawl;
 use App\Models\SourceEndpoint;
+use App\Services\Extraction\BenchmarkEvaluationService;
 use App\Services\Extraction\CalibrationReport;
 use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Intelligence\CivicIntegrityEngineService;
@@ -76,6 +77,23 @@ Artisan::command('civiclens:calibration-report {--alpha=0.05} {--split=test}', f
 
     return 0;
 })->purpose('Report group-conditional conformal calibration and its realized risk');
+
+Artisan::command('civiclens:evaluate-benchmark {manifest} {--name=benchmark}', function (BenchmarkEvaluationService $service): int {
+    $manifest = $this->argument('manifest');
+    $name = $this->option('name');
+
+    if (! is_string($manifest) || $manifest === '') {
+        $this->error('A manifest path is required.');
+
+        return 1;
+    }
+
+    $summary = $service->evaluate($manifest, is_string($name) && $name !== '' ? $name : 'benchmark');
+
+    $this->line(json_encode($summary, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Evaluate a gold-annotated benchmark manifest into calibration fields');
 
 Schedule::command('civiclens:integrity-run')
     ->dailyAt('02:15')
