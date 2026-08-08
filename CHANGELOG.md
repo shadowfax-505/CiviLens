@@ -4,6 +4,8 @@ All notable changes to CivicLens are tracked here.
 
 ## [Unreleased]
 
+- Added a geometric key-to-value extractor that proposes a field value from the printed label's position without consulting the gold value, removing the circularity that made benchmark scores a function of their own labels.
+- Fixed the label-leakage check reporting "clear" on a corpus containing only one outcome, where separation is undecidable rather than absent.
 - Changed field nonconformity to the weakest word of the span backing the value instead of the page mean, which previously tied every field on a page to one score and made group calibration unable to certify anything.
 - Added a label-leakage check that flags a nonconformity score which separates correct from incorrect perfectly, the signature of a score derived from the gold value rather than an independent prediction.
 - Added benchmark evaluation that converts a gold-annotated corpus into real calibration fields through the production OCR path, with manifest-relative image resolution that refuses paths escaping the manifest directory, conservative value matching including Bengali digit folding, and benchmark runs recorded without fabricating a source artifact.

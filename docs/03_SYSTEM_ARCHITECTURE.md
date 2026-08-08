@@ -116,7 +116,11 @@ Each gold field becomes one `extraction_fields` row carrying a genuine predictio
 
 `FieldValueMatcher` normalizes conservatively — case folding, Unicode whitespace collapsing, and Bengali-to-ASCII digit folding, nothing more. Fuzzy matching or punctuation stripping would manufacture agreement the engine did not earn, and the calibration guarantee is only as honest as this comparison.
 
-**Known limitation: the current harness cannot support a calibration claim.** It locates the gold value inside recognized text, so a field is correct exactly when a span exists and has a score exactly when it is correct. The score is therefore a function of the label rather than an independent prediction, and any guarantee computed on it is vacuous. `CalibrationReport` reports a `label_leakage` check that detects this signature — no incorrect field scoring below the worst correct field — and it fires on the real BaFCo run. A usable evaluation needs a key-to-value extractor that proposes a candidate without consulting the gold value.
+`KeyValueExtractor` proposes a candidate the way a reader would: find the printed label, then read what sits beside it on the same line, stopping at the first wide column gap so a neighbouring field's label is not swallowed. **The gold value is never consulted.** That independence is the whole point — an extractor that searches for the answer inside recognized text produces a score which is a function of the label, and any risk guarantee computed from it is vacuous.
+
+`CalibrationReport` emits a `label_leakage` check for that signature: no incorrect field scoring below the worst correct field. It reports `decidable: false` when the scored set contains only one outcome, because an all-correct or all-incorrect corpus can neither demonstrate leakage nor rule it out, and answering "clear" there would be the same false confidence the check exists to prevent.
+
+**Measured baseline.** On 60 real BaFCo pages and 633 gold fields, the geometric key-to-value baseline scores **0 correct**. Label-to-value adjacency does not survive real scanned Bengali form layouts. The conformal layer still behaves correctly under it: at alpha 0.05 each certifiable group accepts about one field in forty, which is exactly the error budget and no more.
 
 A benchmark run is not an acquisition, so `extraction_runs.source_artifact_version_id` is nullable and the run records which `benchmark` it came from. Borrowing an artifact row would put a fabricated acquisition record in the provenance ledger.
 
