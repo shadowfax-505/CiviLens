@@ -70,6 +70,10 @@ return [
             'timeout_seconds' => (int) env('EXTRACTION_OCR_TIMEOUT', 120),
         ],
 
+        // Column-gap allowance for label-to-value reading, in label heights.
+        // Tabular publisher layouts need a wider allowance than dense prose.
+        'kv_gap_multiple' => (float) env('EXTRACTION_KV_GAP_MULTIPLE', 3),
+
         'native_media_types' => [
             'application/pdf' => 'pdf',
             'text/plain' => 'text',
