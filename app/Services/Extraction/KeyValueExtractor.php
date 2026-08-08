@@ -55,12 +55,16 @@ class KeyValueExtractor
      * of the line would swallow the next field's label. A gap much wider than
      * the anchor's own height is the boundary between columns.
      *
+     * The multiple is configuration because it is an operating point that
+     * differs by publisher: a form laid out as a table puts its value far to the
+     * right of the label, while dense prose puts it immediately after.
+     *
      * @param  array<int, RecognizedWord>  $candidates
      * @return array{value: string, confidences: list<float>}|null
      */
     private function readValue(array $candidates, RecognizedWord $anchor): ?array
     {
-        $gapLimit = max(1, $anchor->height * 3);
+        $gapLimit = max(1, (int) round($anchor->height * (float) config('civiclens.extraction.kv_gap_multiple', 3)));
         $previousRight = $anchor->right();
         $text = [];
         $confidences = [];
