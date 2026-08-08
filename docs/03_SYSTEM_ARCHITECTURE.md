@@ -120,6 +120,10 @@ Each gold field becomes one `extraction_fields` row carrying a genuine predictio
 
 `CalibrationReport` emits a `label_leakage` check for that signature: no incorrect field scoring below the worst correct field. It reports `decidable: false` when the scored set contains only one outcome, because an all-correct or all-incorrect corpus can neither demonstrate leakage nor rule it out, and answering "clear" there would be the same false confidence the check exists to prevent.
 
+`CorpusLegibilityProbe` answers a prior question: can the engine read this corpus at all? Extraction accuracy conflates two unrelated failures — the engine could not read the text, or it read the text and put it in the wrong place — and only the second is worth engineering against. The probe ignores position entirely and asks whether each gold label and gold value appears anywhere in the recognized text. The value rate is a hard ceiling: no layout model can return a value the engine never recognized.
+
+Measured on real BaFCo pages: labels recognize at **0.35**, values at **0.069**. These are filled forms, so the values are handwritten and Tesseract's printed-text models barely see them. Extraction logic cannot raise accuracy above 0.069 no matter how good it is, so the probe reports the corpus intractable for this engine and says to change the recognizer, not the extractor. Running this before investing in extraction is the cheap way to avoid optimizing a component that is not the bottleneck.
+
 **Measured baseline.** On 60 real BaFCo pages and 633 gold fields, the geometric key-to-value baseline scores **0 correct**. Label-to-value adjacency does not survive real scanned Bengali form layouts. The conformal layer still behaves correctly under it: at alpha 0.05 each certifiable group accepts about one field in forty, which is exactly the error budget and no more.
 
 A benchmark run is not an acquisition, so `extraction_runs.source_artifact_version_id` is nullable and the run records which `benchmark` it came from. Borrowing an artifact row would put a fabricated acquisition record in the provenance ledger.
