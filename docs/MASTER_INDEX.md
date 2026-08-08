@@ -72,3 +72,4 @@ This index is the entry point for the CivicLens Enterprise v1.0 handbook. Read t
 - [Geospatial Privacy ADR](adr/ADR-012-V2-Geospatial-Privacy.md) - ephemeral browser location and district-only preferences.
 - [Heterogeneous Source ADR](adr/ADR-013-V2-Heterogeneous-Public-Sources.md) - government and non-governmental source provenance.
 - [Role-Specific Experience ADR](adr/ADR-014-V2-Role-Specific-Experience-Shells.md) - distinct public, citizen, staff, and administrator interfaces on shared foundations.
+- [Recognizer Ceiling ADR](adr/ADR-015-Recognizer-Ceiling-On-Filled-Forms.md) - filled-form corpora are bounded by handwriting recognition, not extraction logic.
