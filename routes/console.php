@@ -4,6 +4,7 @@ use App\Jobs\RunSourceEndpointCrawl;
 use App\Models\SourceEndpoint;
 use App\Services\Extraction\BenchmarkEvaluationService;
 use App\Services\Extraction\CalibrationReport;
+use App\Services\Extraction\CorpusLegibilityProbe;
 use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Intelligence\CivicIntegrityEngineService;
 use Illuminate\Foundation\Inspiring;
@@ -94,6 +95,23 @@ Artisan::command('civiclens:evaluate-benchmark {manifest} {--name=benchmark}', f
 
     return 0;
 })->purpose('Evaluate a gold-annotated benchmark manifest into calibration fields');
+
+Artisan::command('civiclens:probe-legibility {manifest} {--pages=}', function (CorpusLegibilityProbe $probe): int {
+    $manifest = $this->argument('manifest');
+    $pages = $this->option('pages');
+
+    if (! is_string($manifest) || $manifest === '') {
+        $this->error('A manifest path is required.');
+
+        return 1;
+    }
+
+    $summary = $probe->probe($manifest, is_numeric($pages) ? (int) $pages : null);
+
+    $this->line(json_encode($summary, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Measure whether the OCR engine can read a benchmark corpus at all');
 
 Schedule::command('civiclens:integrity-run')
     ->dailyAt('02:15')
