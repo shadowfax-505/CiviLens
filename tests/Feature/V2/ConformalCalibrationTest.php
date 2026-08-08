@@ -163,6 +163,7 @@ it('flags a nonconformity score that already knows the answer', function (): voi
     $leakage = app(CalibrationReport::class)->build(0.05)['label_leakage'];
 
     expect($leakage['suspected'])->toBeTrue()
+        ->and($leakage['decidable'])->toBeTrue()
         ->and($leakage['incorrect_scoring_below_worst_correct'])->toBe(0)
         ->and($leakage['reason'])->toContain('vacuous');
 });
@@ -177,4 +178,27 @@ it('does not flag leakage when outcomes overlap in score', function (): void {
     expect($leakage['suspected'])->toBeFalse()
         ->and($leakage['reason'])->toBeNull()
         ->and($leakage['incorrect_scoring_below_worst_correct'])->toBeGreaterThan(0);
+});
+
+it('reports leakage as undecidable when every field shares one outcome', function (): void {
+    // A 0%-accurate extractor produces no correct field to compare against.
+    // Reporting "clear" there would be the false confidence this check exists to
+    // prevent, so it must refuse to answer instead.
+    seedFields('all-wrong', 'bn', 'calibration', [[0.1, false], [0.5, false], [0.9, false]]);
+
+    $leakage = app(CalibrationReport::class)->build(0.05)['label_leakage'];
+
+    expect($leakage['decidable'])->toBeFalse()
+        ->and($leakage['suspected'])->toBeNull()
+        ->and($leakage['correct'])->toBe(0)
+        ->and($leakage['incorrect'])->toBe(3)
+        ->and($leakage['reason'])->toContain('Undecidable');
+});
+
+it('reports leakage as undecidable when nothing has been scored', function (): void {
+    $leakage = app(CalibrationReport::class)->build(0.05)['label_leakage'];
+
+    expect($leakage['checked'])->toBe(0)
+        ->and($leakage['decidable'])->toBeFalse()
+        ->and($leakage['suspected'])->toBeNull();
 });
