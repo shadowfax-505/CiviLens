@@ -1,6 +1,8 @@
 <?php
 
 use App\Data\Extraction\FieldExtractionSignals;
+use App\Data\Extraction\RecognizedWord;
+use App\Services\Extraction\KeyValueExtractor;
 use App\Services\Extraction\StructuralOrderings;
 
 function signals(
@@ -89,4 +91,28 @@ it('is a pure function of structure and never of the outcome', function (): void
 
 it('falls back to maximal nonconformity for an unknown ordering', function (): void {
     expect((new StructuralOrderings)->score('not_an_ordering', signals()))->toBe(1.0);
+});
+
+it('emits measured structural signals rather than constants', function (): void {
+    // The defect this guards: the orderings were fed stubbed constants, so three
+    // of four received a single distinct value across every field and could not
+    // rank by construction. A null ranking result from constant input is a
+    // broken instrument, not a finding.
+    $words = [
+        new RecognizedWord('Procurement', 100.0, 100, 200, 90, 12),
+        new RecognizedWord('Nature', 100.0, 195, 200, 60, 12),
+        new RecognizedWord(':', 100.0, 258, 200, 5, 12),
+        new RecognizedWord('Works', 100.0, 340, 200, 45, 12),
+        new RecognizedWord('Type', 100.0, 600, 200, 40, 12),
+        new RecognizedWord(':', 100.0, 645, 200, 5, 12),
+    ];
+
+    $signals = app(KeyValueExtractor::class)
+        ->extract('Procurement Nature', $words)['signals'];
+
+    expect($signals->labelFoundExactly)->toBeTrue()
+        ->and($signals->labelWordSpan)->toBe(2)
+        ->and($signals->gapInLabelHeights)->toBeGreaterThan(0.0)
+        ->and($signals->valueWordCount)->toBeGreaterThan(0)
+        ->and($signals->competingLabelsOnLine)->toBeGreaterThan(0);
 });
