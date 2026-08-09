@@ -46,7 +46,25 @@ class KeyValueExtractor
             return null;
         }
 
-        $value = $this->readValue($candidates, $anchor);
+        // The extractor emits words in block order, not in reading order across
+        // a line, so a word further right can appear earlier in the list than
+        // the value that sits immediately beside the label. Reading in list
+        // order then measures the gap to whichever word happened to come first
+        // and abandons a value that was never far away. Left-to-right is the
+        // order the page is actually read in.
+        uasort($candidates, fn (RecognizedWord $a, RecognizedWord $b): int => $a->left <=> $b->left);
+
+        $labelIndices = $this->labelRunIndices($words);
+        $value = $this->readValue($candidates, $anchor, $labelIndices);
+
+        // A label too long for its column wraps, and the value is set against
+        // the line the label *starts* on rather than the line its colon ends
+        // up on. "Procuring Entity District :" occupies two lines with the
+        // district name beside the first, leaving the matched line holding
+        // nothing but the colon.
+        if ($value === null) {
+            $value = $this->readWrappedLabelValue($anchor, $words, $labelIndices);
+        }
 
         if ($value === null) {
             return null;
@@ -68,6 +86,232 @@ class KeyValueExtractor
                 $this->competingLabelsOnLine($anchor, $words, $keySpan['end']),
             ),
         ];
+    }
+
+    /**
+     * The run of words forming a label, in reading order, starting at a word.
+     *
+     * Assembled from geometry rather than from list position. The extractor
+     * emits words in block order, so the word printed beside a label can sit
+     * anywhere in the list, and a key built by walking the list stops at
+     * whichever word happened to be emitted next — which is how "Procurement
+     * Nature", set over two lines with its value between them in the list, went
+     * unmatched entirely.
+     *
+     * A label runs at word spacing across its line and then, if it is too long
+     * for its column, continues on the next line at the same left edge.
+     *
+     * @param  list<RecognizedWord>  $words
+     * @return array<int, RecognizedWord>
+     */
+    private function labelBlock(array $words, int $start): array
+    {
+        $first = $words[$start];
+        $wordGap = max(1, (int) round($first->height * (float) config('civiclens.extraction.kv_value_gap_multiple', 1.5)));
+        $block = [$start => $first];
+        $tail = $first;
+
+        while (true) {
+            $next = null;
+            $nextIndex = null;
+
+            foreach ($words as $index => $word) {
+                if (isset($block[$index])) {
+                    continue;
+                }
+
+                $sameLine = $tail->sharesLineWith($word)
+                    && $word->left >= $tail->right()
+                    && $word->left - $tail->right() <= $wordGap;
+
+                if (! $sameLine && ! $this->continues($tail, $word, $first)) {
+                    continue;
+                }
+
+                // Nearest first, so the run follows the page rather than the
+                // list: the next word on the line, else the start of the
+                // continuation line.
+                if ($next === null || ($sameLine ? $word->left < $next->left : $word->top < $next->top)) {
+                    $next = $word;
+                    $nextIndex = $index;
+                }
+            }
+
+            if ($next === null || $nextIndex === null) {
+                return $block;
+            }
+
+            $block[$nextIndex] = $next;
+            $tail = $next;
+        }
+    }
+
+    /**
+     * Whether a word continues a label onto the next line of the same column.
+     *
+     * Both conditions are needed. Same column alone would join a label to an
+     * unrelated field further down the page; next line alone would join it to
+     * whatever sits in the value column.
+     */
+    private function continues(RecognizedWord $line, RecognizedWord $word, RecognizedWord $first): bool
+    {
+        $height = max(1, $line->height);
+
+        return $word->top > $line->top
+            && $word->top - $line->bottom() <= $height
+            && abs($word->left - $first->left) <= $height;
+    }
+
+    /**
+     * Read the value belonging to a label that wrapped onto a second line.
+     *
+     * The continuation line is only accepted when it begins in the same column
+     * as the matched label, within a label height. That is what distinguishes a
+     * wrapped label from an unrelated field that happens to sit above, and it
+     * is why this cannot simply read the nearest line up.
+     *
+     * @param  list<RecognizedWord>  $words
+     * @param  array<int, true>  $labelIndices
+     * @return array{value: string, confidences: list<float>, firstLeft: int}|null
+     */
+    private function readWrappedLabelValue(RecognizedWord $anchor, array $words, array $labelIndices): ?array
+    {
+        $start = null;
+
+        foreach ($words as $word) {
+            if ($word->top >= $anchor->top || abs($word->left - $anchor->left) > max(1, $anchor->height)) {
+                continue;
+            }
+
+            if ($start === null || $word->top > $start->top) {
+                $start = $word;
+            }
+        }
+
+        if ($start === null) {
+            return null;
+        }
+
+        // Walk the label across its own line at word spacing. Where that run
+        // ends is where the value column begins.
+        $wordGap = max(1, (int) round($start->height * (float) config('civiclens.extraction.kv_value_gap_multiple', 1.5)));
+        $tail = $start;
+        $candidates = [];
+
+        foreach ($words as $index => $word) {
+            if (! $start->sharesLineWith($word) || $word->left < $start->left) {
+                continue;
+            }
+
+            $candidates[$index] = $word;
+        }
+
+        uasort($candidates, fn (RecognizedWord $a, RecognizedWord $b): int => $a->left <=> $b->left);
+
+        foreach ($candidates as $index => $word) {
+            if ($word->left - $tail->right() > $wordGap) {
+                break;
+            }
+
+            $tail = $word;
+            unset($candidates[$index]);
+        }
+
+        return $candidates === [] ? null : $this->readValue($candidates, $tail, $labelIndices);
+    }
+
+    /**
+     * Indices of words that belong to a label rather than to a value.
+     *
+     * Some forms set two label/value pairs on one line with no gutter between
+     * the end of the first value and the start of the second label. Measured on
+     * a real notice: the value "Open Tendering Method" ends at x=277 and the
+     * next label "Budget Type :" begins at x=289 — a 12px gap against a 10px
+     * line height, which is ordinary word spacing. No distance threshold can
+     * separate that from the space between two words of the same value, so the
+     * label has to be recognised as a label.
+     *
+     * A label is a short run of words ending in a colon. The run is grown
+     * backwards from the colon and stops where the spacing changes character:
+     * inside "Budget Type :" the words sit 2 and 3px apart, while the step back
+     * to the preceding value word is 12px. Relative spacing separates them
+     * where absolute spacing cannot.
+     *
+     * @param  list<RecognizedWord>  $words
+     * @return array<int, true>
+     */
+    private function labelRunIndices(array $words): array
+    {
+        $marked = [];
+
+        foreach ($words as $index => $word) {
+            // "10:30" is a value. Only a word that ends in a colon terminates a
+            // label.
+            if (! str_ends_with($word->text, ':')) {
+                continue;
+            }
+
+            $marked[$index] = true;
+            $gaps = [];
+            $leftmost = $word;
+
+            // Walking backwards through the list would assume list order
+            // matches left-to-right order on the line, which it does not. The
+            // neighbours are taken by position instead.
+            foreach ($this->leftNeighbours($words, $index) as $previous => $candidate) {
+                if ($candidate->right() > $leftmost->left) {
+                    continue;
+                }
+
+                $gap = $leftmost->left - $candidate->right();
+
+                // The first step back has nothing to compare against, so it is
+                // admitted on the absolute allowance alone.
+                if ($gaps !== [] && $gap > max(1.0, $this->median($gaps) * 3)) {
+                    break;
+                }
+
+                $marked[$previous] = true;
+                $gaps[] = (float) $gap;
+                $leftmost = $candidate;
+            }
+        }
+
+        return $marked;
+    }
+
+    /**
+     * Words sharing a line with the given one and sitting to its left, nearest
+     * first.
+     *
+     * @param  list<RecognizedWord>  $words
+     * @return array<int, RecognizedWord>
+     */
+    private function leftNeighbours(array $words, int $index): array
+    {
+        $subject = $words[$index];
+        $neighbours = [];
+
+        foreach ($words as $other => $word) {
+            if ($other !== $index && $subject->sharesLineWith($word) && $word->left < $subject->left) {
+                $neighbours[$other] = $word;
+            }
+        }
+
+        uasort($neighbours, fn (RecognizedWord $a, RecognizedWord $b): int => $b->left <=> $a->left);
+
+        return $neighbours;
+    }
+
+    /** @param list<float> $values */
+    private function median(array $values): float
+    {
+        sort($values);
+        $middle = intdiv(count($values), 2);
+
+        return count($values) % 2 === 0
+            ? ($values[$middle - 1] + $values[$middle]) / 2
+            : $values[$middle];
     }
 
     /**
@@ -125,9 +369,10 @@ class KeyValueExtractor
      * while dense prose puts it immediately after.
      *
      * @param  array<int, RecognizedWord>  $candidates
+     * @param  array<int, true>  $labelIndices
      * @return array{value: string, confidences: list<float>, firstLeft: int}|null
      */
-    private function readValue(array $candidates, RecognizedWord $anchor): ?array
+    private function readValue(array $candidates, RecognizedWord $anchor, array $labelIndices): ?array
     {
         $firstLeft = null;
         $columnGap = max(1, (int) round($anchor->height * (float) config('civiclens.extraction.kv_gap_multiple', 8)));
@@ -136,13 +381,21 @@ class KeyValueExtractor
         $text = [];
         $confidences = [];
 
-        foreach ($candidates as $word) {
-            // Punctuation before the first word of the value is the label's own
-            // terminator, not content. Treating the colon as the value is what
-            // made a two-column form report ":" for every field: the read
+        foreach ($candidates as $index => $word) {
+            // Once the value has started, a word belonging to a label belongs
+            // to the *next* field. Before it has started, the words still
+            // marked are the anchor's own terminator.
+            if ($text !== [] && isset($labelIndices[$index])) {
+                break;
+            }
+
+            // Anything still part of the label before the value begins is the
+            // label's own tail: its colon, and words like the "No." in
+            // "Invitation Reference No. :". Treating the colon as the value is
+            // what made a two-column form report ":" for every field — the read
             // started at the colon, and the gutter to the real value then
             // measured as an over-wide gap from there.
-            if ($text === [] && ! $this->carriesContent($word->text)) {
+            if ($text === [] && (isset($labelIndices[$index]) || ! $this->carriesContent($word->text))) {
                 $previousRight = $word->right();
 
                 continue;
@@ -181,20 +434,14 @@ class KeyValueExtractor
             return null;
         }
 
-        $count = count($words);
-
-        for ($start = 0; $start < $count; $start++) {
+        foreach (array_keys($words) as $start) {
             $buffer = '';
 
-            for ($end = $start; $end < $count; $end++) {
-                if ($end > $start && ! $words[$start]->sharesLineWith($words[$end])) {
-                    break;
-                }
-
-                $buffer .= ($end === $start ? '' : ' ').$words[$end]->text;
+            foreach ($this->labelBlock($words, $start) as $index => $word) {
+                $buffer .= ($buffer === '' ? '' : ' ').$word->text;
 
                 if (str_contains($this->matcher->normalize($buffer), $key)) {
-                    return ['start' => $start, 'end' => $end];
+                    return ['start' => $start, 'end' => $index];
                 }
             }
         }
