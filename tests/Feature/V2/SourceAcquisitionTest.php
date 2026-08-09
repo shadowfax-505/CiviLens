@@ -359,3 +359,104 @@ it('validates endpoint DNS before adding it to the registry', function (): void 
 
     expect(SourceEndpoint::query()->count())->toBe(0);
 });
+
+it('submits a form-encoded post to an allowlisted endpoint', function (): void {
+    bindSourceAddresses(['data.example' => ['93.184.216.34']]);
+    $endpoint = SourceEndpoint::factory()->make();
+    Http::fake(['https://data.example/servlet' => Http::response('rows', 200, ['Content-Type' => 'text/html'])]);
+
+    $response = app(SafeHttpTransport::class)->post('https://data.example/servlet', $endpoint, ['pageNo' => 1, 'size' => 10]);
+
+    expect($response->content)->toBe('rows');
+    Http::assertSent(fn (ClientRequest $request): bool => $request->method() === 'POST'
+        && str_contains((string) ($request->header('Content-Type')[0] ?? ''), 'application/x-www-form-urlencoded')
+        && str_contains($request->body(), 'pageNo=1')
+        && str_contains($request->body(), 'size=10'));
+});
+
+it('applies the same host allowlist to a post as to a get', function (): void {
+    bindSourceAddresses(['other.example' => ['93.184.216.34']]);
+    $endpoint = SourceEndpoint::factory()->make();
+
+    expect(fn () => app(SafeHttpTransport::class)->post('https://other.example/servlet', $endpoint, ['a' => 1]))
+        ->toThrow(UnsafeSourceUrl::class);
+    Http::assertNothingSent();
+});
+
+it('pins the resolved address for a post and fails closed without one', function (): void {
+    bindSourceAddresses(['data.example' => ['93.184.216.34']]);
+    $endpoint = SourceEndpoint::factory()->make();
+    $pin = null;
+
+    Http::fake(function (ClientRequest $request, array $options) use (&$pin) {
+        $pin = array_values($options['curl'] ?? [])[0][0] ?? null;
+
+        return Http::response('ok', 200, ['Content-Type' => 'text/html']);
+    });
+
+    app(SafeHttpTransport::class)->post('https://data.example/servlet', $endpoint, ['a' => 1]);
+
+    expect($pin)->toBe('data.example:443:93.184.216.34');
+
+    config()->set('civiclens.ingestion.pin_resolved_address', false);
+
+    expect(fn () => app(SafeHttpTransport::class)->post('https://data.example/servlet', $endpoint, ['a' => 1]))
+        ->toThrow(UnsafeSourceUrl::class, 'pinned resolved address');
+});
+
+it('revalidates a post redirect and rejects one resolving privately', function (): void {
+    bindSourceAddresses(['data.example' => ['93.184.216.34'], 'internal.example' => ['127.0.0.1']]);
+    $endpoint = SourceEndpoint::factory()->make(['allowed_hosts' => ['data.example', 'internal.example']]);
+    Http::fake(['https://data.example/servlet' => Http::response('', 307, ['Location' => 'https://internal.example/x'])]);
+
+    expect(fn () => app(SafeHttpTransport::class)->post('https://data.example/servlet', $endpoint, ['a' => 1]))
+        ->toThrow(UnsafeSourceUrl::class);
+});
+
+it('drops the form body when a redirect converts the method to get', function (): void {
+    // 301, 302 and 303 are treated as GET by every real client. Resubmitting a
+    // form body to a different resource would be a different request than the
+    // one that was authorised.
+    bindSourceAddresses(['data.example' => ['93.184.216.34']]);
+    $endpoint = SourceEndpoint::factory()->make();
+    $methods = [];
+
+    Http::fake(function (ClientRequest $request) use (&$methods) {
+        $methods[] = $request->method();
+
+        return count($methods) === 1
+            ? Http::response('', 302, ['Location' => 'https://data.example/moved'])
+            : Http::response('ok', 200, ['Content-Type' => 'text/html']);
+    });
+
+    app(SafeHttpTransport::class)->post('https://data.example/servlet', $endpoint, ['a' => 1]);
+
+    expect($methods)->toBe(['POST', 'GET']);
+});
+
+it('preserves the form body across a 307 redirect', function (): void {
+    bindSourceAddresses(['data.example' => ['93.184.216.34']]);
+    $endpoint = SourceEndpoint::factory()->make();
+    $methods = [];
+
+    Http::fake(function (ClientRequest $request) use (&$methods) {
+        $methods[] = $request->method();
+
+        return count($methods) === 1
+            ? Http::response('', 307, ['Location' => 'https://data.example/moved'])
+            : Http::response('ok', 200, ['Content-Type' => 'text/html']);
+    });
+
+    app(SafeHttpTransport::class)->post('https://data.example/servlet', $endpoint, ['a' => 1]);
+
+    expect($methods)->toBe(['POST', 'POST']);
+});
+
+it('bounds post response bytes exactly as it bounds a get', function (): void {
+    bindSourceAddresses(['data.example' => ['93.184.216.34']]);
+    $endpoint = SourceEndpoint::factory()->make(['max_content_bytes' => 8]);
+    Http::fake(['https://data.example/servlet' => Http::response('123456789', 200, ['Content-Type' => 'text/html'])]);
+
+    expect(fn () => app(SafeHttpTransport::class)->post('https://data.example/servlet', $endpoint, ['a' => 1]))
+        ->toThrow(AcquisitionFailed::class, 'byte limit');
+});
