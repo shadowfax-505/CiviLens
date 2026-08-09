@@ -97,6 +97,7 @@ use App\Policies\ProjectPolicy;
 use App\Policies\SourcePublisherPolicy;
 use App\Policies\TenderPolicy;
 use App\Policies\UserPolicy;
+use App\Services\Extraction\HtmlNativeExtractor;
 use App\Services\Extraction\NativeExtractorRegistry;
 use App\Services\Extraction\PdfNativeTextExtractor;
 use App\Services\Extraction\PlainTextNativeExtractor;
@@ -128,6 +129,10 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(NativeExtractorRegistry::class, fn ($app): NativeExtractorRegistry => new NativeExtractorRegistry([
             $app->make(PdfNativeTextExtractor::class),
+            // Ahead of the plain-text extractor deliberately. text/html is
+            // mapped to 'text' in the native media type registry, so plain text
+            // also claims it and would return the markup itself as content.
+            $app->make(HtmlNativeExtractor::class),
             $app->make(PlainTextNativeExtractor::class),
         ]));
 

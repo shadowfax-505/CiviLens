@@ -7,6 +7,7 @@ use App\Exceptions\Ingestion\AcquisitionFailed;
 use App\Services\Ingestion\Connectors\ApiFeedSourceConnector;
 use App\Services\Ingestion\Connectors\BrowserSourceConnector;
 use App\Services\Ingestion\Connectors\DirectDownloadSourceConnector;
+use App\Services\Ingestion\Connectors\EgpTenderListingConnector;
 use App\Services\Ingestion\Connectors\SitemapSourceConnector;
 use App\Services\Ingestion\Connectors\StaticHtmlSourceConnector;
 
@@ -18,6 +19,7 @@ class SourceConnectorRegistry
         private readonly DirectDownloadSourceConnector $directDownload,
         private readonly StaticHtmlSourceConnector $staticHtml,
         private readonly BrowserSourceConnector $browser,
+        private readonly EgpTenderListingConnector $egpTenderListing,
     ) {}
 
     public function for(string $type): SourceConnector
@@ -28,6 +30,10 @@ class SourceConnectorRegistry
             'direct_download' => $this->directDownload,
             'static_html' => $this->staticHtml,
             'browser' => $this->browser,
+            // The e-GP listing servlet answers POST and nothing else, so it
+            // needs the one connector that posts. Routing it through
+            // static_html would issue a GET and discover no notices at all.
+            'egp_tender_listing' => $this->egpTenderListing,
             default => throw new AcquisitionFailed('Unsupported source connector type.'),
         };
     }
