@@ -257,3 +257,58 @@ it('does not wrap into a line that belongs to a label', function (): void {
     expect(app(KeyValueExtractor::class)->extract('Organization', $words)['value'])
         ->toBe('Education');
 });
+
+it('does not read the tail of a wrapped label as the value', function (): void {
+    // "Tender/Proposal Package No. and Description :" wraps, and the colon lands
+    // on a line the word "and" is not on. Because label runs were found one
+    // line at a time, "and" went unmarked and the field came back as "and".
+    $words = [
+        new RecognizedWord('Tender/Proposal', 100.0, 40, 405, 83, 11),
+        new RecognizedWord('Package', 100.0, 40, 418, 43, 11),
+        new RecognizedWord('No.', 100.0, 86, 418, 17, 11),
+        new RecognizedWord('and', 100.0, 106, 418, 19, 11),
+        new RecognizedWord('Description', 100.0, 40, 431, 60, 11),
+        new RecognizedWord(':', 100.0, 103, 431, 4, 11),
+        new RecognizedWord('Construction', 100.0, 164, 418, 62, 10),
+        new RecognizedWord('work', 100.0, 229, 418, 24, 10),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Tender/Proposal Package No', $words)['value'])
+        ->toBe('Construction work');
+});
+
+it('ends a wrapped label run before its own value', function (): void {
+    // The label's words sit 2px apart while the gutter to its value is 12px,
+    // and one allowance covers both. Marking the value as label text made the
+    // field unreadable: "Invitation Reference No. :" returned a neighbouring
+    // field's value instead of the reference.
+    $words = [
+        new RecognizedWord('Invitation', 100.0, 40, 209, 47, 11),
+        new RecognizedWord('Reference', 100.0, 89, 209, 52, 11),
+        new RecognizedWord('37.07.0000', 100.0, 153, 210, 148, 10),
+        new RecognizedWord('No.', 100.0, 40, 223, 17, 10),
+        new RecognizedWord(':', 100.0, 60, 223, 4, 10),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Invitation Reference', $words)['value'])
+        ->toBe('37.07.0000');
+});
+
+it('does not join two labels stacked in the same column into one key', function (): void {
+    // A label ends at its colon. Reading past it would let "Invitation for :"
+    // match a key belonging to the label beneath it and return the wrong
+    // field's value.
+    $words = [
+        new RecognizedWord('Invitation', 100.0, 306, 191, 47, 11),
+        new RecognizedWord('for', 100.0, 355, 191, 15, 11),
+        new RecognizedWord(':', 100.0, 373, 191, 3, 11),
+        new RecognizedWord('Tender', 100.0, 424, 191, 32, 10),
+        new RecognizedWord('Invitation', 100.0, 306, 209, 47, 11),
+        new RecognizedWord('Reference', 100.0, 355, 209, 52, 11),
+        new RecognizedWord(':', 100.0, 410, 209, 4, 11),
+        new RecognizedWord('37.07.0000', 100.0, 424, 209, 60, 10),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Invitation Reference', $words)['value'])
+        ->toBe('37.07.0000');
+});
