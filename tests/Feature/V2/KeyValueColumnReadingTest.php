@@ -191,3 +191,69 @@ it('records the gutter it crossed as structural evidence', function (): void {
         ->and($signals->valueWordCount)->toBe(3)
         ->and($signals->competingLabelsOnLine)->toBe(2);
 });
+
+it('follows a value that wraps onto the next line of its column', function (): void {
+    // "Education Engineering Department" is set over two lines. Truncated to
+    // "Education Engineering" it still looks like an answer, which is worse
+    // than not reading it.
+    $words = [
+        new RecognizedWord('Organization', 100.0, 40, 98, 65, 11),
+        new RecognizedWord(':', 100.0, 107, 98, 4, 11),
+        new RecognizedWord('Education', 100.0, 154, 98, 46, 10),
+        new RecognizedWord('Engineering', 100.0, 203, 98, 54, 10),
+        new RecognizedWord('Department', 100.0, 154, 111, 54, 10),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Organization', $words)['value'])
+        ->toBe('Education Engineering Department');
+});
+
+it('stops wrapping at the next field rather than running into it', function (): void {
+    // The failure this guards against was real: the first line step had nothing
+    // to compare against, so a 30px jump to the field below was accepted and
+    // "Ministry" came back as "Ministry of Education Education Engineering
+    // Department". A wrapped line sits about 1.2 line heights down; the next
+    // field sits three times that.
+    $words = [
+        new RecognizedWord('Ministry', 100.0, 40, 67, 41, 11),
+        new RecognizedWord(':', 100.0, 84, 67, 3, 11),
+        new RecognizedWord('Ministry', 100.0, 154, 68, 36, 10),
+        new RecognizedWord('of', 100.0, 193, 68, 9, 10),
+        new RecognizedWord('Education', 100.0, 205, 68, 46, 10),
+        new RecognizedWord('Education', 100.0, 154, 98, 46, 10),
+        new RecognizedWord('Engineering', 100.0, 203, 98, 54, 10),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Ministry', $words)['value'])
+        ->toBe('Ministry of Education');
+});
+
+it('keeps a confidence for every word it read, wrapped lines included', function (): void {
+    // The supporting span decides the field's nonconformity score. A wrapped
+    // word counted into the value but not into the span would make the field
+    // look better supported than it is.
+    $words = [
+        new RecognizedWord('Organization', 100.0, 40, 98, 65, 11),
+        new RecognizedWord(':', 100.0, 107, 98, 4, 11),
+        new RecognizedWord('Education', 90.0, 154, 98, 46, 10),
+        new RecognizedWord('Department', 40.0, 154, 111, 54, 10),
+    ];
+
+    $read = app(KeyValueExtractor::class)->extract('Organization', $words);
+
+    expect($read['confidences'])->toBe([90.0, 40.0])
+        ->and(min($read['confidences']))->toBe(40.0);
+});
+
+it('does not wrap into a line that belongs to a label', function (): void {
+    $words = [
+        new RecognizedWord('Organization', 100.0, 40, 98, 65, 11),
+        new RecognizedWord(':', 100.0, 107, 98, 4, 11),
+        new RecognizedWord('Education', 100.0, 154, 98, 46, 10),
+        new RecognizedWord('District', 100.0, 154, 111, 36, 10),
+        new RecognizedWord(':', 100.0, 193, 111, 4, 10),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Organization', $words)['value'])
+        ->toBe('Education');
+});

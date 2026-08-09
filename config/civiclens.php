@@ -82,6 +82,16 @@ return [
         // its own label, so reading on at column width swallows it.
         'kv_value_gap_multiple' => (float) env('EXTRACTION_KV_VALUE_GAP_MULTIPLE', 1.5),
 
+        // Furthest a wrapped line may sit below its predecessor, in line
+        // heights. Ordinary line spacing measures about 1.2 here; the step to
+        // the next field is three times that.
+        'kv_wrap_line_multiple' => (float) env('EXTRACTION_KV_WRAP_LINE_MULTIPLE', 1.6),
+
+        // How much wider a later line step may be than the steps already taken
+        // before it is read as the gap to the next field rather than the next
+        // line of this value.
+        'kv_wrap_step_tolerance' => (float) env('EXTRACTION_KV_WRAP_STEP_TOLERANCE', 1.4),
+
         'native_media_types' => [
             'application/pdf' => 'pdf',
             'text/plain' => 'text',
