@@ -108,6 +108,33 @@ return [
         ],
     ],
 
+    'normalisation' => [
+        // Prefix for the Open Contracting identifier. A real deployment
+        // registers its own prefix; this default marks records as coming from
+        // the Bangladesh e-GP portal rather than claiming a registered one.
+        'ocid_prefix' => env('CIVICLENS_OCID_PREFIX', 'bd-egp'),
+
+        // Labels printed on e-GP tender notices. Listed rather than discovered
+        // because a label the publisher stopped printing should show up as a
+        // field that stopped being read, not silently disappear.
+        'notice_labels' => [
+            'Ministry',
+            'Division',
+            'Organization',
+            'Procuring Entity Name',
+            'District',
+            'Procurement Nature',
+            'Procurement Type',
+            'Procurement Method',
+            'Source of Funds',
+            'App ID',
+            'Tender/Proposal ID',
+            'Invitation Reference',
+            'Project Code',
+            'Tender/Proposal Package No',
+        ],
+    ],
+
     'intelligence' => [
         // Fewest comparable procurements required before a peer comparison is
         // stated at all. Below this a difference is sampling noise.
