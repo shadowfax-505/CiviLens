@@ -4,11 +4,14 @@ use App\Jobs\RunSourceEndpointCrawl;
 use App\Models\SourceEndpoint;
 use App\Services\Extraction\BenchmarkEvaluationService;
 use App\Services\Extraction\CalibrationReport;
+use App\Services\Extraction\BornDigitalWordExtractor;
 use App\Services\Extraction\CorpusLegibilityProbe;
 use App\Services\Extraction\ExtractionRoutingReport;
+use App\Services\Extraction\KeyValueExtractor;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
 use App\Services\Ingestion\SourceRegistryProvisioner;
 use App\Services\Intelligence\CivicIntegrityEngineService;
+use App\Services\Normalisation\OcdsTenderNormaliser;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -114,6 +117,39 @@ Artisan::command('civiclens:probe-legibility {manifest} {--pages=}', function (C
 
     return 0;
 })->purpose('Measure whether the OCR engine can read a benchmark corpus at all');
+
+Artisan::command('civiclens:normalise-notice {path} {--page=1}', function (BornDigitalWordExtractor $words, KeyValueExtractor $extractor, OcdsTenderNormaliser $normaliser): int {
+    $path = $this->argument('path');
+    $page = $this->option('page');
+
+    if (! is_string($path) || ! is_readable($path)) {
+        $this->error('A readable document path is required.');
+
+        return 1;
+    }
+
+    $recognised = $words->words($path, is_numeric($page) ? (int) $page : 1);
+    $fields = [];
+
+    foreach ((array) config('civiclens.normalisation.notice_labels', []) as $label) {
+        if (! is_string($label)) {
+            continue;
+        }
+
+        $read = $extractor->extract($label, $recognised);
+
+        if ($read !== null) {
+            $fields[$label] = $read['value'];
+        }
+    }
+
+    $this->line(json_encode(
+        $normaliser->normalise($fields) + ['fields_read' => count($fields)],
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+    ));
+
+    return 0;
+})->purpose('Read a tender notice and report it in Open Contracting shape');
 
 Artisan::command('civiclens:register-bangladesh-sources', function (SourceRegistryProvisioner $provisioner, BangladeshSourceCatalogue $catalogue): int {
     $results = [];
