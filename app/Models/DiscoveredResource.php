@@ -35,11 +35,13 @@ class DiscoveredResource extends Model
         ];
     }
 
+    /** @return BelongsTo<SourceEndpoint, self> */
     public function endpoint(): BelongsTo
     {
         return $this->belongsTo(SourceEndpoint::class, 'source_endpoint_id');
     }
 
+    /** @return BelongsTo<SourceCrawlRun, self> */
     public function crawlRun(): BelongsTo
     {
         return $this->belongsTo(SourceCrawlRun::class, 'source_crawl_run_id');
