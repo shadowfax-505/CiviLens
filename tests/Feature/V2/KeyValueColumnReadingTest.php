@@ -75,6 +75,39 @@ it('refuses a value separated by more than the configured gutter', function (): 
     expect($read)->toBeNull();
 });
 
+it('stops at the next label even when no gutter separates it', function (): void {
+    // Geometry from the same notice. The value "Open Tendering Method" ends at
+    // x=277 and the next label "Budget Type :" starts at x=289 — a 12px gap
+    // against a 10px line height, which is ordinary word spacing. No distance
+    // threshold separates that from the space between two words of one value.
+    $words = [
+        new RecognizedWord('Procurement', 100.0, 40, 280, 65, 10),
+        new RecognizedWord('Method', 100.0, 108, 280, 38, 10),
+        new RecognizedWord(':', 100.0, 149, 280, 3, 10),
+        new RecognizedWord('Open', 100.0, 165, 280, 26, 10),
+        new RecognizedWord('Tendering', 100.0, 194, 280, 45, 10),
+        new RecognizedWord('Method', 100.0, 242, 280, 35, 10),
+        new RecognizedWord('Budget', 100.0, 289, 280, 36, 10),
+        new RecognizedWord('Type', 100.0, 328, 280, 25, 10),
+        new RecognizedWord(':', 100.0, 355, 280, 4, 10),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Procurement Method', $words)['value'])
+        ->toBe('Open Tendering Method');
+});
+
+it('does not mistake a value containing a colon for a label', function (): void {
+    // A label ends in a colon. A time does not, and treating every colon as a
+    // label boundary would drop the value entirely.
+    $words = [
+        new RecognizedWord('Closing', 100.0, 40, 300, 40, 10),
+        new RecognizedWord(':', 100.0, 83, 300, 3, 10),
+        new RecognizedWord('10:30', 100.0, 95, 300, 28, 10),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Closing', $words)['value'])->toBe('10:30');
+});
+
 it('records the gutter it crossed as structural evidence', function (): void {
     $signals = app(KeyValueExtractor::class)->extract('Ministry', egpNoticeLine())['signals'];
 
