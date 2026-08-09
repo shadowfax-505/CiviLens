@@ -6,6 +6,7 @@ use App\Services\Extraction\BenchmarkEvaluationService;
 use App\Services\Extraction\CalibrationReport;
 use App\Services\Extraction\CorpusLegibilityProbe;
 use App\Services\Extraction\ExtractionRoutingReport;
+use App\Services\Ingestion\SourceRegistryProvisioner;
 use App\Services\Intelligence\CivicIntegrityEngineService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -112,6 +113,63 @@ Artisan::command('civiclens:probe-legibility {manifest} {--pages=}', function (C
 
     return 0;
 })->purpose('Measure whether the OCR engine can read a benchmark corpus at all');
+
+Artisan::command('civiclens:register-bangladesh-sources', function (SourceRegistryProvisioner $provisioner): int {
+    $results = [];
+
+    $results[] = $provisioner->provision(
+        'bppa-egp',
+        'Bangladesh Public Procurement Authority (e-GP)',
+        'government',
+        'https://www.eprocure.gov.bd/',
+        'Bangladesh Public Procurement Authority',
+        'I authorise CivicLens to fetch public tender notices from eprocure.gov.bd at a rate-limited pace.',
+        [[
+            'name' => 'Public tender and proposal listing',
+            'connector_type' => 'static_html',
+            'base_url' => 'https://www.eprocure.gov.bd/TenderDetailsServlet',
+            'allowed_hosts' => ['www.eprocure.gov.bd'],
+            'allowed_path_prefixes' => ['/TenderDetailsServlet'],
+            'access_decision' => 'operator-authorised-public-notices',
+            'rate_limit_per_minute' => 6,
+        ]],
+    );
+
+    $results[] = $provisioner->provision(
+        'cag-bangladesh',
+        'Comptroller and Auditor General of Bangladesh',
+        'government',
+        'https://cag.org.bd/',
+        'Office of the Comptroller and Auditor General of Bangladesh',
+        'I authorise CivicLens to fetch public audit reports from cag.org.bd rate-limited.',
+        [
+            [
+                // The audit category pages return placeholder text, so the
+                // storage path is the route that actually carries documents.
+                'name' => 'Published audit document storage',
+                'connector_type' => 'direct_download',
+                'base_url' => 'https://cag.org.bd/storage/app/uploads/public/',
+                'allowed_hosts' => ['cag.org.bd'],
+                'allowed_path_prefixes' => ['/storage/app/uploads/public', '/storage/app/media'],
+                'access_decision' => 'operator-authorised-public-audit',
+                'rate_limit_per_minute' => 4,
+            ],
+            [
+                'name' => 'Civil Audit Directorate report archive',
+                'connector_type' => 'static_html',
+                'base_url' => 'https://dgcivil-cagbd.org/audit-report/',
+                'allowed_hosts' => ['dgcivil-cagbd.org'],
+                'allowed_path_prefixes' => ['/audit-report', '/wp-content/uploads'],
+                'access_decision' => 'operator-authorised-public-audit',
+                'rate_limit_per_minute' => 4,
+            ],
+        ],
+    );
+
+    $this->line(json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Record the reviewed decision to fetch from authorised Bangladesh public sources');
 
 Schedule::command('civiclens:integrity-run')
     ->dailyAt('02:15')
