@@ -70,9 +70,17 @@ return [
             'timeout_seconds' => (int) env('EXTRACTION_OCR_TIMEOUT', 120),
         ],
 
-        // Column-gap allowance for label-to-value reading, in label heights.
-        // Tabular publisher layouts need a wider allowance than dense prose.
-        'kv_gap_multiple' => (float) env('EXTRACTION_KV_GAP_MULTIPLE', 3),
+        // Column-gap allowance for the jump from a label to its value, in label
+        // heights. Tabular publisher layouts need a wider allowance than dense
+        // prose. Measured on real e-GP tender notices, the gutter runs to about
+        // six label heights, and the improvement loop found 8 on CPTU documents.
+        'kv_gap_multiple' => (float) env('EXTRACTION_KV_GAP_MULTIPLE', 8),
+
+        // Allowance between consecutive words *within* a value, in label
+        // heights. Deliberately much tighter: on the same notices the next
+        // field's label sits closer to the end of a value than the value sat to
+        // its own label, so reading on at column width swallows it.
+        'kv_value_gap_multiple' => (float) env('EXTRACTION_KV_VALUE_GAP_MULTIPLE', 1.5),
 
         'native_media_types' => [
             'application/pdf' => 'pdf',
