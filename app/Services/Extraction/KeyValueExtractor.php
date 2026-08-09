@@ -46,7 +46,7 @@ class KeyValueExtractor
             return null;
         }
 
-        $value = $this->readValue($candidates, $anchor);
+        $value = $this->readValue($candidates, $anchor, $this->labelRunIndices($words));
 
         if ($value === null) {
             return null;
@@ -68,6 +68,76 @@ class KeyValueExtractor
                 $this->competingLabelsOnLine($anchor, $words, $keySpan['end']),
             ),
         ];
+    }
+
+    /**
+     * Indices of words that belong to a label rather than to a value.
+     *
+     * Some forms set two label/value pairs on one line with no gutter between
+     * the end of the first value and the start of the second label. Measured on
+     * a real notice: the value "Open Tendering Method" ends at x=277 and the
+     * next label "Budget Type :" begins at x=289 — a 12px gap against a 10px
+     * line height, which is ordinary word spacing. No distance threshold can
+     * separate that from the space between two words of the same value, so the
+     * label has to be recognised as a label.
+     *
+     * A label is a short run of words ending in a colon. The run is grown
+     * backwards from the colon and stops where the spacing changes character:
+     * inside "Budget Type :" the words sit 2 and 3px apart, while the step back
+     * to the preceding value word is 12px. Relative spacing separates them
+     * where absolute spacing cannot.
+     *
+     * @param  list<RecognizedWord>  $words
+     * @return array<int, true>
+     */
+    private function labelRunIndices(array $words): array
+    {
+        $marked = [];
+
+        foreach ($words as $index => $word) {
+            // "10:30" is a value. Only a word that ends in a colon terminates a
+            // label.
+            if (! str_ends_with($word->text, ':')) {
+                continue;
+            }
+
+            $marked[$index] = true;
+            $gaps = [];
+            $leftmost = $word;
+
+            for ($previous = $index - 1; $previous >= 0; $previous--) {
+                $candidate = $words[$previous];
+
+                if (! $candidate->sharesLineWith($word) || $candidate->right() > $leftmost->left) {
+                    break;
+                }
+
+                $gap = $leftmost->left - $candidate->right();
+
+                // The first step back has nothing to compare against, so it is
+                // admitted on the absolute allowance alone.
+                if ($gaps !== [] && $gap > max(1.0, $this->median($gaps) * 3)) {
+                    break;
+                }
+
+                $marked[$previous] = true;
+                $gaps[] = (float) $gap;
+                $leftmost = $candidate;
+            }
+        }
+
+        return $marked;
+    }
+
+    /** @param list<float> $values */
+    private function median(array $values): float
+    {
+        sort($values);
+        $middle = intdiv(count($values), 2);
+
+        return count($values) % 2 === 0
+            ? ($values[$middle - 1] + $values[$middle]) / 2
+            : $values[$middle];
     }
 
     /**
@@ -125,9 +195,10 @@ class KeyValueExtractor
      * while dense prose puts it immediately after.
      *
      * @param  array<int, RecognizedWord>  $candidates
+     * @param  array<int, true>  $labelIndices
      * @return array{value: string, confidences: list<float>, firstLeft: int}|null
      */
-    private function readValue(array $candidates, RecognizedWord $anchor): ?array
+    private function readValue(array $candidates, RecognizedWord $anchor, array $labelIndices): ?array
     {
         $firstLeft = null;
         $columnGap = max(1, (int) round($anchor->height * (float) config('civiclens.extraction.kv_gap_multiple', 8)));
@@ -136,7 +207,14 @@ class KeyValueExtractor
         $text = [];
         $confidences = [];
 
-        foreach ($candidates as $word) {
+        foreach ($candidates as $index => $word) {
+            // Once the value has started, a word belonging to a label belongs
+            // to the *next* field. Before it has started, the words still
+            // marked are the anchor's own terminator.
+            if ($text !== [] && isset($labelIndices[$index])) {
+                break;
+            }
+
             // Punctuation before the first word of the value is the label's own
             // terminator, not content. Treating the colon as the value is what
             // made a two-column form report ":" for every field: the read
