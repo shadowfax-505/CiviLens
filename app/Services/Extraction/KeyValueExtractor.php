@@ -70,6 +70,8 @@ class KeyValueExtractor
             return null;
         }
 
+        $value = $this->appendWrappedValue($value, $words, $labelIndices);
+
         return [
             'value' => $value['value'],
             'confidences' => $value['confidences'],
@@ -86,6 +88,110 @@ class KeyValueExtractor
                 $this->competingLabelsOnLine($anchor, $words, $keySpan['end']),
             ),
         ];
+    }
+
+    /**
+     * Follow a value that wrapped onto further lines of its own column.
+     *
+     * Values wrap for the same reason labels do, and truncating one is worse
+     * than failing to read it: "Education Engineering Department" cut to
+     * "Education Engineering" still looks like an answer.
+     *
+     * Where a wrapped value ends is the whole difficulty, because the next
+     * field's value begins in the same column at a similar distance. Measured
+     * on a real notice, the lines inside one value sit 12 and 13px apart while
+     * the step to the following value is 18px. Absolute spacing cannot separate
+     * those; the change in spacing can, which is the same reasoning that
+     * separates a label from a value on a crowded line.
+     *
+     * @param  array{value: string, confidences: list<float>, firstLeft: int, first: RecognizedWord}  $value
+     * @param  list<RecognizedWord>  $words
+     * @param  array<int, true>  $labelIndices
+     * @return array{value: string, confidences: list<float>, firstLeft: int, first: RecognizedWord}
+     */
+    private function appendWrappedValue(array $value, array $words, array $labelIndices): array
+    {
+        $first = $value['first'];
+        $height = max(1, $first->height);
+        $tolerance = (float) config('civiclens.extraction.kv_wrap_step_tolerance', 1.4);
+        $maxStep = max(1, (int) round($height * (float) config('civiclens.extraction.kv_wrap_line_multiple', 1.6)));
+        $line = $first;
+        $steps = [];
+
+        while (true) {
+            $next = null;
+            $nextIndex = null;
+
+            foreach ($words as $index => $word) {
+                // The continuation starts in the same column, on a line below
+                // the one just read, and is not part of a label.
+                if (isset($labelIndices[$index]) || $word->top <= $line->top) {
+                    continue;
+                }
+
+                // A wrapped line sits one line-height below its predecessor.
+                // The step to the next field is several times that: measured
+                // here, 12px within a value against 30px to the field below.
+                // Without this bound the first step has nothing to compare
+                // against and swallows whatever comes next.
+                if (abs($word->left - $first->left) > $height || $word->top - $line->top > $maxStep) {
+                    continue;
+                }
+
+                if ($next === null || $word->top < $next->top) {
+                    $next = $word;
+                    $nextIndex = $index;
+                }
+            }
+
+            if ($next === null || $nextIndex === null) {
+                return $value;
+            }
+
+            $step = (float) ($next->top - $line->top);
+
+            // A step markedly wider than the ones already taken is the gap to
+            // the next field, not the next line of this one.
+            if ($steps !== [] && $step > $this->median($steps) * $tolerance) {
+                return $value;
+            }
+
+            $continuation = $this->readValue(
+                $this->lineFrom($next, $words, $nextIndex),
+                $next,
+                $labelIndices,
+            );
+
+            if ($continuation === null) {
+                return $value;
+            }
+
+            $value['value'] = trim($value['value'].' '.$continuation['value']);
+            $value['confidences'] = [...$value['confidences'], ...$continuation['confidences']];
+            $steps[] = $step;
+            $line = $next;
+        }
+    }
+
+    /**
+     * The candidate run beginning at a word and reading rightwards on its line.
+     *
+     * @param  list<RecognizedWord>  $words
+     * @return array<int, RecognizedWord>
+     */
+    private function lineFrom(RecognizedWord $start, array $words, int $startIndex): array
+    {
+        $candidates = [$startIndex => $start];
+
+        foreach ($words as $index => $word) {
+            if ($index !== $startIndex && $start->sharesLineWith($word) && $word->left >= $start->left) {
+                $candidates[$index] = $word;
+            }
+        }
+
+        uasort($candidates, fn (RecognizedWord $a, RecognizedWord $b): int => $a->left <=> $b->left);
+
+        return $candidates;
     }
 
     /**
@@ -172,7 +278,7 @@ class KeyValueExtractor
      *
      * @param  list<RecognizedWord>  $words
      * @param  array<int, true>  $labelIndices
-     * @return array{value: string, confidences: list<float>, firstLeft: int}|null
+     * @return array{value: string, confidences: list<float>, firstLeft: int, first: RecognizedWord}|null
      */
     private function readWrappedLabelValue(RecognizedWord $anchor, array $words, array $labelIndices): ?array
     {
@@ -370,11 +476,11 @@ class KeyValueExtractor
      *
      * @param  array<int, RecognizedWord>  $candidates
      * @param  array<int, true>  $labelIndices
-     * @return array{value: string, confidences: list<float>, firstLeft: int}|null
+     * @return array{value: string, confidences: list<float>, firstLeft: int, first: RecognizedWord}|null
      */
     private function readValue(array $candidates, RecognizedWord $anchor, array $labelIndices): ?array
     {
-        $firstLeft = null;
+        $first = null;
         $columnGap = max(1, (int) round($anchor->height * (float) config('civiclens.extraction.kv_gap_multiple', 8)));
         $wordGap = max(1, (int) round($anchor->height * (float) config('civiclens.extraction.kv_value_gap_multiple', 1.5)));
         $previousRight = $anchor->right();
@@ -407,7 +513,7 @@ class KeyValueExtractor
                 break;
             }
 
-            $firstLeft ??= $word->left;
+            $first ??= $word;
             $text[] = $word->text;
             $confidences[] = $word->confidence;
             $previousRight = $word->right();
@@ -415,11 +521,11 @@ class KeyValueExtractor
 
         $value = trim(implode(' ', $text));
 
-        if ($value === '' || $confidences === [] || $firstLeft === null) {
+        if ($value === '' || $confidences === [] || $first === null) {
             return null;
         }
 
-        return ['value' => $value, 'confidences' => $confidences, 'firstLeft' => $firstLeft];
+        return ['value' => $value, 'confidences' => $confidences, 'firstLeft' => $first->left, 'first' => $first];
     }
 
     /**
