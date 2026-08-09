@@ -2,9 +2,14 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property CarbonImmutable|null $observed_at
+ * @property CarbonImmutable|null $published_on
+ */
 class TenderObservation extends Model
 {
     protected $fillable = [
