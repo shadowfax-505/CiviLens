@@ -23,6 +23,7 @@ class SourceAcquisitionService
         private readonly SourceConnectorRegistry $connectors,
         private readonly ArtifactFetcher $artifactFetcher,
         private readonly SourceActivityRecorder $activities,
+        private readonly TenderObservationRecorder $observations,
     ) {}
 
     public function discover(SourceEndpoint $endpoint, ?User $actor = null): SourceCrawlRun
@@ -84,10 +85,17 @@ class SourceAcquisitionService
                 'last_crawled_at' => now(),
             ]);
 
+            // What a listing said at this moment, kept apart from the
+            // operational record it will later update. A discovered resource is
+            // overwritten on the next crawl; an observation is not, so a notice
+            // the publisher revises leaves a history rather than replacing
+            // itself silently.
+            $observed = $this->observations->record($resources);
+
             foreach ($resources as $resource) {
                 FetchDiscoveredResourceArtifact::dispatch($resource->id, $run->id, $endpoint->id)->afterCommit();
             }
-            $this->activities->record('source.discovery.completed', actor: $actor, endpoint: $endpoint, run: $run, metadata: ['discovered_count' => count($resources)]);
+            $this->activities->record('source.discovery.completed', actor: $actor, endpoint: $endpoint, run: $run, metadata: ['discovered_count' => count($resources)] + $observed);
 
             $freshRun = $run->fresh();
 
