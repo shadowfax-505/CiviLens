@@ -247,8 +247,11 @@ it('predicts a value from the label position without consulting the gold', funct
 
     $prediction = app(KeyValueExtractor::class)->extract('Name', $words);
 
-    expect($prediction['value'])->toBe(': Alvi Sarkar')
-        ->and($prediction['confidences'])->toBe([90.0, 72.0, 41.0])
+    // The label's colon is its terminator, not part of the value, and its
+    // confidence is not evidence about the value either. Both used to be
+    // included, which made every span one word longer than what it supported.
+    expect($prediction['value'])->toBe('Alvi Sarkar')
+        ->and($prediction['confidences'])->toBe([72.0, 41.0])
         ->and(min($prediction['confidences']))->toBe(41.0);
 });
 
