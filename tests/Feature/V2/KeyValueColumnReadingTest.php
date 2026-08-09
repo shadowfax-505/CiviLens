@@ -108,6 +108,80 @@ it('does not mistake a value containing a colon for a label', function (): void 
     expect(app(KeyValueExtractor::class)->extract('Closing', $words)['value'])->toBe('10:30');
 });
 
+it('reads left to right regardless of the order words were emitted in', function (): void {
+    // pdftotext emits words in block order. On this line the value "Not
+    // applicable" (x=165) appears in the list *after* an unrelated label at
+    // x=289, so reading in list order measured a 177px gap to the wrong word
+    // and abandoned a value that was never far away.
+    $words = [
+        new RecognizedWord('Project', 100.0, 40, 326, 36, 10),
+        new RecognizedWord('Code', 100.0, 79, 326, 27, 10),
+        new RecognizedWord(':', 100.0, 108, 326, 4, 10),
+        new RecognizedWord('Project', 100.0, 289, 326, 35, 10),
+        new RecognizedWord('Name', 100.0, 328, 326, 28, 10),
+        new RecognizedWord(':', 100.0, 359, 326, 4, 10),
+        new RecognizedWord('Not', 100.0, 165, 326, 16, 10),
+        new RecognizedWord('applicable', 100.0, 184, 326, 46, 10),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Project Code', $words)['value'])
+        ->toBe('Not applicable');
+});
+
+it('matches a label that wraps within its column', function (): void {
+    // "Procurement Nature :" is set over two lines and its value sits beside
+    // the first. Before this the key never matched at all, because a key was
+    // only ever assembled from words sharing one line.
+    $words = [
+        new RecognizedWord('Procurement', 100.0, 40, 198, 65, 10),
+        new RecognizedWord('Works', 100.0, 143, 198, 29, 10),
+        new RecognizedWord('Nature', 100.0, 40, 211, 34, 10),
+        new RecognizedWord(':', 100.0, 77, 211, 3, 10),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Procurement Nature', $words)['value'])
+        ->toBe('Works');
+});
+
+it('reads the value beside the line a wrapped label starts on', function (): void {
+    // "Procuring Entity District :" wraps, and the district name is set against
+    // the first line. The matched line holds nothing but the colon.
+    $words = [
+        new RecognizedWord('Procuring', 100.0, 306, 141, 50, 11),
+        new RecognizedWord('Entity', 100.0, 359, 141, 29, 11),
+        new RecognizedWord('Bogura', 100.0, 424, 141, 34, 11),
+        new RecognizedWord('District', 100.0, 306, 154, 36, 11),
+        new RecognizedWord(':', 100.0, 345, 154, 4, 11),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('District', $words)['value'])->toBe('Bogura');
+});
+
+it('does not treat a field left blank as a value', function (): void {
+    // Two of the supplied notices leave Division empty. Abstaining is correct;
+    // reaching further for something to say would invent a value.
+    $words = [
+        new RecognizedWord('Division', 100.0, 293, 67, 41, 11),
+        new RecognizedWord(':', 100.0, 336, 67, 4, 11),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Division', $words))->toBeNull();
+});
+
+it('skips the trailing words of a label before the value starts', function (): void {
+    // "Invitation Reference No. :" ends with a word carrying content, and
+    // taking it as the value would report "No." for the field.
+    $words = [
+        new RecognizedWord('Reference', 100.0, 40, 261, 51, 10),
+        new RecognizedWord('No.', 100.0, 94, 261, 17, 10),
+        new RecognizedWord(':', 100.0, 115, 261, 3, 10),
+        new RecognizedWord('37.07.0000', 100.0, 142, 261, 60, 10),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Reference', $words)['value'])
+        ->toBe('37.07.0000');
+});
+
 it('records the gutter it crossed as structural evidence', function (): void {
     $signals = app(KeyValueExtractor::class)->extract('Ministry', egpNoticeLine())['signals'];
 
