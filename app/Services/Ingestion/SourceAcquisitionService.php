@@ -85,17 +85,29 @@ class SourceAcquisitionService
                 'last_crawled_at' => now(),
             ]);
 
-            // What a listing said at this moment, kept apart from the
+            // What the listing said at this moment, kept apart from the
             // operational record it will later update. A discovered resource is
             // overwritten on the next crawl; an observation is not, so a notice
             // the publisher revises leaves a history rather than replacing
             // itself silently.
             $observed = $this->observations->record($resources);
 
-            foreach ($resources as $resource) {
+            // Some listings publish records rather than documents. An e-GP
+            // tender row has no retrievable file behind it: the detail servlet
+            // answers POST only, so a document fetch returns an empty body and
+            // fails. Dispatching one anyway failed seventy jobs and made
+            // seventy pointless requests to the publisher, while the row itself
+            // had already been captured as an observation.
+            $recordOnly = (array) config('civiclens.ingestion.record_only_resource_types', []);
+            $fetchable = array_values(array_filter(
+                $resources,
+                static fn ($resource): bool => ! in_array($resource->resource_type, $recordOnly, true),
+            ));
+
+            foreach ($fetchable as $resource) {
                 FetchDiscoveredResourceArtifact::dispatch($resource->id, $run->id, $endpoint->id)->afterCommit();
             }
-            $this->activities->record('source.discovery.completed', actor: $actor, endpoint: $endpoint, run: $run, metadata: ['discovered_count' => count($resources)] + $observed);
+            $this->activities->record('source.discovery.completed', actor: $actor, endpoint: $endpoint, run: $run, metadata: ['discovered_count' => count($resources), 'fetch_dispatched' => count($fetchable)] + $observed);
 
             $freshRun = $run->fresh();
 

@@ -194,6 +194,12 @@ return [
         'allow_unpinned_egress' => filter_var(env('INGESTION_ALLOW_UNPINNED_EGRESS', false), FILTER_VALIDATE_BOOL),
         'malware_scanner_binary' => env('INGESTION_MALWARE_SCANNER_BINARY', 'clamdscan'),
         'malware_scan_timeout_seconds' => (int) env('INGESTION_MALWARE_SCAN_TIMEOUT', 30),
+        // Resource types that are records rather than retrievable documents.
+        // An e-GP tender row is the data itself; there is no file behind it,
+        // and its detail servlet answers POST only, so a document fetch returns
+        // an empty body and fails.
+        'record_only_resource_types' => ['tender_notice'],
+
         'allowed_media_types' => [
             'application/octet-stream',
             'application/json',
