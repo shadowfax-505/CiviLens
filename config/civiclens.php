@@ -74,11 +74,26 @@ return [
         // Tabular publisher layouts need a wider allowance than dense prose.
         'kv_gap_multiple' => (float) env('EXTRACTION_KV_GAP_MULTIPLE', 3),
 
+        // Bounds for spreadsheet reading. A spreadsheet is a compact way to
+        // describe an enormous amount of data: the risk is less a hostile
+        // publisher than an ordinary file declaring a million empty rows, so
+        // the limits are enforced while reading rather than after loading.
+        'spreadsheet' => [
+            'max_rows' => (int) env('EXTRACTION_SPREADSHEET_MAX_ROWS', 5000),
+            'max_columns' => (int) env('EXTRACTION_SPREADSHEET_MAX_COLUMNS', 64),
+            'max_archive_entries' => (int) env('EXTRACTION_SPREADSHEET_MAX_ENTRIES', 512),
+            'max_uncompressed_bytes' => (int) env('EXTRACTION_SPREADSHEET_MAX_UNCOMPRESSED_BYTES', 268435456),
+            'max_compression_ratio' => (float) env('EXTRACTION_SPREADSHEET_MAX_RATIO', 200),
+        ],
+
         'native_media_types' => [
             'application/pdf' => 'pdf',
             'text/plain' => 'text',
             'text/html' => 'text',
-            'text/csv' => 'text',
+            'text/csv' => 'spreadsheet',
+            'application/vnd.ms-excel' => 'spreadsheet',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'spreadsheet',
+            'application/vnd.oasis.opendocument.spreadsheet' => 'spreadsheet',
             'text/xml' => 'text',
             'application/xml' => 'text',
             'application/json' => 'text',

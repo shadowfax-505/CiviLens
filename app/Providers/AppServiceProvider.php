@@ -101,6 +101,7 @@ use App\Services\Extraction\HtmlNativeExtractor;
 use App\Services\Extraction\NativeExtractorRegistry;
 use App\Services\Extraction\PdfNativeTextExtractor;
 use App\Services\Extraction\PlainTextNativeExtractor;
+use App\Services\Extraction\SpreadsheetNativeExtractor;
 use App\Services\Extraction\TesseractOcrEngine;
 use App\Services\Ingestion\ClamAvMalwareScanner;
 use App\Services\Ingestion\NativeNetworkAddressResolver;
@@ -133,6 +134,7 @@ class AppServiceProvider extends ServiceProvider
             // mapped to 'text' in the native media type registry, so plain text
             // also claims it and would return the markup itself as content.
             $app->make(HtmlNativeExtractor::class),
+            $app->make(SpreadsheetNativeExtractor::class),
             $app->make(PlainTextNativeExtractor::class),
         ]));
 
