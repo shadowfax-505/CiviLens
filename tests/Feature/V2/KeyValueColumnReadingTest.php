@@ -1,0 +1,86 @@
+<?php
+
+use App\Data\Extraction\RecognizedWord;
+use App\Services\Extraction\KeyValueExtractor;
+
+/**
+ * Geometry taken from a real e-GP tender notice, page 1.
+ *
+ * Two label/value pairs share a line. The label column starts at x=40, the
+ * value column at x=154, and the second pair's label starts at x=306. The
+ * distances are what make this layout hard: the gutter from a label to its
+ * value is 67px against an 11px label height, while the next field's label sits
+ * only 55px past the end of the value.
+ *
+ * @return list<RecognizedWord>
+ */
+function egpNoticeLine(): array
+{
+    return [
+        new RecognizedWord('Ministry', 100.0, 40, 67, 41, 11),
+        new RecognizedWord(':', 100.0, 84, 67, 3, 11),
+        new RecognizedWord('Ministry', 100.0, 154, 68, 36, 10),
+        new RecognizedWord('of', 100.0, 193, 68, 9, 10),
+        new RecognizedWord('Education', 100.0, 205, 68, 46, 10),
+        new RecognizedWord('Division', 100.0, 306, 67, 40, 11),
+        new RecognizedWord(':', 100.0, 349, 67, 4, 11),
+    ];
+}
+
+it('crosses the gutter to reach the value in the next column', function (): void {
+    // Before this, the label's own colon was taken as the value and the read
+    // stopped there, so every field on a two-column form reported ":".
+    $read = app(KeyValueExtractor::class)->extract('Ministry', egpNoticeLine());
+
+    expect($read)->not->toBeNull()
+        ->and($read['value'])->toBe('Ministry of Education');
+});
+
+it('stops before the next field rather than reading on at column width', function (): void {
+    // The next label is closer to the end of the value than the value was to
+    // its own label, so one threshold cannot separate them. Reading resumes at
+    // word spacing once the gutter has been crossed.
+    $read = app(KeyValueExtractor::class)->extract('Ministry', egpNoticeLine());
+
+    expect($read['value'])->not->toContain('Division')
+        ->and($read['value'])->not->toContain(':');
+});
+
+it('does not treat the label terminator as content', function (): void {
+    $read = app(KeyValueExtractor::class)->extract('Ministry', egpNoticeLine());
+
+    expect($read['confidences'])->toHaveCount(3);
+});
+
+it('reads a value that sits immediately after its label', function (): void {
+    // Dense layouts put the value a word space away. The wider gutter allowance
+    // must not change what happens when there is no gutter at all.
+    $words = [
+        new RecognizedWord('Nature', 100.0, 108, 173, 34, 10),
+        new RecognizedWord(':', 100.0, 145, 173, 3, 10),
+        new RecognizedWord('Works', 100.0, 154, 173, 30, 10),
+        new RecognizedWord('Procurement', 100.0, 306, 173, 65, 10),
+    ];
+
+    expect(app(KeyValueExtractor::class)->extract('Nature', $words)['value'])->toBe('Works');
+});
+
+it('refuses a value separated by more than the configured gutter', function (): void {
+    // The allowance is an operating point, not a licence to read anything on
+    // the line. A value far past it belongs to a different column.
+    config(['civiclens.extraction.kv_gap_multiple' => 2]);
+
+    $read = app(KeyValueExtractor::class)->extract('Ministry', egpNoticeLine());
+
+    expect($read)->toBeNull();
+});
+
+it('records the gutter it crossed as structural evidence', function (): void {
+    $signals = app(KeyValueExtractor::class)->extract('Ministry', egpNoticeLine())['signals'];
+
+    // From the right edge of the label word to the left edge of the first word
+    // of the value: (154 - 81) / 11.
+    expect(round($signals->gapInLabelHeights, 2))->toBe(6.64)
+        ->and($signals->valueWordCount)->toBe(3)
+        ->and($signals->competingLabelsOnLine)->toBe(2);
+});
