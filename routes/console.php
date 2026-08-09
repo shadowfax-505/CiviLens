@@ -3,8 +3,8 @@
 use App\Jobs\RunSourceEndpointCrawl;
 use App\Models\SourceEndpoint;
 use App\Services\Extraction\BenchmarkEvaluationService;
-use App\Services\Extraction\CalibrationReport;
 use App\Services\Extraction\BornDigitalWordExtractor;
+use App\Services\Extraction\CalibrationReport;
 use App\Services\Extraction\CorpusLegibilityProbe;
 use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Extraction\KeyValueExtractor;
