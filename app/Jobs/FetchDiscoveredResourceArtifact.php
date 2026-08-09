@@ -19,7 +19,31 @@ class FetchDiscoveredResourceArtifact implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 4;
+    /**
+     * Attempts, not failures.
+     *
+     * The rate limiter releases a job back to the queue when the endpoint's
+     * per-minute budget is spent, and a release counts as an attempt. A page of
+     * ten notices against a six-per-minute budget therefore burns four attempts
+     * on waiting alone, and every artifact after the sixth failed with
+     * MaxAttemptsExceeded without a single request being made. Waiting for a
+     * rate limit is the system working, so the ceiling has to be high enough to
+     * outlast it.
+     *
+     * The number follows from the budget rather than from taste: a backlog of
+     * sixty artifacts at six per minute takes ten minutes to drain, and a job
+     * released every thirty seconds spends twenty attempts waiting its turn. Two
+     * hundred leaves room for a backlog several times that without ever
+     * mistaking a queue for a fault.
+     */
+    public int $tries = 200;
+
+    /**
+     * Genuine errors still fail fast. Three thrown exceptions stop the job
+     * regardless of how many attempts remain, so a permanently broken resource
+     * does not retry forty times.
+     */
+    public int $maxExceptions = 3;
 
     public int $uniqueFor = 1800;
 
@@ -37,7 +61,7 @@ class FetchDiscoveredResourceArtifact implements ShouldBeUnique, ShouldQueue
     /** @return list<object> */
     public function middleware(): array
     {
-        return [(new RateLimited('source-fetch'))->releaseAfter(15)];
+        return [(new RateLimited('source-fetch'))->releaseAfter(30)];
     }
 
     public function handle(SourceAcquisitionService $acquisition): void
