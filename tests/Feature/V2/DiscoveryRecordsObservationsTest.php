@@ -112,3 +112,16 @@ it('records a second observation only when the listing changed', function (): vo
     expect(TenderObservation::query()->count())->toBe(2)
         ->and(TenderObservation::query()->latest('id')->value('status'))->toBe('Archived');
 });
+
+it('does not chase a document for a listing row that has none', function (): void {
+    // An e-GP tender row is the record itself. Its detail servlet answers POST
+    // only, so a document fetch returns an empty body: seventy such jobs failed
+    // on a live crawl and made seventy pointless requests to the publisher.
+    Queue::fake();
+    bindListingConnector([['id' => '1315881', 'status' => 'Live']]);
+
+    app(SourceAcquisitionService::class)->discover(listingEndpoint());
+
+    Queue::assertNothingPushed();
+    expect(TenderObservation::query()->count())->toBe(1);
+});
