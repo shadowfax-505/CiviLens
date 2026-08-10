@@ -248,6 +248,15 @@ class KeyValueExtractor
             }
 
             $block[$nextIndex] = $next;
+
+            // A label ends at its colon. Reading past it joins two stacked
+            // labels into one key: "Invitation for :" followed by "Invitation
+            // Reference No. :" matched the second key while anchored in the
+            // first, and returned the first field's value.
+            if (str_ends_with($next->text, ':')) {
+                return $block;
+            }
+
             $tail = $next;
         }
     }
@@ -380,6 +389,104 @@ class KeyValueExtractor
                 $marked[$previous] = true;
                 $gaps[] = (float) $gap;
                 $leftmost = $candidate;
+            }
+        }
+
+        return $this->extendRunsAcrossWraps($marked, $words);
+    }
+
+    /**
+     * Whether any word on this word's line ends a label.
+     *
+     * @param  list<RecognizedWord>  $words
+     */
+    private function lineCarriesTerminator(RecognizedWord $subject, array $words): bool
+    {
+        foreach ($words as $word) {
+            if ($subject->sharesLineWith($word) && str_ends_with($word->text, ':')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Carry a label run onto the lines it wrapped from.
+     *
+     * The walk back from a colon only sees one line, so a label set over
+     * several lines is only recognised on the line its colon lands on.
+     * "Tender/Proposal Package No. and Description :" wraps, and the word "and"
+     * sits on a line the colon is not on: unmarked, it was read as the value,
+     * and the field came back as "and".
+     *
+     * A line above continues the label when it starts in the same column within
+     * a line height. The rest of that line is taken at word spacing, which is
+     * what stops the value column being drawn in.
+     *
+     * @param  array<int, true>  $marked
+     * @param  list<RecognizedWord>  $words
+     * @return array<int, true>
+     */
+    private function extendRunsAcrossWraps(array $marked, array $words): array
+    {
+        $wordGap = (float) config('civiclens.extraction.kv_value_gap_multiple', 1.5);
+
+        for ($pass = 0; $pass < 8; $pass++) {
+            $added = false;
+
+            foreach (array_keys($marked) as $index) {
+                $anchor = $words[$index];
+                $height = max(1, $anchor->height);
+
+                foreach ($words as $candidate => $word) {
+                    if (isset($marked[$candidate]) || $word->top >= $anchor->top) {
+                        continue;
+                    }
+
+                    if (abs($word->left - $anchor->left) > $height || $anchor->top - $word->bottom() > $height) {
+                        continue;
+                    }
+
+                    // A line carrying its own colon is a different label, not
+                    // the earlier lines of this one. Without this the run walks
+                    // up through every stacked label in the column, and their
+                    // values are marked as label text and become unreadable.
+                    if ($this->lineCarriesTerminator($word, $words)) {
+                        continue;
+                    }
+
+                    $marked[$candidate] = true;
+                    $added = true;
+
+                    // Absolute word spacing cannot end this run: on a real
+                    // notice the words of the label sit 2px apart while the
+                    // gutter to its value is 12px, and a 1.5-line-height
+                    // allowance covers both. Marking the value as label text
+                    // makes the field unreadable, so the run ends where the
+                    // spacing changes character instead.
+                    $gaps = [];
+
+                    foreach ($this->lineFrom($word, $words, $candidate) as $next => $trailing) {
+                        if (isset($marked[$next])) {
+                            continue;
+                        }
+
+                        $gap = (float) ($trailing->left - $word->right());
+
+                        if ($gap > $wordGap * $height || ($gaps !== [] && $gap > max(1.0, $this->median($gaps) * 3))) {
+                            break;
+                        }
+
+                        $marked[$next] = true;
+                        $gaps[] = $gap;
+                        $word = $trailing;
+                    }
+                }
+            }
+
+            if (! $added) {
+                return $marked;
             }
         }
 
