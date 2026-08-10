@@ -66,10 +66,20 @@ class EgpTenderListingConnector implements SourceConnector
         $rows = $this->parser->parse($response->content);
 
         if ($rows === []) {
-            // An empty page is the end of the listing, not a failure. Hold the
-            // cursor so the next run re-checks the same page for new notices
-            // rather than skipping past them.
-            return new DiscoveryBatch([], new CrawlCursor(['page' => $page, 'size' => $size, 'exhausted' => true]));
+            // An empty page is the end of the listing, not a failure. The next
+            // run starts a fresh sweep from the first page rather than holding
+            // here.
+            //
+            // Holding was the original behaviour and it quietly disabled the
+            // thing observations exist for. A notice is only known to have been
+            // revised if it is read twice, and a cursor that only ever moves
+            // forward reads each notice exactly once: 487 notices collected on
+            // a live crawl produced not one repeat observation, so the revision
+            // indicator could never have fired however long it ran.
+            //
+            // Sweeping again is also how a notice added to page one after the
+            // crawl passed it is ever seen at all.
+            return new DiscoveryBatch([], new CrawlCursor(['page' => 1, 'size' => $size, 'exhausted' => true]));
         }
 
         return new DiscoveryBatch(
