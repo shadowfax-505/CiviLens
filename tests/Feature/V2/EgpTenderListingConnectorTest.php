@@ -90,15 +90,14 @@ it('refuses to advance past a placeholder page', function (): void {
         ->toThrow(AcquisitionFailed::class, 'usable content');
 });
 
-it('holds the cursor at an exhausted page instead of skipping past it', function (): void {
-    // An empty page is the end of the listing, not a failure. Re-checking the
-    // same page next run finds notices published since.
+it('treats an exhausted page as the end of a sweep rather than a failure', function (): void {
+    // An empty page is the end of the listing, not an error, so the run
+    // completes without resources instead of raising.
     Http::fake(['https://data.example/TenderDetailsServlet' => Http::response('<table></table>', 200, ['Content-Type' => 'text/html'])]);
 
     $batch = app(EgpTenderListingConnector::class)->discover(egpEndpoint(), new CrawlCursor(['page' => 5, 'size' => 10]));
 
     expect($batch->resources)->toBe([])
-        ->and($batch->nextCursor->toArray()['page'])->toBe(5)
         ->and($batch->nextCursor->toArray()['exhausted'])->toBeTrue();
 });
 
@@ -132,4 +131,19 @@ it('rejects a malformed cursor rather than trusting it', function (): void {
 
     Http::assertSent(fn (ClientRequest $request): bool => str_contains($request->body(), 'pageNo=1')
         && str_contains($request->body(), 'size=10'));
+});
+
+it('starts a fresh sweep when the listing runs out', function (): void {
+    // A notice is only known to have been revised if it is read twice, and a
+    // cursor that only moves forward reads each notice once. On a live crawl
+    // 487 notices produced zero repeat observations, so the revision indicator
+    // could never have fired. Holding at the last page also means a notice
+    // added to page one after the crawl passed it is never seen.
+    Http::fake(['*' => Http::response('<html><body><table></table></body></html>', 200, ['Content-Type' => 'text/html'])]);
+
+    $batch = app(EgpTenderListingConnector::class)->discover(egpEndpoint(), new CrawlCursor(['page' => 67, 'size' => 10]));
+
+    expect($batch->resources)->toBe([])
+        ->and($batch->nextCursor->toArray()['page'])->toBe(1)
+        ->and($batch->nextCursor->toArray()['exhausted'])->toBeTrue();
 });
