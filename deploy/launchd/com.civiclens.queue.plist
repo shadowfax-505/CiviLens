@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.civiclens.queue</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{PHP_BIN}}</string>
+        <string>artisan</string>
+        <string>queue:work</string>
+        <string>--queue=ingestion,default</string>
+        <string>--sleep=3</string>
+        <string>--timeout=180</string>
+        <string>--max-time=3600</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>{{CIVICLENS_PATH}}</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+    <key>StandardOutPath</key>
+    <string>{{CIVICLENS_PATH}}/storage/logs/queue-worker.log</string>
+    <key>StandardErrorPath</key>
+    <string>{{CIVICLENS_PATH}}/storage/logs/queue-worker.log</string>
+</dict>
+</plist>
