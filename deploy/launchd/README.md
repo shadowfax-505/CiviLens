@@ -9,6 +9,7 @@ that person rather than as root matches who is answerable for it.
 | --- | --- |
 | `com.civiclens.queue` | `queue:work --queue=ingestion,default`, restarted by launchd if it exits |
 | `com.civiclens.scheduler` | `schedule:run` once a minute, which is what fires `civiclens:sources-dispatch` |
+| `com.civiclens.clamd` | the malware scanner daemon every fetched artifact is checked against |
 
 `schedule:run` on a one-minute `StartInterval` rather than a long-lived `schedule:work`: a process
 that exits every minute cannot drift, leak, or hold stale configuration, and launchd restarting it
@@ -17,6 +18,25 @@ is the normal case rather than a recovery.
 `--max-time=3600` recycles the worker hourly. A PHP worker holds application code in memory, so a
 long-lived one keeps running the code it started with — which is how a deployed fix can appear to
 have no effect.
+
+## The scanner is not optional
+
+An artifact that cannot be scanned is quarantined and never parsed. That is deliberate — quarantine
+exists to keep unscanned files away from the parsers — but it means the pipeline stops at
+acquisition until `clamd` is running. Ten audit reports sat quarantined with
+`malware_status=unavailable` until it was installed.
+
+```bash
+brew install clamav
+freshclam --config-file=/opt/homebrew/etc/clamav/freshclam.conf   # ~250MB, first run only
+```
+
+`clamd.conf` and `freshclam.conf` need a `DatabaseDirectory` and, for clamd, a `LocalSocket`. The
+worker calls the scanner by absolute path via `INGESTION_MALWARE_SCANNER_BINARY`, because a
+launchd agent runs with a minimal `PATH` that does not include Homebrew — a bare `clamdscan`
+resolves in a shell and not in the worker, which reads as "no scanner" and quarantines everything.
+
+Verify with the EICAR test string: the scanner must exit 1 on it and 0 on an ordinary file.
 
 ## Install
 
