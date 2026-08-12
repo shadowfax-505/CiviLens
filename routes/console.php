@@ -2,6 +2,7 @@
 
 use App\Jobs\RunSourceEndpointCrawl;
 use App\Models\SourceEndpoint;
+use App\Models\SourcePublisher;
 use App\Services\Extraction\BenchmarkEvaluationService;
 use App\Services\Extraction\BornDigitalWordExtractor;
 use App\Services\Extraction\CalibrationReport;
@@ -10,7 +11,9 @@ use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Extraction\KeyValueExtractor;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
 use App\Services\Ingestion\SourceRegistryProvisioner;
+use App\Services\Intelligence\AmendmentCountReader;
 use App\Services\Intelligence\CivicIntegrityEngineService;
+use App\Services\Intelligence\NoticeRevisionDetector;
 use App\Services\Normalisation\OcdsTenderNormaliser;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -117,6 +120,33 @@ Artisan::command('civiclens:probe-legibility {manifest} {--pages=}', function (C
 
     return 0;
 })->purpose('Measure whether the OCR engine can read a benchmark corpus at all');
+
+Artisan::command('civiclens:publisher-report {slug}', function (AmendmentCountReader $amendments, NoticeRevisionDetector $revisions): int {
+    $slug = $this->argument('slug');
+    $publisher = is_string($slug) ? SourcePublisher::query()->where('slug', $slug)->first() : null;
+
+    if (! $publisher instanceof SourcePublisher) {
+        $this->error('No publisher is registered under that slug.');
+
+        return 1;
+    }
+
+    $revised = $revisions->detect($publisher->getKey());
+
+    $this->line(json_encode([
+        'publisher' => $publisher->slug,
+        'attribution' => $publisher->attribution_name,
+        // Both indicators count what the publisher itself stated. Neither
+        // infers anything, so both work before any calibration exists.
+        'amendments' => $amendments->summarise($publisher->getKey()),
+        'revisions' => [
+            'revised_notices' => count($revised),
+            'findings' => $revised,
+        ],
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Report what a publisher declared and what it later changed');
 
 Artisan::command('civiclens:normalise-notice {path} {--page=1}', function (BornDigitalWordExtractor $words, KeyValueExtractor $extractor, OcdsTenderNormaliser $normaliser): int {
     $path = $this->argument('path');
