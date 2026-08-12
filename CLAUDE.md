@@ -110,6 +110,11 @@ Measured facts worth not rediscovering:
   six engine configurations and four scales (ADR-015). Filled-form corpora are out of scope.
 - Field reading on real notices sits at **58/60 clean, 0 wrong**; the 2 misses are genuinely
   blank fields, where abstaining is correct.
+- The two corpora are not one population. e-GP notices are 98.9% born-digital; **CAG audit
+  reports are 65.5%**, and OCR **abstained on 116 of the 153 pages** it attempted on them. The
+  usable audit text is smaller than the page count suggests.
+- Tesseract emits invalid UTF-8 bytes on Bengali pages. One byte makes every `/u` regex return
+  null or false, silently — a page of 222 words reported 0. Sanitise recognised text before use.
 
 ## Hard-Won Rules
 
@@ -123,10 +128,15 @@ Each of these cost a debugging cycle. They generalise.
   list is the specification — not whichever column happened to fail first.
 - **Emission order is not reading order.** `pdftotext` emits words in block order; sort by
   position before reasoning about a line.
-- **Check the wiring, not just the class.** Twice now a component was written, tested, and never
-  called: `EgpTenderListingConnector` unreachable from the registry, and
-  `TenderObservationRecorder` never invoked by discovery. Tests passed in both cases. A live run
-  found them.
+- **Check the wiring, not just the class.** Four components so far were written, tested, and
+  never called: `EgpTenderListingConnector` unreachable from the registry, `TenderObservationRecorder`
+  never invoked by discovery, a listing cursor that only advanced so no notice was ever read twice,
+  and the whole extraction spine, which no job ever reached. Tests passed in every case. **Unit
+  tests verify components; only a live run verifies the wiring between them.**
+- **A process started by launchd is not the shell you tested in.** It runs with a minimal `PATH`
+  that excludes Homebrew, so a binary that resolves interactively is missing in the worker. The
+  malware scanner appeared uninstalled for a full cycle after it had been installed, and every
+  fetched artifact was quarantined as a result. Call external binaries by absolute path.
 - **A signal that is constant ranks nothing.** A nonconformity score derived from the label
   position, or a page-level confidence shared by every field, cannot support calibration.
 - **Dump the real data before theorising.** Every layout fix that worked came from printing
