@@ -7,12 +7,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Sources\StoreSourceEndpointRequest;
 use App\Http\Requests\Admin\Sources\StoreSourcePublisherRequest;
 use App\Jobs\RunSourceEndpointCrawl;
+use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
 use App\Models\SourcePublisher;
 use App\Services\Ingestion\SourceRegistryService;
 use App\Support\Http\AuthenticatedUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -29,6 +31,20 @@ class SourceRegistryController extends Controller
                 ->withCount(['crawlRuns', 'discoveredResources'])
                 ->latest('id')
                 ->paginate(20),
+            // Every failure this pipeline has had was invisible on this page:
+            // an endpoint reporting healthy while recording nothing, artifacts
+            // quarantined because no scanner was installed, jobs failing where
+            // only the queue table showed it. These are the counts that would
+            // have surfaced each one.
+            'health' => [
+                'running' => SourceEndpoint::query()->whereNull('paused_at')->count(),
+                'paused' => SourceEndpoint::query()->whereNotNull('paused_at')->count(),
+                'failing' => SourceEndpoint::query()->whereNull('paused_at')->where('health_status', 'failing')->count(),
+                'quarantined' => SourceArtifactVersion::query()->where('is_quarantined', true)->count(),
+                'failed_jobs' => DB::table('failed_jobs')->count(),
+                'pending_jobs' => DB::table('jobs')->count(),
+                'last_crawled_at' => SourceEndpoint::query()->max('last_crawled_at'),
+            ],
         ]);
     }
 
