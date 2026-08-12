@@ -6,6 +6,7 @@
             <p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">Only explicitly approved publishers and HTTPS hosts can enter the private acquisition queue. Snapshots remain private until the evidence-review workflow approves a public projection.</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
+            <a class="cl-chip" href="{{ route('admin.sources.findings') }}">Findings</a>
             <a class="cl-chip" href="{{ route('admin.sources.extraction') }}">Extraction</a>
             <span class="cl-chip">{{ $publishers->count() }} publishers · {{ $endpoints->total() }} endpoints</span>
         </div>

@@ -84,7 +84,7 @@ it('reads the text layer and page geometry from a born-digital pdf', function ()
 })->skip(fn (): bool => popplerMissing(), 'poppler is not installed');
 
 it('routes a dense text layer to native and an absent one to ocr', function (): void {
-    $policy = new PageRoutingPolicy;
+    $policy = app(PageRoutingPolicy::class);
     $dense = new ExtractedPage(1, str_repeat('a ', 1500), 595.276, 841.89);
     $empty = new ExtractedPage(1, '', 595.276, 841.89);
 
@@ -97,7 +97,7 @@ it('routes a dense text layer to native and an absent one to ocr', function (): 
 });
 
 it('honours a reconfigured density threshold as an operating point', function (): void {
-    $policy = new PageRoutingPolicy;
+    $policy = app(PageRoutingPolicy::class);
     $sparse = new ExtractedPage(1, str_repeat('a ', 100), 595.276, 841.89);
 
     config()->set('civiclens.extraction.native_density_threshold', 1.5);
@@ -195,4 +195,37 @@ it('extracts plain text sources without shelling out', function (): void {
 
     expect($run->engine)->toBe('native-text')
         ->and($run->page_count)->toBe(1);
+});
+
+it('sends a mis-encoded bengali text layer to ocr despite its density', function (): void {
+    // Legacy Bengali fonts mapped as Unicode produce a dense page that decodes
+    // to the wrong characters: a heading reading "সূচিপত্র" extracts as
+    // "সূডি ত্র". Density cannot see the difference, so the page was trusted and
+    // OCR never ran. Measured across 226 pages of this corpus, correctly
+    // encoded text orphans at most 0.0747 of its vowel signs while legacy text
+    // starts at 0.35.
+    $policy = app(PageRoutingPolicy::class);
+
+    // Vowel signs detached from any consonant, as a mis-mapped font produces.
+    $damaged = new ExtractedPage(1, str_repeat('স ূ ড ি ত ্ র ে া ি ু ', 200), 595.276, 841.89);
+
+    expect($policy->decide($damaged))->toBe(PageRoutingPolicy::OCR_REQUIRED);
+});
+
+it('keeps correctly encoded bengali on the native path', function (): void {
+    // The check must not send ordinary Bengali to OCR. Every vowel sign here
+    // follows its consonant, as correctly encoded text does.
+    $policy = app(PageRoutingPolicy::class);
+    $sound = new ExtractedPage(1, str_repeat('সূচিপত্র বিবরণ পৃষ্ঠা নম্বর ক্রমিক ', 120), 595.276, 841.89);
+
+    expect($policy->decide($sound))->toBe(PageRoutingPolicy::NATIVE);
+});
+
+it('does not judge a page carrying too little bengali to measure', function (): void {
+    // Flagging on a handful of signs would route English pages with a stray
+    // character to OCR, which costs accuracy and time for nothing.
+    $policy = app(PageRoutingPolicy::class);
+    $english = new ExtractedPage(1, str_repeat('Ministry of Education budget ', 200).'সূ', 595.276, 841.89);
+
+    expect($policy->decide($english))->toBe(PageRoutingPolicy::NATIVE);
 });
