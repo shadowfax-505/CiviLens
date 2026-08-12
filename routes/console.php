@@ -9,6 +9,7 @@ use App\Services\Extraction\CalibrationReport;
 use App\Services\Extraction\CorpusLegibilityProbe;
 use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Extraction\KeyValueExtractor;
+use App\Services\Extraction\ReviewCandidateGenerator;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
 use App\Services\Ingestion\SourceRegistryProvisioner;
 use App\Services\Intelligence\AmendmentCountReader;
@@ -120,6 +121,15 @@ Artisan::command('civiclens:probe-legibility {manifest} {--pages=}', function (C
 
     return 0;
 })->purpose('Measure whether the OCR engine can read a benchmark corpus at all');
+
+Artisan::command('civiclens:generate-review-candidates {--limit=200}', function (ReviewCandidateGenerator $generator): int {
+    $limit = $this->option('limit');
+    $summary = $generator->generate(is_numeric($limit) ? (int) $limit : 200);
+
+    $this->line(json_encode($summary, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Create unjudged extraction fields for a reviewer to adjudicate');
 
 Artisan::command('civiclens:publisher-report {slug}', function (AmendmentCountReader $amendments, NoticeRevisionDetector $revisions): int {
     $slug = $this->argument('slug');
