@@ -18,6 +18,7 @@ use App\Services\Normalisation\OcdsTenderNormaliser;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Illuminate\Support\Facades\Storage;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -121,7 +122,7 @@ Artisan::command('civiclens:probe-legibility {manifest} {--pages=}', function (C
     return 0;
 })->purpose('Measure whether the OCR engine can read a benchmark corpus at all');
 
-Artisan::command('civiclens:publisher-report {slug}', function (AmendmentCountReader $amendments, NoticeRevisionDetector $revisions): int {
+Artisan::command('civiclens:publisher-report {slug} {--save}', function (AmendmentCountReader $amendments, NoticeRevisionDetector $revisions): int {
     $slug = $this->argument('slug');
     $publisher = is_string($slug) ? SourcePublisher::query()->where('slug', $slug)->first() : null;
 
@@ -133,9 +134,10 @@ Artisan::command('civiclens:publisher-report {slug}', function (AmendmentCountRe
 
     $revised = $revisions->detect($publisher->getKey());
 
-    $this->line(json_encode([
+    $report = [
         'publisher' => $publisher->slug,
         'attribution' => $publisher->attribution_name,
+        'observed_at' => now()->toIso8601String(),
         // Both indicators count what the publisher itself stated. Neither
         // infers anything, so both work before any calibration exists.
         'amendments' => $amendments->summarise($publisher->getKey()),
@@ -143,7 +145,22 @@ Artisan::command('civiclens:publisher-report {slug}', function (AmendmentCountRe
             'revised_notices' => count($revised),
             'findings' => $revised,
         ],
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+    ];
+
+    $json = json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+    if ($this->option('save')) {
+        // One file per publisher per day. A crawl that runs unattended for a
+        // week should leave a trail someone can read afterwards, and a report
+        // that only exists while a person is watching is not one.
+        $path = 'reports/'.$publisher->slug.'/'.now()->toDateString().'.json';
+        Storage::disk('local')->put($path, $json);
+        $this->info('Wrote '.$path);
+
+        return 0;
+    }
+
+    $this->line($json);
 
     return 0;
 })->purpose('Report what a publisher declared and what it later changed');
@@ -203,6 +220,12 @@ Artisan::command('civiclens:register-bangladesh-sources', function (SourceRegist
 
 Schedule::command('civiclens:integrity-run')
     ->dailyAt('02:15')
+    ->withoutOverlapping();
+
+// Daily rather than hourly: these counts move at the pace a publisher amends
+// notices, and a snapshot per day is a readable trail rather than noise.
+Schedule::command('civiclens:publisher-report bppa-egp --save')
+    ->dailyAt('03:00')
     ->withoutOverlapping();
 
 Schedule::command('civiclens:sources-dispatch')
