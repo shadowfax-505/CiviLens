@@ -5,6 +5,7 @@ namespace App\Services\Ingestion;
 use App\Contracts\Ingestion\ArtifactFetcher;
 use App\Data\Ingestion\CrawlCursor;
 use App\Exceptions\Ingestion\AcquisitionFailed;
+use App\Jobs\ExtractAcquiredArtifact;
 use App\Jobs\FetchDiscoveredResourceArtifact;
 use App\Models\DiscoveredResource;
 use App\Models\SourceArtifactVersion;
@@ -201,6 +202,17 @@ class SourceAcquisitionService
 
         $resource->update(['status' => $artifact->is_quarantined ? 'quarantined' : 'acquired']);
         $this->recordFetchCompletion($run, $artifact->is_quarantined);
+
+        // Nothing read what acquisition stored. After two publishers and ten
+        // fetched audit reports there were zero extraction runs, because the
+        // extraction spine was never reachable from the pipeline.
+        //
+        // A quarantined artifact is not read. Quarantine exists to keep a file
+        // that failed a malware scan out of the parsers, and extracting it
+        // would hand it to exactly those parsers.
+        if (! $artifact->is_quarantined) {
+            ExtractAcquiredArtifact::dispatch($artifact->id)->afterCommit();
+        }
         $this->activities->record(
             $artifact->is_quarantined ? 'source.artifact.quarantined' : 'source.artifact.acquired',
             endpoint: $endpoint,
