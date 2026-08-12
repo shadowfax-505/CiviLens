@@ -104,6 +104,13 @@ return [
             'max_compression_ratio' => (float) env('EXTRACTION_SPREADSHEET_MAX_RATIO', 200),
         ],
 
+        // Share of adjudicated fields assigned to the calibration set; the rest
+        // are held back to measure realized risk against the nominal bound.
+        'calibration_split_percent' => (int) env('EXTRACTION_CALIBRATION_SPLIT_PERCENT', 70),
+
+        // Risk level the review screen reports its group minimum against.
+        'default_alpha' => (float) env('EXTRACTION_DEFAULT_ALPHA', 0.05),
+
         'native_media_types' => [
             'application/pdf' => 'pdf',
             'text/plain' => 'text',
