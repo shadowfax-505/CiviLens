@@ -5,8 +5,9 @@
             <h1 class="text-3xl font-bold">Approved source registry</h1>
             <p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">Only explicitly approved publishers and HTTPS hosts can enter the private acquisition queue. Snapshots remain private until the evidence-review workflow approves a public projection.</p>
         </div>
-        <div class="flex items-center gap-3">
-            <a class="cl-chip" href="{{ route('admin.sources.findings') }}">View findings</a>
+        <div class="flex flex-wrap items-center gap-3">
+            <a class="cl-chip" href="{{ route('admin.sources.findings') }}">Findings</a>
+            <a class="cl-chip" href="{{ route('admin.sources.extraction') }}">Extraction</a>
             <span class="cl-chip">{{ $publishers->count() }} publishers · {{ $endpoints->total() }} endpoints</span>
         </div>
     </div>
@@ -78,6 +79,19 @@
         </form>
     </section>
 
+    <section class="mt-8" aria-labelledby="acquisition-health-heading">
+        <h2 id="acquisition-health-heading" class="text-xl font-black">Is acquisition healthy?</h2>
+        <p class="mt-1 text-sm text-slate-500">A source can report healthy while recording nothing, so these count what actually landed.</p>
+        <div class="mt-3 grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            <div class="cl-card p-4"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Running</p><p class="mt-1 text-2xl font-black">{{ $health['running'] }}</p></div>
+            <div class="cl-card p-4"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Paused</p><p class="mt-1 text-2xl font-black">{{ $health['paused'] }}</p></div>
+            <div class="cl-card p-4"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Failing</p><p @class(['mt-1 text-2xl font-black', 'text-rose-700 dark:text-rose-300' => $health['failing'] > 0])>{{ $health['failing'] }}</p></div>
+            <div class="cl-card p-4"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Quarantined</p><p @class(['mt-1 text-2xl font-black', 'text-amber-700 dark:text-amber-300' => $health['quarantined'] > 0])>{{ $health['quarantined'] }}</p><p class="text-xs text-slate-500">unscanned files are never parsed</p></div>
+            <div class="cl-card p-4"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Failed jobs</p><p @class(['mt-1 text-2xl font-black', 'text-rose-700 dark:text-rose-300' => $health['failed_jobs'] > 0])>{{ $health['failed_jobs'] }}</p><p class="text-xs text-slate-500">{{ $health['pending_jobs'] }} queued</p></div>
+            <div class="cl-card p-4"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Last crawl</p><p class="mt-1 text-lg font-black">{{ $health['last_crawled_at'] ? \Illuminate\Support\Carbon::parse($health['last_crawled_at'])->diffForHumans() : 'never' }}</p></div>
+        </div>
+    </section>
+
     <section class="mt-8" aria-labelledby="registered-endpoints-heading">
         <div class="mb-3 flex items-center justify-between">
             <h2 id="registered-endpoints-heading" class="text-xl font-black">Registered endpoints</h2>
@@ -92,7 +106,11 @@
                             <td class="px-4 py-3"><strong>{{ $endpoint->name }}</strong><div class="mt-1 max-w-md truncate text-xs text-slate-500">{{ $endpoint->base_url }}</div><div class="text-xs text-slate-500">{{ $endpoint->publisher->name }} · {{ str($endpoint->publisher->source_class)->headline() }}</div></td>
                             <td class="px-4 py-3">{{ str($endpoint->connector_type)->headline() }}<div class="text-xs text-slate-500">{{ $endpoint->rate_limit_per_minute }}/minute</div></td>
                             <td class="px-4 py-3"><span class="cl-chip">{{ $endpoint->paused_at ? 'Paused' : str($endpoint->health_status)->headline() }}</span>@if ($endpoint->last_error)<div class="mt-1 max-w-xs text-xs text-rose-700 dark:text-rose-300">{{ Str::limit($endpoint->last_error, 120) }}</div>@endif</td>
-                            <td class="px-4 py-3">{{ $endpoint->crawl_runs_count }} runs<div class="text-xs text-slate-500">{{ $endpoint->discovered_resources_count }} resources</div></td>
+                            <td class="px-4 py-3">{{ $endpoint->crawl_runs_count }} runs<div class="text-xs text-slate-500">{{ $endpoint->discovered_resources_count }} resources</div>
+                                {{-- A cursor that never moves is the difference between crawling and appearing to. --}}
+                                <div class="text-xs text-slate-500">cursor {{ data_get($endpoint->cursor, 'page') !== null ? 'page '.data_get($endpoint->cursor, 'page') : 'unset' }}</div>
+                                <div class="text-xs text-slate-500">{{ $endpoint->last_crawled_at?->diffForHumans() ?? 'never crawled' }}</div>
+                            </td>
                             <td class="px-4 py-3"><div class="flex flex-wrap gap-2">
                                 @if ($endpoint->paused_at)
                                     <form method="POST" action="{{ route('admin.sources.endpoints.resume', $endpoint) }}">@csrf @method('PATCH')<button class="cl-button" type="submit">Resume</button></form>
