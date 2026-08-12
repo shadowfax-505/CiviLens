@@ -39,6 +39,17 @@ class TesseractOcrEngine implements OcrEngine
         ]);
 
         $words = $this->parse($tsv);
+        $words = array_map(
+            fn (RecognizedWord $word): RecognizedWord => new RecognizedWord(
+                $this->utf8($word->text),
+                $word->confidence,
+                $word->left,
+                $word->top,
+                $word->width,
+                $word->height,
+            ),
+            $words,
+        );
         $confidences = array_map(fn (RecognizedWord $word): float => $word->confidence, $words);
 
         return new OcrPageResult(
@@ -95,6 +106,29 @@ class TesseractOcrEngine implements OcrEngine
     private function binary(): string
     {
         return (string) config('civiclens.extraction.ocr.tesseract_binary', 'tesseract');
+    }
+
+    /**
+     * Drop byte sequences that are not valid UTF-8.
+     *
+     * Tesseract emits a few invalid bytes on Bengali pages, and a single one
+     * poisons the whole string: every preg_* call with the /u modifier returns
+     * null or false on it, without warning. Measured on a real audit report
+     * page, the engine recognised 222 words while ExtractedPage::wordCount()
+     * reported 0, because preg_split silently failed. Any routing or quality
+     * decision reading that count would have been made on a zero.
+     *
+     * The characters themselves are fine — the sample renders as ordinary
+     * Bengali once the invalid bytes are removed — so dropping them keeps the
+     * text and loses only what was never readable.
+     */
+    private function utf8(string $text): string
+    {
+        if (mb_check_encoding($text, 'UTF-8')) {
+            return $text;
+        }
+
+        return mb_convert_encoding($text, 'UTF-8', 'UTF-8');
     }
 
     private function version(): string
