@@ -58,8 +58,18 @@ class BangladeshSourceCatalogue
                 'authorisation' => 'I authorise CivicLens to fetch public audit reports from cag.org.bd rate-limited.',
                 'endpoints' => [
                     [
-                        // The audit category pages return placeholder text, so the
-                        // storage path is the route that actually carries documents.
+                        // Carries real documents, but cannot be discovered from.
+                        // The category pages return placeholder text, and the
+                        // storage path has no index: a trial run against it
+                        // returned exactly one resource, the directory URL
+                        // itself. Enumerating it would mean guessing filenames,
+                        // which is neither discovery nor something the recorded
+                        // authorisation covers.
+                        //
+                        // Left registered and paused rather than deleted: the
+                        // authorisation is real and the route is right, so what
+                        // is missing is an index to read. The Civil Audit
+                        // Directorate archive is the working audit source.
                         'name' => 'Published audit document storage',
                         'connector_type' => 'direct_download',
                         'base_url' => 'https://cag.org.bd/storage/app/uploads/public/',
