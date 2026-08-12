@@ -20,7 +20,18 @@ final readonly class ExtractedPage
     {
         $words = preg_split('/\s+/u', trim($this->text), -1, PREG_SPLIT_NO_EMPTY);
 
-        return $words === false ? 0 : count($words);
+        if ($words !== false) {
+            return count($words);
+        }
+
+        // The /u modifier fails on text that is not valid UTF-8, and returning
+        // zero for a page full of words is worse than being approximate: a
+        // routing or quality decision would be made on a count that looks
+        // measured. Splitting on bytes is less precise and cannot silently
+        // report nothing.
+        $fallback = preg_split('/\s+/', trim($this->text), -1, PREG_SPLIT_NO_EMPTY);
+
+        return $fallback === false ? 0 : count($fallback);
     }
 
     /**
