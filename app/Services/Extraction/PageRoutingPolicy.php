@@ -6,6 +6,8 @@ use App\Data\Extraction\ExtractedPage;
 
 class PageRoutingPolicy
 {
+    public function __construct(private readonly BengaliTextPlausibility $plausibility) {}
+
     public const NATIVE = 'native';
 
     public const OCR_REQUIRED = 'ocr_required';
@@ -20,7 +22,20 @@ class PageRoutingPolicy
     {
         $threshold = (float) config('civiclens.extraction.native_density_threshold', 1.5);
 
-        return $page->density() >= $threshold ? self::NATIVE : self::OCR_REQUIRED;
+        if ($page->density() < $threshold) {
+            return self::OCR_REQUIRED;
+        }
+
+        // A dense text layer is not the same as a correct one. Legacy Bengali
+        // fonts mapped as Unicode produce a full page of plausible-looking text
+        // that decodes to the wrong characters, and density cannot see the
+        // difference. Such a page is treated as having no usable text layer,
+        // because OCR reads the glyphs that were actually rendered.
+        if ($this->plausibility->isImplausible($page->text)) {
+            return self::OCR_REQUIRED;
+        }
+
+        return self::NATIVE;
     }
 
     /** @param list<string> $pagePaths */
