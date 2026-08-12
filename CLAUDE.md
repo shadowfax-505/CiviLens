@@ -185,7 +185,12 @@ down. Update `docs/` whenever behavior, schema, APIs, or architecture change.
 Write an ADR when a durable architectural decision changes — not for routine work that follows
 existing architecture. Accepted guardrails: Laravel, modular monolith, custom roles/permissions,
 provider-agnostic search, normalized operational data, v2 separation, heterogeneous public
-sources, geospatial privacy, reviewed publication, recognizer ceiling.
+sources, geospatial privacy, reviewed publication, recognizer ceiling, certified flagging.
+
+The conformal guarantee and the one input blocking it are written up in
+`docs/adr/ADR-016-Certified-Flagging-And-Its-Label.md`. Read it before writing anything public
+about the bound: it says what the bound covers, what it does not, and why reviewer adjudication
+is the only admissible label.
 
 ## MCP Usage
 
