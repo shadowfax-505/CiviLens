@@ -5,6 +5,7 @@
 ])
 
 @php
+    use Illuminate\Support\Facades\Route;
     $user = auth()->user();
     $user?->loadMissing('roles.permissions');
     $appearance = $user?->notification_preferences['appearance'] ?? 'system';
@@ -36,22 +37,62 @@
         ['label' => 'Documents', 'route' => route('public.documents.index')],
         ['label' => 'Search', 'route' => route('public.search')],
     ];
-    $workspaceLinks = [
-        ['label' => 'Dashboard', 'route' => route('dashboard'), 'show' => true],
-        ['label' => 'Public portal', 'route' => route('public.home'), 'show' => true],
-        ['label' => 'Projects', 'route' => route('admin.projects.index'), 'show' => $user?->can('viewAny', App\Models\Project::class) === true],
-        ['label' => 'Project map', 'route' => route('admin.projects.map'), 'show' => $user?->can('viewAny', App\Models\Project::class) === true],
-        ['label' => 'Agencies', 'route' => route('admin.agencies.index'), 'show' => $user?->can('viewAny', App\Models\Agency::class) === true],
-        ['label' => 'Procurement', 'route' => route('admin.procurement.tenders.index'), 'show' => $user?->can('viewAny', App\Models\Tender::class) === true],
-        ['label' => 'Contractors', 'route' => route('admin.contractors.organizations.index'), 'show' => $user?->can('viewAny', App\Models\Organization::class) === true],
-        ['label' => 'Documents', 'route' => route('admin.documents.index'), 'show' => $user?->can('viewAny', App\Models\Document::class) === true],
-        ['label' => 'Sources', 'route' => route('admin.sources.index'), 'show' => $user?->can('viewAny', App\Models\SourcePublisher::class) === true],
-        ['label' => 'Citizen reports', 'route' => route('admin.citizen-reports.index'), 'show' => $user?->can('viewAny', App\Models\CitizenReport::class) === true],
-        ['label' => 'Staff requests', 'route' => route('admin.change-requests.index'), 'show' => $isAdministrator || $isStaff],
-        ['label' => 'Analytics', 'route' => route('admin.analytics.index'), 'show' => $user?->can('viewAny', App\Models\AnalyticsReport::class) === true],
-        ['label' => 'Intelligence', 'route' => route('admin.intelligence.index'), 'show' => $user?->can('viewAny', App\Models\IntelligenceIndicator::class) === true],
-        ['label' => 'Users', 'route' => route('admin.users.index'), 'show' => $user?->can('viewAny', App\Models\User::class) === true],
-        ['label' => 'Settings', 'route' => route('settings.show'), 'show' => true],
+    // Grouped by what an operator is doing rather than listed flat. Acquisition
+    // is its own area because its screens are read together: a finding is only
+    // worth reading once the health beside it says the crawl actually ran.
+    //
+    // Route::has guards let these screens arrive on separate branches without
+    // the navigation breaking in between.
+    $canSources = $user?->can('viewAny', App\Models\SourcePublisher::class) === true;
+    $workspaceGroups = [
+        [
+            'label' => null,
+            'links' => [
+                ['label' => 'Dashboard', 'route' => route('dashboard'), 'show' => true],
+                ['label' => 'Public portal', 'route' => route('public.home'), 'show' => true],
+            ],
+        ],
+        [
+            'label' => 'Acquisition',
+            'links' => [
+                ['label' => 'Source registry', 'route' => route('admin.sources.index'), 'show' => $canSources],
+                ['label' => 'Findings', 'route' => Route::has('admin.sources.findings') ? route('admin.sources.findings') : '', 'show' => $canSources && Route::has('admin.sources.findings')],
+                ['label' => 'Extraction', 'route' => Route::has('admin.sources.extraction') ? route('admin.sources.extraction') : '', 'show' => $canSources && Route::has('admin.sources.extraction')],
+                ['label' => 'Review queue', 'route' => Route::has('admin.sources.review') ? route('admin.sources.review') : '', 'show' => $canSources && Route::has('admin.sources.review')],
+            ],
+        ],
+        [
+            'label' => 'Records',
+            'links' => [
+                ['label' => 'Projects', 'route' => route('admin.projects.index'), 'show' => $user?->can('viewAny', App\Models\Project::class) === true],
+                ['label' => 'Project map', 'route' => route('admin.projects.map'), 'show' => $user?->can('viewAny', App\Models\Project::class) === true],
+                ['label' => 'Agencies', 'route' => route('admin.agencies.index'), 'show' => $user?->can('viewAny', App\Models\Agency::class) === true],
+                ['label' => 'Procurement', 'route' => route('admin.procurement.tenders.index'), 'show' => $user?->can('viewAny', App\Models\Tender::class) === true],
+                ['label' => 'Contractors', 'route' => route('admin.contractors.organizations.index'), 'show' => $user?->can('viewAny', App\Models\Organization::class) === true],
+                ['label' => 'Documents', 'route' => route('admin.documents.index'), 'show' => $user?->can('viewAny', App\Models\Document::class) === true],
+            ],
+        ],
+        [
+            'label' => 'Insight',
+            'links' => [
+                ['label' => 'Analytics', 'route' => route('admin.analytics.index'), 'show' => $user?->can('viewAny', App\Models\AnalyticsReport::class) === true],
+                ['label' => 'Intelligence', 'route' => route('admin.intelligence.index'), 'show' => $user?->can('viewAny', App\Models\IntelligenceIndicator::class) === true],
+            ],
+        ],
+        [
+            'label' => 'Community',
+            'links' => [
+                ['label' => 'Citizen reports', 'route' => route('admin.citizen-reports.index'), 'show' => $user?->can('viewAny', App\Models\CitizenReport::class) === true],
+                ['label' => 'Staff requests', 'route' => route('admin.change-requests.index'), 'show' => $isAdministrator || $isStaff],
+            ],
+        ],
+        [
+            'label' => 'Administration',
+            'links' => [
+                ['label' => 'Users', 'route' => route('admin.users.index'), 'show' => $user?->can('viewAny', App\Models\User::class) === true],
+                ['label' => 'Settings', 'route' => route('settings.show'), 'show' => true],
+            ],
+        ],
     ];
     $citizenLinks = [
         ['label' => 'My overview', 'route' => route('dashboard')],
@@ -148,14 +189,29 @@
                         <small>{{ $resolvedShell === 'administrator' ? 'Control plane' : ($resolvedShell === 'staff' ? 'Operations' : 'Citizen space') }}</small>
                     </div>
                     <nav class="cl-role-nav">
-                        @foreach ($resolvedShell === 'citizen' ? $citizenLinks : $workspaceLinks as $link)
-                            @if ($link['show'] ?? true)
+                        @if ($resolvedShell === 'citizen')
+                            @foreach ($citizenLinks as $link)
                                 @php($isActive = url()->current() === $link['route'] || str_starts_with(url()->current(), rtrim($link['route'], '/').'/'))
                                 <a class="cl-role-nav__link {{ $isActive ? 'is-active' : '' }}" href="{{ $link['route'] }}" @if ($isActive) aria-current="page" @endif>
                                     <span aria-hidden="true"></span>{{ $link['label'] }}
                                 </a>
-                            @endif
-                        @endforeach
+                            @endforeach
+                        @else
+                            @foreach ($workspaceGroups as $group)
+                                @php($visible = array_filter($group['links'], fn (array $link): bool => ($link['show'] ?? true) === true))
+                                @if ($visible !== [])
+                                    @if ($group['label'] !== null)
+                                        <p class="cl-role-nav__group">{{ $group['label'] }}</p>
+                                    @endif
+                                    @foreach ($visible as $link)
+                                        @php($isActive = url()->current() === $link['route'] || str_starts_with(url()->current(), rtrim($link['route'], '/').'/'))
+                                        <a class="cl-role-nav__link {{ $isActive ? 'is-active' : '' }}" href="{{ $link['route'] }}" @if ($isActive) aria-current="page" @endif>
+                                            <span aria-hidden="true"></span>{{ $link['label'] }}
+                                        </a>
+                                    @endforeach
+                                @endif
+                            @endforeach
+                        @endif
                     </nav>
                 </aside>
             @endif
