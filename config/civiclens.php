@@ -53,6 +53,16 @@ return [
         // text layer and routed to OCR. Reported alongside results so the operating
         // point is reproducible rather than implicit.
         'native_density_threshold' => (float) env('EXTRACTION_NATIVE_DENSITY_THRESHOLD', 1.5),
+        // Share of dependent vowel signs that may sit outside a consonant before
+        // a Bengali text layer is treated as mis-encoded rather than usable.
+        // Measured on this corpus: correctly encoded text runs to 0.0747 and
+        // legacy-font text starts at 0.35, so the default sits in the gap.
+        'bengali_orphan_vowel_threshold' => (float) env('EXTRACTION_BENGALI_ORPHAN_VOWEL_THRESHOLD', 0.15),
+
+        // Too little Bengali to judge. Flagging a page on a handful of signs
+        // would send English pages carrying a stray character to OCR.
+        'bengali_minimum_vowel_signs' => (int) env('EXTRACTION_BENGALI_MIN_VOWEL_SIGNS', 20),
+
         'default_page_width_points' => 595.276,
         'default_page_height_points' => 841.89,
         'ocr' => [
