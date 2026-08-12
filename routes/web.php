@@ -40,6 +40,7 @@ use App\Http\Controllers\Admin\ProjectMapDataController;
 use App\Http\Controllers\Admin\SearchAnalyticsController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SearchKnowledgeController;
+use App\Http\Controllers\Admin\Sources\ExtractionOverviewController;
 use App\Http\Controllers\Admin\Sources\SourceRegistryController;
 use App\Http\Controllers\Admin\SystemMetricsController;
 use App\Http\Controllers\Admin\UserController;
@@ -151,6 +152,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
 
         Route::prefix('sources')->name('sources.')->group(function (): void {
             Route::get('/', [SourceRegistryController::class, 'index'])->name('index');
+            Route::get('/extraction', ExtractionOverviewController::class)->name('extraction');
             Route::post('/publishers', [SourceRegistryController::class, 'storePublisher'])->name('publishers.store');
             Route::post('/endpoints', [SourceRegistryController::class, 'storeEndpoint'])->name('endpoints.store');
             Route::patch('/endpoints/{endpoint}/pause', [SourceRegistryController::class, 'pause'])->name('endpoints.pause');
