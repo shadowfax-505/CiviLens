@@ -167,3 +167,65 @@ it('never queues a page whose text layer is mis-encoded', function (): void {
 
     expect(app(ReviewCandidateGenerator::class)->generate(10)['created'])->toBe(0);
 });
+
+it('shows the page a value came from, not just the text around it', function (): void {
+    // Without the page, the screen asks a reviewer to compare OCR output
+    // against OCR output. It agrees with itself, so the only honest answer is
+    // "can't tell" every time — which is what happened on the first attempt.
+    $field = candidate();
+
+    $this->actingAs(reviewAdmin())->get('/admin/sources/review')
+        ->assertOk()
+        ->assertSee('The page it came from')
+        ->assertSee('It cannot confirm itself — the page does.', false)
+        ->assertSee(route('admin.sources.review.page', $field), false);
+});
+
+it('asks only whether the characters match', function (): void {
+    // Three different questions were being read into one verdict: do the
+    // characters match, is the number sensible, is the category right. Only the
+    // first is answerable from the page, and only the first is asked.
+    candidate();
+
+    $this->actingAs(reviewAdmin())->get('/admin/sources/review')
+        ->assertOk()
+        ->assertSee('Do these characters match the page?')
+        ->assertSee('not whether the number is')
+        ->assertSee('Matches the page')
+        ->assertSee("Can't tell", false);
+});
+
+it('does not queue a bare year as an amount', function (): void {
+    // "2016" was queued as an Amount, leaving a reviewer to decide whether a
+    // correctly read year is a correctly read amount.
+    $tokens = app(ReviewCandidateGenerator::class)->tokens('বছর 2016 কোড 4111 টাকা 1,25,000.50');
+    $values = array_column($tokens, 'value');
+
+    expect($values)->toContain('1,25,000.50')
+        ->and($values)->not->toContain('2016')
+        ->and($values)->not->toContain('4111');
+});
+
+it('does not queue a fragment of a mangled figure', function (): void {
+    // "US$23,¢8,80b" yielded the token "23,". Asking whether that matches the
+    // page has no useful answer: the characters are on the page, but the value
+    // is not a value, and a reviewer has nothing to decide.
+    $values = array_column(app(ReviewCandidateGenerator::class)->tokens('US$23,¢8,80b এবং ১৪, ও ৫৭,১৩,৮৪,১০২'), 'value');
+
+    expect($values)->toContain('৫৭,১৩,৮৪,১০২')
+        ->and($values)->not->toContain('23,')
+        ->and($values)->not->toContain('১৪,');
+});
+
+it('tells the reviewer that a lost table column is expected', function (): void {
+    // Scanned tables lose their columns when recognized, so a figure often
+    // arrives without the row it belonged to. That is a limitation of the data,
+    // not a wrong reading, and a reviewer who is not told will hesitate over
+    // every table figure.
+    candidate();
+
+    $this->actingAs(reviewAdmin())->get('/admin/sources/review')
+        ->assertOk()
+        ->assertSee('lose their columns when they are recognized', false)
+        ->assertSee('does not make the reading wrong');
+});
