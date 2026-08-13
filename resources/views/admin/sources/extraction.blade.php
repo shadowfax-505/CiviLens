@@ -50,6 +50,14 @@
                 <p class="text-xs text-slate-500">
                     {{ $total > 0 ? number_format($abstained / $total * 100, 1).'% of pages' : '—' }} carry no vouched text
                 </p>
+                {{-- A blank page and an illegible one are both abstentions and
+                     mean opposite things about how well the system reads. --}}
+                <p class="mt-2 text-xs text-slate-500">
+                    {{ number_format((int) ($summary['abstained_unreadable_pages'] ?? 0)) }} recognised but below the bar
+                </p>
+                <p class="text-xs text-slate-500">
+                    {{ number_format((int) ($summary['abstained_blank_pages'] ?? 0)) }} carried nothing to read
+                </p>
             </div>
         </section>
 
