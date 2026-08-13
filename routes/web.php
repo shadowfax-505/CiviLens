@@ -41,6 +41,7 @@ use App\Http\Controllers\Admin\SearchAnalyticsController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SearchKnowledgeController;
 use App\Http\Controllers\Admin\Sources\ExtractionOverviewController;
+use App\Http\Controllers\Admin\Sources\ReviewPageImageController;
 use App\Http\Controllers\Admin\Sources\ReviewQueueController;
 use App\Http\Controllers\Admin\Sources\SourceFindingsController;
 use App\Http\Controllers\Admin\Sources\SourceRegistryController;
@@ -158,6 +159,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
             Route::get('/findings', SourceFindingsController::class)->name('findings');
             Route::get('/review', [ReviewQueueController::class, 'index'])->name('review');
             Route::post('/review/{field}', [ReviewQueueController::class, 'store'])->name('review.store');
+            Route::get('/review/{field}/page', ReviewPageImageController::class)->name('review.page');
             Route::post('/publishers', [SourceRegistryController::class, 'storePublisher'])->name('publishers.store');
             Route::post('/endpoints', [SourceRegistryController::class, 'storeEndpoint'])->name('endpoints.store');
             Route::patch('/endpoints/{endpoint}/pause', [SourceRegistryController::class, 'pause'])->name('endpoints.pause');
