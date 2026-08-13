@@ -150,3 +150,20 @@ it('keeps the queue behind the registry policy', function (): void {
         ->post(route('admin.sources.review.store', $field), ['verdict' => 'correct'])
         ->assertForbidden();
 });
+
+it('never queues a page whose text layer is mis-encoded', function (): void {
+    // Legacy Bengali fonts mapped as Unicode produce dense, plausible-looking
+    // text that decodes to the wrong characters. 88% of the first candidate
+    // batch came from such pages: a reviewer would have marked nine in ten
+    // incorrect and the bound would have measured the encoding bug.
+    $run = ExtractionRun::factory()->create();
+    ExtractionPage::factory()->create([
+        'extraction_run_id' => $run->id,
+        'extraction_path' => 'native',
+        'character_count' => 400,
+        // Vowel signs detached from consonants, as a mis-mapped font produces.
+        'extracted_text' => str_repeat('স ূ ড ি ত ্ র ে া ি ু 1,25,000.50 12.08.2026 ', 20),
+    ]);
+
+    expect(app(ReviewCandidateGenerator::class)->generate(10)['created'])->toBe(0);
+});
