@@ -114,6 +114,11 @@ return [
             'max_compression_ratio' => (float) env('EXTRACTION_SPREADSHEET_MAX_RATIO', 200),
         ],
 
+        // Rendering DPI for the page shown beside a value under review. High
+        // enough to read a printed digit, low enough that the image arrives
+        // before the reviewer's attention does.
+        'review_page_dpi' => (int) env('EXTRACTION_REVIEW_PAGE_DPI', 150),
+
         // Share of adjudicated fields assigned to the calibration set; the rest
         // are held back to measure realized risk against the nominal bound.
         'calibration_split_percent' => (int) env('EXTRACTION_CALIBRATION_SPLIT_PERCENT', 70),
