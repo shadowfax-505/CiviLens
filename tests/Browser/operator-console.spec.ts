@@ -60,21 +60,23 @@ test.describe('operator console', () => {
   test('review queue states the minimum a group needs before it certifies anything', async ({ page }) => {
     await page.goto('/admin/sources/review', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('heading', { name: 'Was this read correctly?' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Do these characters match the page?' })).toBeVisible();
     await expect(page.getByText('below this a group is certified for nothing')).toBeVisible();
   });
 
-  test('review queue offers unsure beside the verdicts', async ({ page }) => {
+  test("review queue offers can't tell beside the verdicts", async ({ page }) => {
     await page.goto('/admin/sources/review', { waitUntil: 'domcontentloaded' });
 
-    const unsure = page.getByRole('button', { name: /Unsure/ });
+    const cantTell = page.getByRole('button', { name: /Can't tell/ });
 
-    // A queue that only offers correct and incorrect turns every hesitation
-    // into a label, and the bound is then computed from guesses.
-    if (await unsure.count() > 0) {
-      await expect(unsure.first()).toBeVisible();
-      await expect(page.getByRole('button', { name: /Correct/ }).first()).toBeVisible();
-      await expect(page.getByRole('button', { name: /Incorrect/ }).first()).toBeVisible();
+    // A queue that only offers matches and does-not-match turns every
+    // hesitation into a label, and the bound is then computed from guesses.
+    if (await cantTell.count() > 0) {
+      await expect(cantTell.first()).toBeVisible();
+      await expect(page.getByRole('button', { name: /Matches the page/ }).first()).toBeVisible();
+      await expect(page.getByRole('button', { name: /Does not match/ }).first()).toBeVisible();
+      // The page image is what makes the question answerable at all.
+      await expect(page.getByRole('img', { name: /Scanned page/ })).toBeVisible();
     } else {
       await expect(page.getByText('Nothing waiting')).toBeVisible();
     }
