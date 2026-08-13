@@ -31,6 +31,20 @@ class ExtractAcquiredArtifact implements ShouldBeUnique, ShouldQueue
 
     public int $tries = 3;
 
+    /**
+     * Long enough to read a scanned document, not a page.
+     *
+     * OCR runs per page, and the audit reports are twenty to thirty scanned
+     * pages each. At the rate this corpus recognises, a single artifact takes
+     * several minutes, and the default worker timeout of three minutes killed
+     * one mid-run: the job failed, the artifact stayed unread, and retrying it
+     * would have failed at exactly the same point every time.
+     *
+     * The worker must be given at least as much (--timeout), or it stops the
+     * job before this applies.
+     */
+    public int $timeout = 1500;
+
     public int $uniqueFor = 3600;
 
     /** @var list<int> */

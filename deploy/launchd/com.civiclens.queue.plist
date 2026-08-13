@@ -11,7 +11,7 @@
         <string>queue:work</string>
         <string>--queue=ingestion,default</string>
         <string>--sleep=3</string>
-        <string>--timeout=180</string>
+        <string>--timeout=1800</string>
         <string>--max-time=3600</string>
     </array>
     <key>WorkingDirectory</key>
