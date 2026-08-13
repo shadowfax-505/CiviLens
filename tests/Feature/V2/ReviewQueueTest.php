@@ -167,3 +167,41 @@ it('never queues a page whose text layer is mis-encoded', function (): void {
 
     expect(app(ReviewCandidateGenerator::class)->generate(10)['created'])->toBe(0);
 });
+
+it('shows the page a value came from, not just the text around it', function (): void {
+    // Without the page, the screen asks a reviewer to compare OCR output
+    // against OCR output. It agrees with itself, so the only honest answer is
+    // "can't tell" every time — which is what happened on the first attempt.
+    $field = candidate();
+
+    $this->actingAs(reviewAdmin())->get('/admin/sources/review')
+        ->assertOk()
+        ->assertSee('The page it came from')
+        ->assertSee('It cannot confirm itself — the page does.', false)
+        ->assertSee(route('admin.sources.review.page', $field), false);
+});
+
+it('asks only whether the characters match', function (): void {
+    // Three different questions were being read into one verdict: do the
+    // characters match, is the number sensible, is the category right. Only the
+    // first is answerable from the page, and only the first is asked.
+    candidate();
+
+    $this->actingAs(reviewAdmin())->get('/admin/sources/review')
+        ->assertOk()
+        ->assertSee('Do these characters match the page?')
+        ->assertSee('not whether the number is')
+        ->assertSee('Matches the page')
+        ->assertSee("Can't tell", false);
+});
+
+it('does not queue a bare year as an amount', function (): void {
+    // "2016" was queued as an Amount, leaving a reviewer to decide whether a
+    // correctly read year is a correctly read amount.
+    $tokens = app(ReviewCandidateGenerator::class)->tokens('বছর 2016 কোড 4111 টাকা 1,25,000.50');
+    $values = array_column($tokens, 'value');
+
+    expect($values)->toContain('1,25,000.50')
+        ->and($values)->not->toContain('2016')
+        ->and($values)->not->toContain('4111');
+});
