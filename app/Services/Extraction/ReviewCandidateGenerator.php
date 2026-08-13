@@ -30,6 +30,8 @@ use Illuminate\Support\Str;
  */
 class ReviewCandidateGenerator
 {
+    public function __construct(private readonly BengaliTextPlausibility $plausibility) {}
+
     /**
      * Amounts, dates and reference numbers as these documents write them,
      * including Bengali digits, which appear throughout the audit corpus.
@@ -65,6 +67,18 @@ class ReviewCandidateGenerator
         foreach ($candidates as $page) {
             $pages++;
             $before = $created;
+
+            // A page whose text layer is legacy-font mojibake is unreviewable.
+            // Routing sends such pages to OCR now, but pages extracted before
+            // that fix are still stored, and 88 percent of the first batch of
+            // candidates were drawn from them. A reviewer would have marked
+            // nine in ten incorrect and the bound would have described an
+            // encoding bug rather than how well the system reads.
+            if ($this->plausibility->isImplausible((string) $page->extracted_text)) {
+                $skipped++;
+
+                continue;
+            }
 
             foreach ($this->tokens((string) $page->extracted_text) as $token) {
                 if (ExtractionField::query()
