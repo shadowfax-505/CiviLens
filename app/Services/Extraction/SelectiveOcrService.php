@@ -4,6 +4,7 @@ namespace App\Services\Extraction;
 
 use App\Contracts\Extraction\OcrEngine;
 use App\Data\Extraction\OcrPageResult;
+use App\Data\Extraction\RecognizedWord;
 use App\Exceptions\Extraction\ExtractionFailed;
 use App\Models\ExtractionPage;
 use App\Models\ExtractionRun;
@@ -142,6 +143,19 @@ class SelectiveOcrService
             'confidence' => $result->meanConfidence,
             'script_class' => $this->scripts->classify($result->text),
             'extracted_text' => $result->text,
+            // Kept so a value can later be traced to the table cell it sat in.
+            // The recognizer reports these and nothing was storing them.
+            'recognized_words' => array_map(
+                fn (RecognizedWord $word): array => [
+                    't' => $word->text,
+                    'c' => $word->confidence,
+                    'l' => $word->left,
+                    'y' => $word->top,
+                    'w' => $word->width,
+                    'h' => $word->height,
+                ],
+                $result->words,
+            ),
             'content_hash' => hash('sha256', $result->text),
             'character_count' => mb_strlen($result->text),
             'word_count' => $result->wordCount,
