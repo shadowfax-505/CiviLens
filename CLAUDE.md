@@ -110,9 +110,13 @@ Measured facts worth not rediscovering:
   six engine configurations and four scales (ADR-015). Filled-form corpora are out of scope.
 - Field reading on real notices sits at **58/60 clean, 0 wrong**; the 2 misses are genuinely
   blank fields, where abstaining is correct.
-- The two corpora are not one population. e-GP notices are 98.9% born-digital; **CAG audit
-  reports are 65.5%**, and OCR **abstained on 116 of the 153 pages** it attempted on them. The
-  usable audit text is smaller than the page count suggests.
+- The two corpora are not one population. e-GP notices are 98.9% born-digital. The audit reports
+  looked like 65.5% until the text layer was checked: **92% of their native pages are
+  legacy-font mojibake**, so the genuinely usable native share is 27 pages of 648. Correcting
+  that figure is what routing legacy-encoded pages to OCR was for.
+- OCR **abstains often on Bengali scans** — 116 of 153 attempted pages on the audit corpus. The
+  usable audit text is much smaller than the page count suggests, and any analysis plan should
+  start from the abstention number rather than the page total.
 - Tesseract emits invalid UTF-8 bytes on Bengali pages. One byte makes every `/u` regex return
   null or false, silently — a page of 222 words reported 0. Sanitise recognised text before use.
 
@@ -137,6 +141,9 @@ Each of these cost a debugging cycle. They generalise.
   that excludes Homebrew, so a binary that resolves interactively is missing in the worker. The
   malware scanner appeared uninstalled for a full cycle after it had been installed, and every
   fetched artifact was quarantined as a result. Call external binaries by absolute path.
+- **A long job needs a long worker.** A job's `$timeout` cannot exceed the worker's `--timeout`;
+  the worker kills it first. OCR over a thirty-page scan takes minutes, and the three-minute
+  default failed it at the same point on every retry.
 - **A signal that is constant ranks nothing.** A nonconformity score derived from the label
   position, or a page-level confidence shared by every field, cannot support calibration.
 - **Dump the real data before theorising.** Every layout fix that worked came from printing
