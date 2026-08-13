@@ -151,12 +151,32 @@ class ReviewCandidateGenerator
                     }
                 }
 
+                // A token ending in a separator is a fragment of a figure the
+                // recognizer mangled: "US$23,¢8,80b" yielded "23,". Asking
+                // whether that matches the page has no useful answer — the
+                // characters are there, but the value is not a value.
+                if ($kind === 'amount' && ! $this->wellFormedAmount($match[0])) {
+                    continue;
+                }
+
                 $claimed[] = [$start, $end];
                 $found[] = ['kind' => $kind, 'value' => $match[0], 'start' => $start];
             }
         }
 
         return $found;
+    }
+
+    /**
+     * A figure a reviewer can judge: digits, optional grouping, optional
+     * decimals, and nothing dangling at either end.
+     */
+    private function wellFormedAmount(string $value): bool
+    {
+        return preg_match(
+            '/^[\d\x{09E6}-\x{09EF}]{1,3}(?:,[\d\x{09E6}-\x{09EF}]{2,3})+(?:\.\d{1,2})?$|^[\d\x{09E6}-\x{09EF}]+\.\d{1,2}$|^[\d\x{09E6}-\x{09EF}]{5,}$/u',
+            trim($value),
+        ) === 1;
     }
 
     /**

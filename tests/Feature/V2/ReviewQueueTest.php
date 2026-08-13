@@ -205,3 +205,27 @@ it('does not queue a bare year as an amount', function (): void {
         ->and($values)->not->toContain('2016')
         ->and($values)->not->toContain('4111');
 });
+
+it('does not queue a fragment of a mangled figure', function (): void {
+    // "US$23,¢8,80b" yielded the token "23,". Asking whether that matches the
+    // page has no useful answer: the characters are on the page, but the value
+    // is not a value, and a reviewer has nothing to decide.
+    $values = array_column(app(ReviewCandidateGenerator::class)->tokens('US$23,¢8,80b এবং ১৪, ও ৫৭,১৩,৮৪,১০২'), 'value');
+
+    expect($values)->toContain('৫৭,১৩,৮৪,১০২')
+        ->and($values)->not->toContain('23,')
+        ->and($values)->not->toContain('১৪,');
+});
+
+it('tells the reviewer that a lost table column is expected', function (): void {
+    // Scanned tables lose their columns when recognized, so a figure often
+    // arrives without the row it belonged to. That is a limitation of the data,
+    // not a wrong reading, and a reviewer who is not told will hesitate over
+    // every table figure.
+    candidate();
+
+    $this->actingAs(reviewAdmin())->get('/admin/sources/review')
+        ->assertOk()
+        ->assertSee('lose their columns when they are recognized', false)
+        ->assertSee('does not make the reading wrong');
+});
