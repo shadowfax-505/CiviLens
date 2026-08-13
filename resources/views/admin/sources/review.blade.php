@@ -2,11 +2,12 @@
     <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
             <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Governed acquisition</p>
-            <h1 class="text-3xl font-bold">Was this read correctly?</h1>
+            <h1 class="text-3xl font-bold">Do these characters match the page?</h1>
             <p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">
-                One value at a time, drawn at random. Your judgement is the label the risk bound is computed from,
-                so an honest "unsure" is worth more than a guess — a coerced label would be treated downstream as
-                though someone had actually known.
+                One value at a time, drawn at random. Compare the value against the scanned page beside it and
+                judge <strong>only whether the characters were read correctly</strong> — not whether the number is
+                sensible, and not whether it was filed under the right heading. Your judgement is the label the risk
+                bound is computed from, so an honest "unsure" is worth more than a guess.
             </p>
         </div>
         <a class="cl-chip" href="{{ route('admin.sources.index') }}">Back to registry</a>
@@ -63,27 +64,50 @@
                  @keydown.window.x.prevent="submit('incorrect')"
                  @keydown.window.u.prevent="submit('unsure')">
             <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                <span class="cl-chip">{{ str($item->field_key)->headline() }}</span>
                 <span>{{ $item->publisher_group }}</span>
                 <span>·</span>
                 <span>{{ $item->script_class }}</span>
                 <span>·</span>
                 <span>page {{ $item->evidence_page_number }}</span>
+                {{-- The kind is a hint about where this came from, not part of
+                     the question. Miscategorised items were being read as wrong
+                     reads, which is a different judgement entirely. --}}
+                <span>·</span>
+                <span>found as {{ $item->field_key }}</span>
             </div>
 
-            <p class="mt-4 text-sm font-semibold text-slate-500">The system read</p>
-            <p class="mt-1 break-all font-mono text-4xl font-black">{{ $item->extracted_value }}</p>
+            <div class="mt-4 grid gap-6 lg:grid-cols-2">
+                <div>
+                    <p class="text-sm font-semibold text-slate-500">The system read</p>
+                    <p class="mt-1 break-all font-mono text-5xl font-black">{{ $item->extracted_value }}</p>
 
-            @php
-                $text = (string) ($item->page?->extracted_text ?? '');
-                $start = max(0, (int) $item->evidence_offset_start - 220);
-                $length = ((int) $item->evidence_offset_end - (int) $item->evidence_offset_start) + 440;
-            @endphp
+                    @php
+                        $text = (string) ($item->page?->extracted_text ?? '');
+                        $start = max(0, (int) $item->evidence_offset_start - 160);
+                        $length = ((int) $item->evidence_offset_end - (int) $item->evidence_offset_start) + 320;
+                    @endphp
 
-            @if ($text !== '')
-                <p class="mt-6 text-sm font-semibold text-slate-500">Where it came from</p>
-                <p class="mt-1 whitespace-pre-wrap break-words rounded bg-slate-50 p-4 text-sm leading-relaxed dark:bg-slate-800">{{ mb_substr($text, $start, $length) }}</p>
-            @endif
+                    @if ($text !== '')
+                        <p class="mt-6 text-sm font-semibold text-slate-500">Recognized text around it</p>
+                        <p class="mt-1 whitespace-pre-wrap break-words rounded bg-slate-50 p-3 text-sm leading-relaxed dark:bg-slate-800">{{ mb_substr($text, $start, $length) }}</p>
+                        <p class="mt-1 text-xs text-slate-500">This is the same recognition, shown for context. It cannot confirm itself — the page does.</p>
+                    @endif
+                </div>
+
+                <div>
+                    <p class="text-sm font-semibold text-slate-500">The page it came from</p>
+                    {{-- Without this the question is unanswerable: comparing OCR
+                         output against OCR output only shows it agrees with
+                         itself. --}}
+                    <img src="{{ route('admin.sources.review.page', $item) }}"
+                         alt="Scanned page {{ $item->evidence_page_number }} containing the value under review"
+                         class="mt-1 w-full rounded border border-slate-200 bg-white dark:border-slate-700"
+                         loading="eager">
+                    <p class="mt-2 text-xs text-slate-500">
+                        If the page does not load, the source document is unavailable — mark unsure and move on.
+                    </p>
+                </div>
+            </div>
 
             <form method="POST" action="{{ route('admin.sources.review.store', $item) }}" class="mt-6" x-ref="form">
                 @csrf
@@ -92,10 +116,14 @@
                     <input class="mt-1 w-full rounded border px-3 py-2 text-slate-950" name="note" maxlength="500">
                 </label>
                 <div class="mt-4 flex flex-wrap gap-3">
-                    <button class="cl-button-primary" type="button" @click="submit('correct')">Correct <span class="opacity-60">(c)</span></button>
-                    <button class="cl-button" type="button" @click="submit('incorrect')">Incorrect <span class="opacity-60">(x)</span></button>
-                    <button class="cl-button" type="button" @click="submit('unsure')">Unsure <span class="opacity-60">(u)</span></button>
+                    <button class="cl-button-primary" type="button" @click="submit('correct')">Matches the page <span class="opacity-60">(c)</span></button>
+                    <button class="cl-button" type="button" @click="submit('incorrect')">Does not match <span class="opacity-60">(x)</span></button>
+                    <button class="cl-button" type="button" @click="submit('unsure')">Can't tell <span class="opacity-60">(u)</span></button>
                 </div>
+                <p class="mt-2 text-xs text-slate-500">
+                    Can't tell is a real answer. It records that you looked and leaves the item out of the
+                    calibration set rather than putting a guess into it.
+                </p>
             </form>
         </section>
     @endif

@@ -39,7 +39,11 @@ class ReviewCandidateGenerator
     private const PATTERNS = [
         // Day and month bounded, or a reference like 44.07.9000 reads as a date.
         'date' => '/\b(0?[1-9]|[12]\d|3[01])[.\-\/](0?[1-9]|1[0-2])[.\-\/](\d{4}|\d{2})\b/u',
-        'amount' => '/(?<![\w.])[\d\x{09E6}-\x{09EF}][\d\x{09E6}-\x{09EF},]{2,}(?:\.\d{1,2})?(?![\w])/u',
+        // A grouping comma or a decimal, or at least five digits. Without that
+        // every bare year matched: "2016" was queued as an Amount, and a
+        // reviewer then had to decide whether a correctly read year is a
+        // correctly read amount, which is not the question being asked.
+        'amount' => '/(?<![\w.])(?:[\d\x{09E6}-\x{09EF}]{1,3}(?:[,][\d\x{09E6}-\x{09EF}]{2,3})+(?:\.\d{1,2})?|[\d\x{09E6}-\x{09EF}]+\.\d{1,2}|[\d\x{09E6}-\x{09EF}]{5,})(?![\w])/u',
         'reference' => '/\b[\d\x{09E6}-\x{09EF}]{2,}(?:\.[\d\x{09E6}-\x{09EF}]{2,}){2,}\b/u',
     ];
 
