@@ -6,8 +6,10 @@
             <p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">
                 One value at a time, drawn at random. Compare the value against the scanned page beside it and
                 judge <strong>only whether the characters were read correctly</strong> — not whether the number is
-                sensible, and not whether it was filed under the right heading. Your judgement is the label the risk
-                bound is computed from, so an honest "unsure" is worth more than a guess.
+                sensible, not which column or heading it sits under, and not whether it was filed as the right kind.
+                Scanned tables lose their columns when they are recognized, so a figure often arrives without the
+                row it belonged to; that is expected and does not make the reading wrong. Your judgement is the label
+                the risk bound is computed from, so an honest "can't tell" is worth more than a guess.
             </p>
         </div>
         <a class="cl-chip" href="{{ route('admin.sources.index') }}">Back to registry</a>
