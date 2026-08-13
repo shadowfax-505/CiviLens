@@ -46,6 +46,14 @@ class ExtractionRoutingReport
             'abstention_rate' => $totalPages > 0
                 ? round((int) $pages->where('extraction_path', SelectiveOcrService::ABSTAINED)->sum('total') / $totalPages, 4)
                 : null,
+            // An abstention rate that mixes the two is a misleading number: a
+            // blank page is nothing to read, and a page whose recognition fell
+            // short is text the system could not vouch for. Measured on this
+            // corpus, 184 of 337 abstentions carry no characters at all, so
+            // reporting one figure overstates recognition failure by more than
+            // half.
+            'abstained_blank_pages' => $this->abstainedBlankPages(),
+            'abstained_unreadable_pages' => $this->abstainedUnreadablePages(),
             'enhanced_pass_recovery' => $this->enhancedRecovery(),
             'ocr_confidence_by_script' => $this->confidenceByScript(),
             'pages_by_script' => $pages
@@ -62,6 +70,41 @@ class ExtractionRoutingReport
                 })
                 ->all(),
         ];
+    }
+
+    /**
+     * How often the one permitted enhanced pass rescued a page that the primary
+     * pass could not accept. A low value argues the second pass is not paying for
+     * its compute; a high value argues the primary operating point is set wrong.
+     *
+     * @return array<string, mixed>
+     */
+    /**
+     * Abstentions where the recognizer produced no words at all, so there is no
+     * confidence to record: the page carried nothing to read.
+     *
+     * Character count cannot make this distinction — an abstained page does not
+     * store the text it declined to vouch for, so every abstention reads as zero
+     * characters whether it was blank or merely illegible.
+     */
+    private function abstainedBlankPages(): int
+    {
+        return ExtractionPage::query()
+            ->where('extraction_path', SelectiveOcrService::ABSTAINED)
+            ->whereNull('confidence')
+            ->count();
+    }
+
+    /**
+     * Abstentions where words were recognised and the recognizer would not vouch
+     * for them. This is the number that describes how well the system reads.
+     */
+    private function abstainedUnreadablePages(): int
+    {
+        return ExtractionPage::query()
+            ->where('extraction_path', SelectiveOcrService::ABSTAINED)
+            ->whereNotNull('confidence')
+            ->count();
     }
 
     /**

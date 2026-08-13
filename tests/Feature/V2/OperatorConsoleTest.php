@@ -54,3 +54,24 @@ it('says nothing was extracted rather than showing an empty table', function ():
 it('keeps the extraction overview behind the registry policy', function (): void {
     $this->actingAs(User::factory()->create())->get('/admin/sources/extraction')->assertForbidden();
 });
+
+it('separates a blank page from one it could not read', function (): void {
+    // Both are abstentions and they mean opposite things: one is a page with
+    // nothing on it, the other is text the recognizer would not vouch for. On
+    // the live corpus 184 of 337 abstentions are blank, so a single figure
+    // overstates recognition failure by more than half.
+    $run = ExtractionRun::factory()->create(['status' => 'completed']);
+    ExtractionPage::factory()->create([
+        'extraction_run_id' => $run->id, 'page_number' => 1,
+        'extraction_path' => 'abstained', 'confidence' => null,
+    ]);
+    ExtractionPage::factory()->create([
+        'extraction_run_id' => $run->id, 'page_number' => 2,
+        'extraction_path' => 'abstained', 'confidence' => 59.5,
+    ]);
+
+    $this->actingAs(consoleAdmin())->get('/admin/sources/extraction')
+        ->assertOk()
+        ->assertSee('recognised but below the bar')
+        ->assertSee('carried nothing to read');
+});
