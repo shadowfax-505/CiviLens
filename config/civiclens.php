@@ -232,6 +232,24 @@ return [
         'artifact_disk' => env('INGESTION_ARTIFACT_DISK', env('DOCUMENT_STORAGE_DISK', 'local')),
         'user_agent' => env('INGESTION_USER_AGENT', 'CivicLensBot/2.0 (+'.rtrim((string) env('APP_URL', 'http://localhost'), '/').'/about)'),
         'max_redirects' => (int) env('INGESTION_MAX_REDIRECTS', 3),
+
+        // How long a publisher's robots.txt is trusted for. This is an exposure
+        // window rather than a performance setting: a publisher that adds a
+        // Disallow keeps being crawled until it expires.
+        'robots_cache_seconds' => (int) env('INGESTION_ROBOTS_CACHE_SECONDS', 3600),
+
+        // A CA bundle to verify publishers against, when the system one is not
+        // enough. Several .gov.bd hosts serve an incomplete certificate chain:
+        // curl compensates by fetching the missing intermediate, OpenSSL does
+        // not, so verification fails here while the site looks fine in a
+        // browser. The remedy is to add the intermediate to a bundle and point
+        // at it — never to stop verifying.
+        'ca_bundle' => env('INGESTION_CA_BUNDLE'),
+
+        // The name matched against User-agent groups in robots.txt. It must stay
+        // consistent with the user agent actually sent, or the rules read are
+        // not the rules that apply to us.
+        'robots_agent' => env('INGESTION_ROBOTS_AGENT', 'civiclensbot'),
         'discovery_max_content_bytes' => (int) env('INGESTION_DISCOVERY_MAX_BYTES', 5242880),
         'absolute_max_content_bytes' => (int) env('INGESTION_ABSOLUTE_MAX_BYTES', 52428800),
         'max_discovered_per_run' => (int) env('INGESTION_MAX_DISCOVERED_PER_RUN', 250),

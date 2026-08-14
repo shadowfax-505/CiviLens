@@ -47,7 +47,10 @@ it('stores the authorising sentence verbatim', function (): void {
     expect($publisher->metadata['authorisation'])
         ->toBe('I authorise CivicLens to fetch public notices from data.example at a rate-limited pace.')
         ->and($publisher->metadata['authorisation_recorded_at'])->not->toBeEmpty()
-        ->and($publisher->metadata['robots_txt'])->toContain('404');
+        // This used to assert the record said "absent (HTTP 404)", which was
+        // written about every publisher without the file ever being fetched.
+        // The record now points at the thing that actually reads it per request.
+        ->and($publisher->metadata['robots_txt'])->toContain('fetched and enforced per request');
 });
 
 it('scopes the endpoint to an exact host and path prefix', function (): void {
