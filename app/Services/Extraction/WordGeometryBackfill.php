@@ -6,7 +6,7 @@ use App\Data\Extraction\RecognizedWord;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
 use App\Models\SourceArtifactVersion;
-use Illuminate\Support\LazyCollection;
+use Illuminate\Database\Eloquent\Collection;
 use Throwable;
 
 /**
@@ -51,6 +51,11 @@ class WordGeometryBackfill
         $skipped = 0;
         $differs = 0;
 
+        // Read the whole list before writing any of it. Streaming with a cursor
+        // holds a read transaction open, and on SQLite a write from the same
+        // connection then contends with it: 57 of 65 pages were "skipped" for a
+        // lock rather than for anything about the page, and the same pages
+        // saved fine one at a time.
         foreach ($this->pages($limit, $candidatesOnly) as $page) {
             $considered++;
 
@@ -102,9 +107,14 @@ class WordGeometryBackfill
     }
 
     /**
-     * @return LazyCollection<int, ExtractionPage>
+     * Materialised rather than streamed. A cursor holds a read transaction open
+     * for the whole loop, and on SQLite the writes inside that loop then contend
+     * with it: 57 of 65 pages were reported skipped for a lock rather than for
+     * anything about the page, and every one of them saved when tried alone.
+     *
+     * @return Collection<int, ExtractionPage>
      */
-    private function pages(int $limit, bool $candidatesOnly): LazyCollection
+    private function pages(int $limit, bool $candidatesOnly): Collection
     {
         $query = ExtractionPage::query()
             ->whereNull('recognized_words')
@@ -118,7 +128,7 @@ class WordGeometryBackfill
             $query->whereIn('id', ExtractionField::query()->whereNull('gold_source')->select('extraction_page_id'));
         }
 
-        return $query->orderBy('id')->limit(max(1, $limit))->cursor();
+        return $query->orderBy('id')->limit(max(1, $limit))->get();
     }
 
     /**
