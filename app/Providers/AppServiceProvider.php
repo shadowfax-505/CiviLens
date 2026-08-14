@@ -105,6 +105,7 @@ use App\Services\Extraction\SpreadsheetNativeExtractor;
 use App\Services\Extraction\TesseractOcrEngine;
 use App\Services\Ingestion\ClamAvMalwareScanner;
 use App\Services\Ingestion\NativeNetworkAddressResolver;
+use App\Services\Ingestion\PlaywrightBrowserRenderProvider;
 use App\Services\Ingestion\SecureArtifactFetcher;
 use App\Services\Ingestion\UnavailableBrowserRenderProvider;
 use App\Services\Search\DatabaseSearchProvider;
@@ -124,7 +125,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(NetworkAddressResolver::class, NativeNetworkAddressResolver::class);
         $this->app->bind(MalwareScanner::class, ClamAvMalwareScanner::class);
         $this->app->bind(ArtifactFetcher::class, SecureArtifactFetcher::class);
-        $this->app->bind(BrowserRenderProvider::class, UnavailableBrowserRenderProvider::class);
+        // Playwright where a machine has been given a Node binary to run it
+        // with, and the honest refusal everywhere else.
+        $this->app->bind(
+            BrowserRenderProvider::class,
+            fn (): BrowserRenderProvider => config('civiclens.ingestion.browser.node')
+                ? $this->app->make(PlaywrightBrowserRenderProvider::class)
+                : $this->app->make(UnavailableBrowserRenderProvider::class),
+        );
 
         $this->app->bind(OcrEngine::class, TesseractOcrEngine::class);
 

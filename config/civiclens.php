@@ -246,6 +246,16 @@ return [
         // at it — never to stop verifying.
         'ca_bundle' => env('INGESTION_CA_BUNDLE'),
 
+        'browser' => [
+            // Left empty on purpose. A browser renders untrusted pages and
+            // bypasses the transport's guards, so it is opt-in per machine
+            // rather than on by default; without this the connector fails
+            // closed as it always did.
+            'node' => env('INGESTION_BROWSER_NODE', ''),
+            'script' => env('INGESTION_BROWSER_SCRIPT', base_path('tools/browser-render/render.cjs')),
+            'timeout_seconds' => (int) env('INGESTION_BROWSER_TIMEOUT', 60),
+        ],
+
         // The name matched against User-agent groups in robots.txt. It must stay
         // consistent with the user agent actually sent, or the rules read are
         // not the rules that apply to us.
