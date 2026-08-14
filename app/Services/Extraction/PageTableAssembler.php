@@ -48,13 +48,14 @@ class PageTableAssembler
 
         try {
             $materialized = $this->workspace->materialize($artifact);
-            // The same DPI the recognizer used. Rendering at any other size puts
-            // the cell boxes in a different coordinate space from the word boxes
-            // and every word lands in the wrong cell, or in none.
+            // The same DPI the recognizer used, taken from the page rather than
+            // assumed. Rendering at any other size puts the cell boxes in a
+            // different coordinate space from the word boxes and every word
+            // lands in the wrong cell, or in none.
             $image = $this->rasterizer->rasterize(
                 $materialized,
                 (int) $page->page_number,
-                (int) config('civiclens.extraction.ocr.primary_dpi', 150),
+                $page->recognized_dpi ?? (int) config('civiclens.extraction.ocr.primary_dpi', 150),
             );
 
             $tables = $this->detector->detect($image);
