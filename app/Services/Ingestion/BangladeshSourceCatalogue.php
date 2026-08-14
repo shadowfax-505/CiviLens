@@ -81,6 +81,39 @@ class BangladeshSourceCatalogue
                 ],
             ],
             [
+                'slug' => 'cbad-bangladesh',
+                'name' => 'Directorate of Constitutional Bodies Audit, Bangladesh',
+                'class' => 'government',
+                'homepage' => 'https://cbad.org.bd/',
+                'authority' => 'Directorate of Constitutional Bodies Audit',
+                'authorisation' => 'I authorise CivicLens to fetch public audit reports from cbad.org.bd rate-limited.',
+                'endpoints' => [
+                    [
+                        // The listing CAG itself does not publish. Its own site
+                        // has no index for /storage, and two of the three
+                        // documents on this page are hosted there, which is why
+                        // cag.org.bd is allowlisted from here and narrowed to
+                        // the storage prefix.
+                        'name' => 'Compliance audit report listing',
+                        'connector_type' => 'static_html',
+                        'base_url' => 'https://cbad.org.bd/page/compliance-audit-reports',
+                        'allowed_hosts' => ['cbad.org.bd', 'cag.org.bd'],
+                        'allowed_path_prefixes' => ['/page', '/public/files', '/storage/app'],
+                        'access_decision' => 'operator-authorised-public-audit',
+                        'rate_limit_per_minute' => 4,
+                    ],
+                    [
+                        'name' => 'Performance audit report listing',
+                        'connector_type' => 'static_html',
+                        'base_url' => 'https://cbad.org.bd/page/performance-audit-reports',
+                        'allowed_hosts' => ['cbad.org.bd', 'cag.org.bd'],
+                        'allowed_path_prefixes' => ['/page', '/public/files', '/storage/app'],
+                        'access_decision' => 'operator-authorised-public-audit',
+                        'rate_limit_per_minute' => 4,
+                    ],
+                ],
+            ],
+            [
                 'slug' => 'dgcivil-bangladesh',
                 'name' => 'Directorate General of Civil Audit, Bangladesh',
                 'class' => 'government',

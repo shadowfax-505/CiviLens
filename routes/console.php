@@ -20,6 +20,7 @@ use App\Services\Extraction\ScoreDiscriminationReport;
 use App\Services\Extraction\TableStructureDetector;
 use App\Services\Extraction\WordGeometryBackfill;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
+use App\Services\Ingestion\SourceCandidateVerifier;
 use App\Services\Ingestion\SourceRegistryProvisioner;
 use App\Services\Intelligence\AmendmentCountReader;
 use App\Services\Intelligence\CivicIntegrityEngineService;
@@ -345,6 +346,43 @@ Artisan::command('civiclens:normalise-notice {path} {--page=1}', function (BornD
 
     return 0;
 })->purpose('Read a tender notice and report it in Open Contracting shape');
+
+Artisan::command('civiclens:verify-sources {url?} {--hosts=} {--prefix=/}', function (SourceCandidateVerifier $verifier, BangladeshSourceCatalogue $catalogue): int {
+    $single = $this->argument('url');
+
+    // Read-only. It resolves, reads robots, fetches the listing and counts what
+    // the discovery parser would find. A list of sources gathered by hand goes
+    // stale, and registering a dead host is how an endpoint ends up looking like
+    // a permission failure rather than a moved page.
+    if (is_string($single) && $single !== '') {
+        $hosts = $this->option('hosts');
+        $hosts = is_string($hosts) && $hosts !== '' ? explode(',', $hosts) : [];
+        $prefix = $this->option('prefix');
+
+        $this->line(json_encode(
+            $verifier->verify($single, $hosts, is_string($prefix) && $prefix !== '' ? $prefix : '/'),
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+        ));
+
+        return 0;
+    }
+
+    $results = [];
+
+    foreach ($catalogue->definitions() as $publisher) {
+        foreach ($publisher['endpoints'] as $endpoint) {
+            $results[] = ['publisher' => $publisher['slug']] + $verifier->verify(
+                $endpoint['base_url'],
+                $endpoint['allowed_hosts'],
+                (string) ($endpoint['allowed_path_prefixes'][0] ?? '/'),
+            );
+        }
+    }
+
+    $this->line(json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Check whether a candidate source resolves, permits crawling, and publishes documents');
 
 Artisan::command('civiclens:register-bangladesh-sources', function (SourceRegistryProvisioner $provisioner, BangladeshSourceCatalogue $catalogue): int {
     $results = [];
