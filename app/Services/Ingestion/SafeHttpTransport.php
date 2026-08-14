@@ -134,6 +134,19 @@ class SafeHttpTransport
     }
 
     /**
+     * Refuse a fetch the publisher's robots.txt does not permit.
+     *
+     * Public because the browser renderer does not send its requests through
+     * this class and would otherwise skip the check entirely. A renderer that
+     * ignored robots would be a way round the rule rather than an exception to
+     * it.
+     */
+    public function assertMayFetch(string $url, SourceEndpoint $endpoint): void
+    {
+        $this->assertRobotsAllows($url, $endpoint);
+    }
+
+    /**
      * Refuse a fetch the publisher's robots.txt does not permit, saying which
      * rule refused it.
      */
