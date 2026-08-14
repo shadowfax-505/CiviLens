@@ -176,7 +176,7 @@ class ReviewQueueController extends Controller
     }
 
     /**
-     * @return array{adjudicated: int, remaining: int, groups: array<string, int>, minimum: int}
+     * @return array{adjudicated: int, remaining: int, groups: array<string, int>, minimum: int, levels: list<array{key: string, size: int, alpha: float, at_target: bool}>, ceiling: float}
      */
     private function progress(): array
     {
@@ -191,13 +191,34 @@ class ReviewQueueController extends Controller
 
         $alpha = (float) config('civiclens.extraction.default_alpha', 0.05);
 
+        $ceiling = (float) config('civiclens.extraction.conformal.alpha_ceiling', 0.25);
+        $levels = [];
+
+        // What each group can support as it stands, rather than one number every
+        // group is measured against. A rare publisher will never reach nineteen,
+        // and telling a reviewer it is certified for nothing describes the target
+        // rather than the group.
+        foreach ($groups as $key => $size) {
+            $attainable = 1.0 / ($size + 1);
+            $levels[] = [
+                'key' => (string) $key,
+                'size' => (int) $size,
+                'alpha' => round(max($alpha, $attainable), 3),
+                'at_target' => $attainable <= $alpha,
+            ];
+        }
+
+        usort($levels, fn (array $a, array $b): int => $b['size'] <=> $a['size']);
+
         return [
             'adjudicated' => ExtractionField::query()->where('gold_source', 'reviewer')->count(),
             'remaining' => ExtractionField::query()->whereNull('gold_source')->count(),
             'groups' => $groups,
             // The finite-sample bound needs this many in a group before that
-            // group can be certified at all.
+            // group can be certified at the target alpha specifically.
             'minimum' => (int) ceil(1 / $alpha) - 1,
+            'levels' => $levels,
+            'ceiling' => $ceiling,
         ];
     }
 }

@@ -30,11 +30,50 @@
             <p class="mt-1 text-3xl font-black">{{ number_format($progress['remaining']) }}</p>
         </div>
         <div class="cl-card p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Needed per group</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">For &alpha; = 0.05</p>
             <p class="mt-1 text-3xl font-black">{{ $progress['minimum'] }}</p>
-            <p class="text-xs text-slate-500">below this a group is certified for nothing</p>
+            <p class="text-xs text-slate-500">per group; a smaller group certifies at a looser level, not at none</p>
         </div>
     </section>
+
+    @if ($progress['levels'] !== [])
+        {{-- One number per group rather than one number for all of them. A rare
+             publisher will never reach nineteen, and n >= 1/alpha - 1 rearranges
+             to alpha >= 1/(n+1): nine labels certify at 0.10, four at 0.20. --}}
+        <section class="cl-card mt-4 p-4" aria-label="What each group can currently certify">
+            <p class="text-sm font-semibold">What each group can certify as it stands</p>
+            <div class="mt-2 overflow-x-auto">
+                <table class="w-full min-w-[28rem] text-left text-sm">
+                    <thead>
+                        <tr class="text-xs uppercase tracking-wide text-slate-500">
+                            <th class="py-1 pr-4">Group</th>
+                            <th class="py-1 pr-4">Labels</th>
+                            <th class="py-1 pr-4">Tightest &alpha;</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($progress['levels'] as $level)
+                            <tr class="border-t border-slate-100 dark:border-slate-800">
+                                <td class="py-1 pr-4 font-mono text-xs">{{ $level['key'] }}</td>
+                                <td class="py-1 pr-4">{{ $level['size'] }}</td>
+                                <td class="py-1 pr-4">
+                                    {{ number_format($level['alpha'], 3) }}
+                                    @unless ($level['at_target'])
+                                        <span class="text-xs text-slate-500">&mdash; looser than the target</span>
+                                    @endunless
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">
+                Past &alpha; = {{ number_format($progress['ceiling'], 2) }} the claim stops being worth making, and the
+                group borrows a threshold fitted on every publisher writing that script &mdash; which is a statement
+                about the script, not about the publisher, and is recorded that way.
+            </p>
+        </section>
+    @endif
 
     @if ($progress['groups'] !== [])
         <section class="cl-card mt-4 p-4" aria-label="Calibration set by group">
