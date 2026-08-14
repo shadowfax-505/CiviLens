@@ -1,6 +1,9 @@
 <?php
 
+use App\Jobs\ExtractPageTables;
 use App\Jobs\RunSourceEndpointCrawl;
+use App\Models\ExtractionField;
+use App\Models\ExtractionPage;
 use App\Models\SourceEndpoint;
 use App\Models\SourcePublisher;
 use App\Services\Extraction\BenchmarkEvaluationService;
@@ -10,6 +13,7 @@ use App\Services\Extraction\CorpusLegibilityProbe;
 use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Extraction\KeyValueExtractor;
 use App\Services\Extraction\ReviewCandidateGenerator;
+use App\Services\Extraction\TableStructureDetector;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
 use App\Services\Ingestion\SourceRegistryProvisioner;
 use App\Services\Intelligence\AmendmentCountReader;
@@ -123,9 +127,47 @@ Artisan::command('civiclens:probe-legibility {manifest} {--pages=}', function (C
     return 0;
 })->purpose('Measure whether the OCR engine can read a benchmark corpus at all');
 
-Artisan::command('civiclens:generate-review-candidates {--limit=200}', function (ReviewCandidateGenerator $generator): int {
+Artisan::command('civiclens:extract-tables {--limit=250} {--all}', function (TableStructureDetector $detector): int {
+    if (! $detector->isAvailable()) {
+        $this->error('Table structure detection is not configured on this machine.');
+
+        return 1;
+    }
+
     $limit = $this->option('limit');
-    $summary = $generator->generate(is_numeric($limit) ? (int) $limit : 200);
+    $limit = is_numeric($limit) ? (int) $limit : 250;
+
+    // Pages carrying review candidates first: those are the ones a reviewer is
+    // about to look at, and at ninety seconds a page the whole corpus is thirty
+    // hours of work for structure most pages do not have.
+    $query = ExtractionPage::query()->whereNotNull('recognized_words');
+
+    if (! $this->option('all')) {
+        $query->whereIn('id', ExtractionField::query()->whereNull('gold_source')->select('extraction_page_id'));
+    }
+
+    $dispatched = 0;
+
+    $query->orderBy('id')->limit(max(1, $limit))->each(function (ExtractionPage $page) use (&$dispatched): void {
+        ExtractPageTables::dispatch($page->getKey());
+        $dispatched++;
+    });
+
+    $this->info("Queued {$dispatched} pages for table structure detection.");
+
+    return 0;
+})->purpose('Queue table structure detection for pages a reviewer will see');
+
+Artisan::command('civiclens:generate-review-candidates {--limit=200} {--from-cells}', function (ReviewCandidateGenerator $generator): int {
+    $limit = $this->option('limit');
+    $limit = is_numeric($limit) ? (int) $limit : 200;
+
+    // Cell-derived candidates carry the row and column a figure sat in, which
+    // is what a reviewer needs to place it and what any later analysis depends
+    // on. Flat-page candidates carry neither and remain for pages with no table.
+    $summary = $this->option('from-cells')
+        ? $generator->generateFromCells($limit)
+        : $generator->generate($limit);
 
     $this->line(json_encode($summary, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 

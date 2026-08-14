@@ -66,3 +66,9 @@ Thumbs.db
 *.sqlite3
 *.tmp
 *.bak
+# The local sqlite database the crawl writes to. Fourteen megabytes of
+# publisher data that has no business in the repository.
+/civiclens
+__pycache__/
+*.pyc
+
