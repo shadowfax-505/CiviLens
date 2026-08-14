@@ -53,7 +53,13 @@ class ReviewCandidateGenerator
         // every bare year matched: "2016" was queued as an Amount, and a
         // reviewer then had to decide whether a correctly read year is a
         // correctly read amount, which is not the question being asked.
-        'amount' => '/(?<![\w.])(?:[\d\x{09E6}-\x{09EF}]{1,3}(?:[,][\d\x{09E6}-\x{09EF}]{2,3})+(?:\.\d{1,2})?|[\d\x{09E6}-\x{09EF}]+\.\d{1,2}|[\d\x{09E6}-\x{09EF}]{5,})(?![\w])/u',
+        // The sign is part of the figure. Read without it, a reappropriation of
+        // -100.00 crore is recorded as +100.00 and the reviewer is shown a value
+        // the page does not contain. Accounting parentheses mean the same thing
+        // and are captured the same way, as written rather than interpreted.
+        // A minus directly after a digit is a range, not a sign: 2013-2017 must
+        // not yield -2017, so the sign is only taken where no digit precedes it.
+        'amount' => '/(?<![\w.])(?:\((?:[-\x{2212}]\x{0020}?)?(?:[\d\x{09E6}-\x{09EF}]{1,3}(?:[,][\d\x{09E6}-\x{09EF}]{2,3})+(?:\.\d{1,2})?|[\d\x{09E6}-\x{09EF}]+\.\d{1,2}|[\d\x{09E6}-\x{09EF}]{5,})\)|(?<![\d\x{09E6}-\x{09EF}])[-\x{2212}]?(?:[\d\x{09E6}-\x{09EF}]{1,3}(?:[,][\d\x{09E6}-\x{09EF}]{2,3})+(?:\.\d{1,2})?|[\d\x{09E6}-\x{09EF}]+\.\d{1,2}|[\d\x{09E6}-\x{09EF}]{5,}))(?![\w])/u',
         'reference' => '/\b[\d\x{09E6}-\x{09EF}]{2,}(?:\.[\d\x{09E6}-\x{09EF}]{2,}){2,}\b/u',
     ];
 
@@ -109,7 +115,9 @@ class ReviewCandidateGenerator
                     'field_key' => $token['kind'],
                     'field_type' => 'string',
                     'extracted_value' => $token['value'],
-                    'normalized_value' => Str::of($token['value'])->replace(',', '')->trim()->value(),
+                    'normalized_value' => $token['kind'] === 'amount'
+                        ? $this->normalisedAmount($token['value'])
+                        : Str::of($token['value'])->replace(',', '')->trim()->value(),
                     'script_class' => $page->script_class ?? 'unknown',
                     'publisher_group' => $this->publisherGroup($page),
                     'confidence' => $page->confidence,
@@ -183,7 +191,9 @@ class ReviewCandidateGenerator
                     'field_key' => $token['kind'],
                     'field_type' => 'string',
                     'extracted_value' => $token['value'],
-                    'normalized_value' => Str::of($token['value'])->replace(',', '')->trim()->value(),
+                    'normalized_value' => $token['kind'] === 'amount'
+                        ? $this->normalisedAmount($token['value'])
+                        : Str::of($token['value'])->replace(',', '')->trim()->value(),
                     'script_class' => $page->script_class ?? 'unknown',
                     'publisher_group' => $this->publisherGroup($page),
                     'confidence' => $page->confidence,
@@ -260,8 +270,40 @@ class ReviewCandidateGenerator
     {
         return preg_match(
             '/^[\d\x{09E6}-\x{09EF}]{1,3}(?:,[\d\x{09E6}-\x{09EF}]{2,3})+(?:\.\d{1,2})?$|^[\d\x{09E6}-\x{09EF}]+\.\d{1,2}$|^[\d\x{09E6}-\x{09EF}]{5,}$/u',
-            trim($value),
+            // Checked without its sign, so a well-formed figure is not rejected
+            // for carrying one. The sign is kept on the value itself; only the
+            // shape of the digits is in question here.
+            $this->unsigned($value),
         ) === 1;
+    }
+
+    /**
+     * The figure without whatever marks it as negative.
+     */
+    private function unsigned(string $value): string
+    {
+        $value = trim($value);
+
+        if (preg_match('/^\((.+)\)$/u', $value, $inner) === 1) {
+            $value = $inner[1];
+        }
+
+        return ltrim($value, "-\u{2212} ");
+    }
+
+    /**
+     * The figure as a number, with an accounting negative made explicit.
+     *
+     * The value keeps what the page shows; this is what any later analysis adds
+     * up, and a bracketed figure summed as positive is a sign error in the
+     * arithmetic rather than in the reading.
+     */
+    private function normalisedAmount(string $value): string
+    {
+        $digits = str_replace(',', '', $this->unsigned($value));
+        $negative = preg_match('/^\(|^[-\x{2212}]/u', trim($value)) === 1;
+
+        return ($negative ? '-' : '').$digits;
     }
 
     /**
