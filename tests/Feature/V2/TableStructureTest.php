@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\ExtractPageTables;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
 use App\Models\ExtractionTableCell;
@@ -142,4 +143,18 @@ it('refuses to take a value from a cell that is really a line of prose', functio
 
     expect($fields)->toHaveCount(1)
         ->and($fields->first()->extraction_table_cell_id)->toBe($value->id);
+});
+
+it('gives the sidecar less time than the job that waits for it', function (): void {
+    // A sidecar allowed to outlive its job is killed mid-page and the work is
+    // lost; a sidecar cut off early burns the same CPU and then fails. The 300s
+    // ceiling this replaced turned CPU contention into failed jobs that had
+    // already spent five minutes to fail.
+    $sidecar = (int) config('civiclens.extraction.tables.timeout_seconds');
+    $job = (new ExtractPageTables(1))->timeout;
+
+    expect($sidecar)->toBeLessThan($job)
+        // And enough room for a page that takes far longer than the 90s an idle
+        // machine needs.
+        ->and($sidecar)->toBeGreaterThan(600);
 });
