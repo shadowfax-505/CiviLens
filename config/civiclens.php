@@ -238,6 +238,19 @@ return [
         // Disallow keeps being crawled until it expires.
         'robots_cache_seconds' => (int) env('INGESTION_ROBOTS_CACHE_SECONDS', 3600),
 
+        'backoff' => [
+            // How long to leave a publisher alone after it stops answering,
+            // doubling with each consecutive failure. A refusing host that keeps
+            // being retried is how a crawler earns a block, and one of these
+            // publishers now refuses the connection outright.
+            'base_minutes' => (int) env('INGESTION_BACKOFF_BASE_MINUTES', 15),
+            'max_minutes' => (int) env('INGESTION_BACKOFF_MAX_MINUTES', 1440),
+            // Consecutive failures after which the endpoint is paused and needs
+            // a person to look at it. Backing off for ever without saying so
+            // would leave a dead source looking merely quiet.
+            'pause_after' => (int) env('INGESTION_BACKOFF_PAUSE_AFTER', 8),
+        ],
+
         // A CA bundle to verify publishers against, when the system one is not
         // enough. Several .gov.bd hosts serve an incomplete certificate chain:
         // curl compensates by fetching the missing intermediate, OpenSSL does
