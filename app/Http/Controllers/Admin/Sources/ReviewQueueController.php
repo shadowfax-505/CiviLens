@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin\Sources;
 
 use App\Http\Controllers\Controller;
 use App\Models\ExtractionField;
+use App\Models\ExtractionPage;
 use App\Models\ExtractionTableCell;
 use App\Models\SourcePublisher;
+use App\Services\Extraction\ValueLocator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -20,6 +22,8 @@ use Illuminate\View\View;
  */
 class ReviewQueueController extends Controller
 {
+    public function __construct(private readonly ValueLocator $locator) {}
+
     public function index(Request $request): View
     {
         abort_unless($request->user()?->can('viewAny', SourcePublisher::class) === true, 403);
@@ -39,7 +43,38 @@ class ReviewQueueController extends Controller
             'item' => $item,
             'progress' => $this->progress(),
             'row' => $this->row($item),
+            // How many places on the page carry these characters. One means the
+            // crop is the value; several means the reviewer is judging the
+            // reading, not which of them was meant; none means the page was read
+            // before word geometry was stored and only the whole page can be
+            // shown.
+            'located' => $item instanceof ExtractionField && $item->page instanceof ExtractionPage
+                ? count($this->locator->locate($item, $item->page))
+                : 0,
+            // Whether the page shows Bengali digits while the value is written
+            // in Latin ones. Left unsaid, two reviewers answer the same item
+            // differently and the calibration set stops meaning one thing.
+            'transliterated' => $this->transliterated($item),
         ]);
+    }
+
+    /**
+     * Does the page write these digits in Bengali while the value is in Latin?
+     *
+     * The audit PDFs carry legacy-font text layers in which Bengali numerals are
+     * stored as the Latin bytes that happen to render them, so a page reading
+     * ১০০.০০ yields the value 100.00. The figure is right and the characters
+     * differ, which is precisely the case a reviewer cannot resolve alone.
+     */
+    private function transliterated(?ExtractionField $item): bool
+    {
+        if (! $item instanceof ExtractionField) {
+            return false;
+        }
+
+        return $item->script_class === 'bn'
+            && preg_match('/[0-9]/', (string) $item->extracted_value) === 1
+            && preg_match('/[\x{09E6}-\x{09EF}]/u', (string) $item->extracted_value) !== 1;
     }
 
     /**
