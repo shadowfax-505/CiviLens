@@ -121,7 +121,12 @@ return [
         'tables' => [
             'python' => env('EXTRACTION_TABLE_PYTHON', ''),
             'script' => env('EXTRACTION_TABLE_SCRIPT', base_path('tools/table-structure/detect_tables.py')),
-            'timeout_seconds' => (int) env('EXTRACTION_TABLE_TIMEOUT', 300),
+            // Below the job's own 900s timeout, and well above the 90s a page
+            // takes when the machine is idle: detection is CPU-bound and a page
+            // measured at 313s while a second process was running the same
+            // models. A ceiling of 300s turned that contention into failed jobs
+            // that had already spent five minutes of CPU to fail.
+            'timeout_seconds' => (int) env('EXTRACTION_TABLE_TIMEOUT', 840),
         ],
 
         // Rendering DPI for the page shown beside a value under review. High
