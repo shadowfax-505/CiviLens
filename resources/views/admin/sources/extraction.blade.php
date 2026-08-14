@@ -26,7 +26,32 @@
             </p>
         </div>
     @else
-        <section class="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Extraction totals">
+        {{-- The thresholds were computed for weeks before anything applied them.
+         A screen that reports what was read but never what was certified hides
+         exactly that. --}}
+    <section class="mt-6 grid gap-3 sm:grid-cols-4" aria-label="What the certification decided">
+        <div class="cl-card p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Auto-accepted</p>
+            <p class="mt-1 text-3xl font-black">{{ number_format($decisions['accepted']) }}</p>
+            <p class="text-xs text-slate-500">below their group's certified threshold</p>
+        </div>
+        <div class="cl-card p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Deferred</p>
+            <p class="mt-1 text-3xl font-black">{{ number_format($decisions['deferred']) }}</p>
+            <p class="text-xs text-slate-500">no threshold, no score, or above it</p>
+        </div>
+        <div class="cl-card p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Not yet decided</p>
+            <p class="mt-1 text-3xl font-black">{{ number_format($decisions['pending']) }}</p>
+        </div>
+        <div class="cl-card p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">On a borrowed threshold</p>
+            <p class="mt-1 text-3xl font-black">{{ number_format($decisions['borrowed']) }}</p>
+            <p class="text-xs text-slate-500">certified for a wider population, not for this group</p>
+        </div>
+    </section>
+
+    <section class="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Extraction totals">
             <div class="cl-card p-4">
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Pages</p>
                 <p class="mt-1 text-3xl font-black">{{ number_format($total) }}</p>
