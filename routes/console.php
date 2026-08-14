@@ -2,6 +2,7 @@
 
 use App\Jobs\ExtractPageTables;
 use App\Jobs\RunSourceEndpointCrawl;
+use App\Jobs\ScorePageFields;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
 use App\Models\SourceEndpoint;
@@ -11,8 +12,10 @@ use App\Services\Extraction\BornDigitalWordExtractor;
 use App\Services\Extraction\CalibrationReport;
 use App\Services\Extraction\CorpusLegibilityProbe;
 use App\Services\Extraction\ExtractionRoutingReport;
+use App\Services\Extraction\FieldDecisionService;
 use App\Services\Extraction\KeyValueExtractor;
 use App\Services\Extraction\ReviewCandidateGenerator;
+use App\Services\Extraction\ScoreDiscriminationReport;
 use App\Services\Extraction\TableStructureDetector;
 use App\Services\Extraction\WordGeometryBackfill;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
@@ -173,6 +176,60 @@ Artisan::command('civiclens:backfill-word-geometry {--limit=250} {--all}', funct
     return 0;
 })->purpose('Recover word geometry for pages extracted before it was stored');
 
+Artisan::command('civiclens:decide-fields {--alpha=0.05}', function (FieldDecisionService $decisions): int {
+    $alpha = $this->option('alpha');
+    $alpha = is_numeric($alpha) ? (float) $alpha : 0.0;
+
+    if ($alpha <= 0.0 || $alpha >= 1.0) {
+        $this->error('Alpha must be a number between 0 and 1 exclusive.');
+
+        return 1;
+    }
+
+    // Nothing consumed the bound before this: every extracted value sat pending
+    // while the calibration it was entitled to went unapplied.
+    $counts = $decisions->decide($alpha);
+
+    $this->line(json_encode($counts, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Apply the certified thresholds to extracted values, deferring anything uncertified');
+
+Artisan::command('civiclens:score-fields {--limit=500} {--labelled}', function (): int {
+    $limit = $this->option('limit');
+    $limit = is_numeric($limit) ? (int) $limit : 500;
+
+    // Queued per page: one raster serves every field on it, which is the
+    // difference between forty minutes over the corpus and several hours.
+    $query = ExtractionPage::query()
+        ->whereIn('id', ExtractionField::query()->select('extraction_page_id'));
+
+    if ($this->option('labelled')) {
+        // Scoring the judged fields first is what makes the gate measurable
+        // before the whole corpus is committed to.
+        $query->whereIn('id', ExtractionField::query()->whereNotNull('is_correct')->select('extraction_page_id'));
+    }
+
+    $dispatched = 0;
+
+    $query->orderBy('id')->limit(max(1, $limit))->each(function (ExtractionPage $page) use (&$dispatched): void {
+        ScorePageFields::dispatch($page->getKey());
+        $dispatched++;
+    });
+
+    $this->info("Queued {$dispatched} pages for second-read scoring.");
+
+    return 0;
+})->purpose('Re-read each extracted value and score it by whether the two readings agree');
+
+Artisan::command('civiclens:score-discrimination', function (ScoreDiscriminationReport $report): int {
+    // A bound holds for any score, so validity says nothing about whether the
+    // score is worth thresholding. This is the number that does.
+    $this->line(json_encode($report->build(), JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Report how well the nonconformity score separates wrong readings from right ones');
+
 Artisan::command('civiclens:generate-review-candidates {--limit=200} {--from-cells}', function (ReviewCandidateGenerator $generator): int {
     $limit = $this->option('limit');
     $limit = is_numeric($limit) ? (int) $limit : 200;
@@ -293,6 +350,12 @@ Schedule::command('civiclens:integrity-run')
 // notices, and a snapshot per day is a readable trail rather than noise.
 Schedule::command('civiclens:publisher-report bppa-egp --save')
     ->dailyAt('03:00')
+    ->withoutOverlapping();
+
+// After scores exist and calibration has moved, decisions are stale. Daily is
+// the pace labels arrive at.
+Schedule::command('civiclens:decide-fields')
+    ->dailyAt('04:00')
     ->withoutOverlapping();
 
 Schedule::command('civiclens:sources-dispatch')
