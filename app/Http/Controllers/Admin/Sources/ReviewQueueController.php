@@ -7,6 +7,7 @@ use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
 use App\Models\ExtractionTableCell;
 use App\Models\SourcePublisher;
+use App\Services\Extraction\AmountGrouping;
 use App\Services\Extraction\ValueLocator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,10 @@ use Illuminate\View\View;
  */
 class ReviewQueueController extends Controller
 {
-    public function __construct(private readonly ValueLocator $locator) {}
+    public function __construct(
+        private readonly ValueLocator $locator,
+        private readonly AmountGrouping $grouping,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -55,6 +59,12 @@ class ReviewQueueController extends Controller
             // in Latin ones. Left unsaid, two reviewers answer the same item
             // differently and the calibration set stops meaning one thing.
             'transliterated' => $this->transliterated($item),
+            // A comma where the page may show a decimal point. Told to the
+            // reviewer as something to check, never corrected: rewriting it
+            // would be the system answering the question it is asking.
+            'separator_suspect' => $item instanceof ExtractionField
+                && $item->field_key === 'amount'
+                && ! $this->grouping->groupsCorrectly((string) $item->extracted_value),
         ]);
     }
 

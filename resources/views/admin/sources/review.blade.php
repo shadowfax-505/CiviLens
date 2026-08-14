@@ -180,6 +180,14 @@
                             </p>
                         @endif
 
+                        @if ($separator_suspect)
+                            <p class="mt-3 rounded border border-amber-300 bg-amber-50 p-3 text-xs text-slate-700 dark:border-amber-700 dark:bg-amber-950 dark:text-slate-200">
+                                The comma in this figure does not group thousands the way either convention does, which
+                                is what a <strong>decimal point read as a comma</strong> looks like. Check the marked
+                                characters: if the page shows a point, this is a misreading and does not match.
+                            </p>
+                        @endif
+
                         @if ($transliterated)
                             {{-- Stated here rather than left to each reviewer:
                                  without a rule, the same item gets judged both
