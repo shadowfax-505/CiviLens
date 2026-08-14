@@ -156,6 +156,10 @@ class SelectiveOcrService
                 ],
                 $result->words,
             ),
+            // Pixels mean nothing without the scale they were measured at: the
+            // enhanced pass reads at 300 and the primary at 150, and a cell box
+            // rendered at the other one puts every word in the wrong column.
+            'recognized_dpi' => $result->dpi,
             'content_hash' => hash('sha256', $result->text),
             'character_count' => mb_strlen($result->text),
             'word_count' => $result->wordCount,

@@ -20,6 +20,7 @@ class ExtractionPage extends Model
         'confidence',
         'extracted_text',
         'recognized_words',
+        'recognized_dpi',
         'content_hash',
         'character_count',
         'word_count',
@@ -37,6 +38,7 @@ class ExtractionPage extends Model
             'word_count' => 'integer',
             'duration_ms' => 'integer',
             'recognized_words' => 'array',
+            'recognized_dpi' => 'integer',
         ];
     }
 
