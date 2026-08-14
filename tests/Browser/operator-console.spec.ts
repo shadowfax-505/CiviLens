@@ -82,6 +82,25 @@ test.describe('operator console', () => {
     }
   });
 
+  test('a value taken from a table arrives with its row', async ({ page }) => {
+    await page.goto('/admin/sources/review', { waitUntil: 'domcontentloaded' });
+
+    const row = page.getByText('Its row on the page');
+
+    // Whether the item drawn came from a table cell depends on what the queue
+    // holds, so this asserts the shape when one appears rather than requiring it.
+    if (await row.count() > 0) {
+      await expect(row).toBeVisible();
+      // The caveat is the point: a mis-split row would otherwise read as
+      // provenance, and a wrong label on a correct figure is worse than none.
+      await expect(page.getByText('shown as read, not as verified')).toBeVisible();
+      await expect(page.getByRole('table', { name: /table row containing the value/ })).toBeVisible();
+    } else {
+      // A flat-text item has no row, and the screen must still be answerable.
+      await expect(page.getByRole('heading', { name: 'Do these characters match the page?' })).toBeVisible();
+    }
+  });
+
   test('acquisition navigation is grouped and reachable', async ({ page }) => {
     await page.goto('/admin/sources', { waitUntil: 'domcontentloaded' });
 

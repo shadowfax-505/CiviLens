@@ -114,6 +114,16 @@ return [
             'max_compression_ratio' => (float) env('EXTRACTION_SPREADSHEET_MAX_RATIO', 200),
         ],
 
+        // Table structure sidecar. Optional: without it pages simply carry no
+        // table structure, and nothing else changes. It runs in its own Python
+        // because PaddlePaddle has no wheels for the system interpreter and
+        // pulls about a gigabyte of models.
+        'tables' => [
+            'python' => env('EXTRACTION_TABLE_PYTHON', ''),
+            'script' => env('EXTRACTION_TABLE_SCRIPT', base_path('tools/table-structure/detect_tables.py')),
+            'timeout_seconds' => (int) env('EXTRACTION_TABLE_TIMEOUT', 300),
+        ],
+
         // Rendering DPI for the page shown beside a value under review. High
         // enough to read a printed digit, low enough that the image arrives
         // before the reviewer's attention does.
