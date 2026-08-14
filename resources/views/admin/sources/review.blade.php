@@ -76,7 +76,46 @@
                      reads, which is a different judgement entirely. --}}
                 <span>·</span>
                 <span>found as {{ $item->field_key }}</span>
+                @if ($item->tableCell !== null)
+                    <span>·</span>
+                    <span>table row {{ $item->tableCell->row_index + 1 }}, column {{ $item->tableCell->column_index + 1 }}</span>
+                @endif
             </div>
+
+            @if ($row['cells'] !== [])
+                {{-- The row a figure sat in, so it can be placed among its
+                     siblings. A number without its row is correctly read and
+                     unusable: nobody can say which year or line item it
+                     measures. --}}
+                <div class="mt-4 rounded border border-slate-200 p-4 dark:border-slate-700">
+                    <p class="text-sm font-semibold text-slate-500">Its row on the page</p>
+                    @if ($row['label'] !== null && $row['label'] !== '')
+                        <p class="mt-1 text-sm">This row is labelled <strong>{{ $row['label'] }}</strong></p>
+                    @endif
+                    <div class="mt-2 overflow-x-auto">
+                        <table class="w-full min-w-[24rem] text-left text-sm">
+                            <caption class="sr-only">The table row containing the value under review</caption>
+                            <tbody>
+                                <tr>
+                                    @foreach ($row['cells'] as $cell)
+                                        <td @class([
+                                            'border-b border-slate-100 py-2 pr-4 align-top dark:border-slate-800',
+                                            'font-black' => $cell['is_value'],
+                                        ])>
+                                            <span class="block text-xs text-slate-500">col {{ $cell['column'] + 1 }}</span>
+                                            {{ $cell['text'] !== '' ? $cell['text'] : '—' }}
+                                        </td>
+                                    @endforeach
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mt-2 text-xs text-slate-500">
+                        Row and label are shown as read, not as verified. They are context for placing the figure and
+                        play no part in the judgement below, which is only about the characters.
+                    </p>
+                </div>
+            @endif
 
             <div class="mt-4 grid gap-6 lg:grid-cols-2">
                 <div>
