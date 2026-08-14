@@ -16,6 +16,7 @@ class SourceEndpoint extends Model
         'source_publisher_id',
         'name',
         'connector_type',
+        'connector_options',
         'base_url',
         'allowed_hosts',
         'allowed_path_prefixes',
@@ -37,6 +38,7 @@ class SourceEndpoint extends Model
     protected function casts(): array
     {
         return [
+            'connector_options' => 'array',
             'allowed_hosts' => 'array',
             'allowed_path_prefixes' => 'array',
             'access_reviewed_at' => 'immutable_datetime',
@@ -76,5 +78,17 @@ class SourceEndpoint extends Model
 
         return ! $lastCrawledAt instanceof CarbonInterface
             || $lastCrawledAt->addMinutes($this->crawl_interval_minutes)->isPast();
+    }
+
+    /**
+     * Per-connector settings, always an array so a caller need not guess.
+     *
+     * @return array<string, mixed>
+     */
+    public function connectorOptions(): array
+    {
+        $options = $this->connector_options;
+
+        return is_array($options) ? $options : [];
     }
 }

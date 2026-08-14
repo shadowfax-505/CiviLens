@@ -71,6 +71,7 @@ class SourceRegistryProvisioner
                 [
                     'name' => $endpoint['name'],
                     'connector_type' => $endpoint['connector_type'],
+                    'connector_options' => $endpoint['connector_options'] ?? null,
                     'allowed_hosts' => $endpoint['allowed_hosts'],
                     'allowed_path_prefixes' => $endpoint['allowed_path_prefixes'],
                     'access_decision' => $endpoint['access_decision'],
