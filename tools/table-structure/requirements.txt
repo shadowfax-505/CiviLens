@@ -1,0 +1,5 @@
+# Structure detection only; text comes from Tesseract, which already reads
+# ben+eng on this corpus. Pinned because a model change would silently alter
+# every cell boundary a reviewer has already judged against.
+paddlepaddle==3.3.1
+paddleocr[all]==3.7.0
