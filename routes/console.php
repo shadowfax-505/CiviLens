@@ -20,6 +20,7 @@ use App\Services\Extraction\ScoreDiscriminationReport;
 use App\Services\Extraction\TableStructureDetector;
 use App\Services\Extraction\WordGeometryBackfill;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
+use App\Services\Ingestion\CertificateChainRepair;
 use App\Services\Ingestion\SourceCandidateVerifier;
 use App\Services\Ingestion\SourceRegistryProvisioner;
 use App\Services\Intelligence\AmendmentCountReader;
@@ -346,6 +347,41 @@ Artisan::command('civiclens:normalise-notice {path} {--page=1}', function (BornD
 
     return 0;
 })->purpose('Read a tender notice and report it in Open Contracting shape');
+
+Artisan::command('civiclens:build-ca-bundle {hosts?*} {--out=}', function (CertificateChainRepair $repair): int {
+    $given = $this->argument('hosts');
+    $candidates = is_array($given) && $given !== []
+        ? $given
+        : SourceEndpoint::query()->pluck('allowed_hosts')->flatten()->unique()->all();
+
+    // Built by hand: a filtered collection is still keyed, and the repair takes
+    // a list.
+    $hosts = [];
+
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && $candidate !== '') {
+            $hosts[] = $candidate;
+        }
+    }
+
+    $out = $this->option('out');
+    $path = is_string($out) && $out !== '' ? $out : storage_path('app/ca/civiclens-ca.pem');
+
+    // Several publishers serve only their leaf certificate. A browser hides it
+    // by fetching the intermediate the leaf points at; OpenSSL does not, so the
+    // site looks healthy to a person and unverifiable here. This fetches those
+    // intermediates and writes them beside the system roots, which is the
+    // opposite of turning verification off.
+    $result = $repair->buildBundle($hosts, $path);
+    $result['verifies'] = collect($hosts)
+        ->mapWithKeys(fn (string $host): array => [$host => $repair->verifies($host, $path)])
+        ->all();
+
+    $this->line(json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+    $this->info('Set INGESTION_CA_BUNDLE='.$path.' to use it.');
+
+    return 0;
+})->purpose('Fetch the intermediate certificates publishers omit, so their chains verify');
 
 Artisan::command('civiclens:verify-sources {url?} {--hosts=} {--prefix=/}', function (SourceCandidateVerifier $verifier, BangladeshSourceCatalogue $catalogue): int {
     $single = $this->argument('url');
