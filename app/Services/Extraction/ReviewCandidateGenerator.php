@@ -40,6 +40,15 @@ class ReviewCandidateGenerator
      */
     private const MAX_VALUE_CELL_WORDS = 2;
 
+    /**
+     * Acquired, archived, and not a document anybody publishes as one.
+     *
+     * HTML is the site around a document; JSON is a record feed archived for
+     * provenance. Both belong in the corpus and neither belongs in a queue that
+     * asks whether characters were read correctly.
+     */
+    private const NON_DOCUMENT_MEDIA_TYPES = ['text/html', 'application/json', 'text/plain'];
+
     public function __construct(
         private readonly BengaliTextPlausibility $plausibility,
         private readonly AmountGrouping $grouping,
@@ -155,6 +164,13 @@ class ReviewCandidateGenerator
         $candidates = ExtractionPage::query()
             ->with('run')
             ->whereNotNull('extracted_text')
+            // Documents, not the websites they were found on. Discovery follows
+            // every link a listing carries, so acquisition holds navigation
+            // pages too — 58 of one publisher's 59 acquisitions are its own
+            // menus and sector pages. Their text extracts perfectly well and
+            // says "HOME | LINK | CONTACT US", and a reviewer asked to adjudicate
+            // that is being asked to certify website furniture.
+            ->whereHas('run.artifactVersion', fn ($query) => $query->whereNotIn('media_type', self::NON_DOCUMENT_MEDIA_TYPES))
             // A page the recognizer would not vouch for is not worth a
             // reviewer's attention: they would be adjudicating text the system
             // has already declined to stand behind.
