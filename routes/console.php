@@ -14,6 +14,7 @@ use App\Services\Extraction\CorpusLegibilityProbe;
 use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Extraction\FieldDecisionService;
 use App\Services\Extraction\KeyValueExtractor;
+use App\Services\Extraction\PaperReport;
 use App\Services\Extraction\ReviewCandidateGenerator;
 use App\Services\Extraction\ScoreDiscriminationReport;
 use App\Services\Extraction\TableStructureDetector;
@@ -175,6 +176,29 @@ Artisan::command('civiclens:backfill-word-geometry {--limit=250} {--all}', funct
 
     return 0;
 })->purpose('Recover word geometry for pages extracted before it was stored');
+
+Artisan::command('civiclens:paper-report {--alpha=0.05} {--save}', function (PaperReport $report): int {
+    $alpha = $this->option('alpha');
+    $alpha = is_numeric($alpha) ? (float) $alpha : 0.05;
+
+    // Regenerated rather than quoted. A figure copied into a draft cannot be
+    // checked and goes stale without anyone noticing, and the unflattering ones
+    // — abstention, unlocatable values, a single-publisher corpus — are exactly
+    // the ones a copied figure quietly loses.
+    $json = json_encode($report->build($alpha), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+    if ($this->option('save')) {
+        $path = 'reports/paper/'.now()->toDateString().'.json';
+        Storage::disk('local')->put($path, $json);
+        $this->info('Wrote '.$path);
+
+        return 0;
+    }
+
+    $this->line($json);
+
+    return 0;
+})->purpose('Regenerate every number a write-up needs, including the unflattering ones');
 
 Artisan::command('civiclens:decide-fields {--alpha=0.05}', function (FieldDecisionService $decisions): int {
     $alpha = $this->option('alpha');
