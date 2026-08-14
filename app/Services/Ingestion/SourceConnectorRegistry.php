@@ -8,6 +8,7 @@ use App\Services\Ingestion\Connectors\ApiFeedSourceConnector;
 use App\Services\Ingestion\Connectors\BrowserSourceConnector;
 use App\Services\Ingestion\Connectors\DirectDownloadSourceConnector;
 use App\Services\Ingestion\Connectors\EgpTenderListingConnector;
+use App\Services\Ingestion\Connectors\PaginatedApiFeedConnector;
 use App\Services\Ingestion\Connectors\SitemapSourceConnector;
 use App\Services\Ingestion\Connectors\StaticHtmlSourceConnector;
 
@@ -20,12 +21,14 @@ class SourceConnectorRegistry
         private readonly StaticHtmlSourceConnector $staticHtml,
         private readonly BrowserSourceConnector $browser,
         private readonly EgpTenderListingConnector $egpTenderListing,
+        private readonly PaginatedApiFeedConnector $paginatedApiFeed,
     ) {}
 
     public function for(string $type): SourceConnector
     {
         return match ($type) {
             'api', 'feed' => $this->apiFeed,
+            'paginated_api' => $this->paginatedApiFeed,
             'sitemap' => $this->sitemap,
             'direct_download' => $this->directDownload,
             'static_html' => $this->staticHtml,
