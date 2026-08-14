@@ -40,7 +40,10 @@ class ReviewCandidateGenerator
      */
     private const MAX_VALUE_CELL_WORDS = 2;
 
-    public function __construct(private readonly BengaliTextPlausibility $plausibility) {}
+    public function __construct(
+        private readonly BengaliTextPlausibility $plausibility,
+        private readonly AmountGrouping $grouping,
+    ) {}
 
     /**
      * Amounts, dates and reference numbers as these documents write them,
@@ -298,8 +301,16 @@ class ReviewCandidateGenerator
      * up, and a bracketed figure summed as positive is a sign error in the
      * arithmetic rather than in the reading.
      */
-    private function normalisedAmount(string $value): string
+    private function normalisedAmount(string $value): ?string
     {
+        // A comma that does not group thousands is most likely a decimal point
+        // the recognizer misread, and stripping it turns 400.00 into 80,000. No
+        // number is better than one that is wrong by two orders of magnitude,
+        // so the figure is queued for judgement carrying no normalised form.
+        if (! $this->grouping->groupsCorrectly($value)) {
+            return null;
+        }
+
         $digits = str_replace(',', '', $this->unsigned($value));
         $negative = preg_match('/^\(|^[-\x{2212}]/u', trim($value)) === 1;
 
