@@ -31,6 +31,11 @@ use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
+// Every fetch now asks the publisher's robots.txt first and refuses when it
+// cannot be read. These fixtures are stand-ins for publishers that publish no
+// restrictions, which is what a 404 means.
+beforeEach(fn () => robotsAbsentFor('data.example', 'internal.example', 'other.example', 'www.eprocure.gov.bd', 'eprocure.gov.bd'));
+
 function bindSourceAddresses(array $addressesByHost): void
 {
     app()->instance(NetworkAddressResolver::class, new class($addressesByHost) implements NetworkAddressResolver
