@@ -4,12 +4,13 @@
             <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Governed acquisition</p>
             <h1 class="text-3xl font-bold">Do these characters match the page?</h1>
             <p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">
-                One value at a time, drawn at random. Compare the value against the scanned page beside it and
-                judge <strong>only whether the characters were read correctly</strong> — not whether the number is
+                One value at a time, drawn at random. The characters it was read from are marked on the page and shown
+                close up; judge <strong>only whether they were read correctly</strong> — not whether the number is
                 sensible, not which column or heading it sits under, and not whether it was filed as the right kind.
-                Scanned tables lose their columns when they are recognized, so a figure often arrives without the
-                row it belonged to; that is expected and does not make the reading wrong. Your judgement is the label
-                the risk bound is computed from, so an honest "can't tell" is worth more than a guess.
+                Scanned tables lose their columns when they are recognized, so a figure often arrives without the row it
+                belonged to; that is expected and does not make the reading wrong. Where a value could not be marked at
+                all, that page was read before word positions were stored. Your judgement is the label the risk bound is
+                computed from, so an honest "can't tell" is worth more than a guess.
             </p>
         </div>
         <a class="cl-chip" href="{{ route('admin.sources.index') }}">Back to registry</a>
@@ -122,24 +123,48 @@
                     <p class="text-sm font-semibold text-slate-500">The system read</p>
                     <p class="mt-1 break-all font-mono text-5xl font-black">{{ $item->extracted_value }}</p>
 
-                    @php
-                        $text = (string) ($item->page?->extracted_text ?? '');
-                        $start = max(0, (int) $item->evidence_offset_start - 160);
-                        $length = ((int) $item->evidence_offset_end - (int) $item->evidence_offset_start) + 320;
-                    @endphp
+                    @if ($located > 0)
+                        {{-- The crop, not the page, is what the question is
+                             about. A page of hundreds of figures makes finding
+                             the value the reviewer's job, and finding it is not
+                             what is being asked. --}}
+                        <p class="mt-6 text-sm font-semibold text-slate-500">Where it sits on the page</p>
+                        <img src="{{ route('admin.sources.review.page', [$item, 'crop' => 1]) }}"
+                             alt="Close-up of the marked region of page {{ $item->evidence_page_number }}"
+                             class="mt-1 w-full rounded border border-slate-200 bg-white dark:border-slate-700"
+                             loading="eager">
+                        @if ($located > 1)
+                            <p class="mt-2 text-xs text-slate-500">
+                                These characters appear in {{ $located }} places on this page, all marked on the page
+                                beside this; the close-up shows the first. Judge whether they were read correctly —
+                                which of them was meant is not part of the question.
+                            </p>
+                        @endif
 
-                    @if ($text !== '')
-                        <p class="mt-6 text-sm font-semibold text-slate-500">Recognized text around it</p>
-                        <p class="mt-1 whitespace-pre-wrap break-words rounded bg-slate-50 p-3 text-sm leading-relaxed dark:bg-slate-800">{{ mb_substr($text, $start, $length) }}</p>
-                        <p class="mt-1 text-xs text-slate-500">This is the same recognition, shown for context. It cannot confirm itself — the page does.</p>
+                        @if ($transliterated)
+                            {{-- Stated here rather than left to each reviewer:
+                                 without a rule, the same item gets judged both
+                                 ways and the calibration set means nothing. --}}
+                            <p class="mt-3 rounded border border-amber-300 bg-amber-50 p-3 text-xs text-slate-700 dark:border-amber-700 dark:bg-amber-950 dark:text-slate-200">
+                                This document stores Bengali numerals as the Latin characters that render them, so
+                                <strong>১০০.০০</strong> arrives as <strong>100.00</strong>. Judge the digits, not the script:
+                                same digits in the same order is a match, and a different digit anywhere is not.
+                            </p>
+                        @endif
+                    @else
+                        <p class="mt-6 text-sm font-semibold text-slate-500">Not pinpointed</p>
+                        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            This page was read before word positions were stored, so the value cannot be marked on it.
+                            Find it on the page beside this, or mark can't tell.
+                        </p>
                     @endif
                 </div>
 
                 <div>
-                    <p class="text-sm font-semibold text-slate-500">The page it came from</p>
-                    {{-- Without this the question is unanswerable: comparing OCR
-                         output against OCR output only shows it agrees with
-                         itself. --}}
+                    <p class="text-sm font-semibold text-slate-500">The whole page</p>
+                    {{-- Kept beside the crop so a reviewer can see the value in
+                         its place on the document, and see that the document is
+                         the one it claims to be. --}}
                     <img src="{{ route('admin.sources.review.page', $item) }}"
                          alt="Scanned page {{ $item->evidence_page_number }} containing the value under review"
                          class="mt-1 w-full rounded border border-slate-200 bg-white dark:border-slate-700"
