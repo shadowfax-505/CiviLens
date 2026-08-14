@@ -28,6 +28,8 @@ class SourceEndpoint extends Model
         'max_content_bytes',
         'cursor',
         'health_status',
+        'failure_streak',
+        'backoff_until',
         'last_error',
         'last_crawled_at',
         'paused_at',
@@ -39,6 +41,7 @@ class SourceEndpoint extends Model
     {
         return [
             'connector_options' => 'array',
+            'backoff_until' => 'immutable_datetime',
             'allowed_hosts' => 'array',
             'allowed_path_prefixes' => 'array',
             'access_reviewed_at' => 'immutable_datetime',
@@ -74,6 +77,15 @@ class SourceEndpoint extends Model
 
     public function isDue(): bool
     {
+        $backoffUntil = $this->getAttribute('backoff_until');
+
+        // A publisher that has stopped answering is left alone until the backoff
+        // expires. Retrying into a refusal is how one refused request becomes a
+        // hundred, and how a crawler earns a block.
+        if ($backoffUntil instanceof CarbonInterface && $backoffUntil->isFuture()) {
+            return false;
+        }
+
         $lastCrawledAt = $this->getAttribute('last_crawled_at');
 
         return ! $lastCrawledAt instanceof CarbonInterface
