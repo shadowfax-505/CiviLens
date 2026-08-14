@@ -15,7 +15,10 @@ class CalibrationReport
      */
     public function build(float $alpha, string $split = 'test'): array
     {
-        $groupwise = $this->calibrator->calibrate($alpha);
+        // Adaptive rather than fixed: a group too small for this alpha is
+        // certified at the tightest one its own labels support, and only a group
+        // too small even for that borrows a wider population's threshold.
+        $groupwise = $this->calibrator->calibrateAdaptive($alpha);
         $pooled = $this->pooledThreshold($alpha);
 
         return [
@@ -24,7 +27,18 @@ class CalibrationReport
             'guaranteed_quantity' => 'P(field auto-accepted AND wrong) <= alpha',
             'not_guaranteed' => 'P(wrong | accepted) is reported empirically only',
             'groups' => $groupwise->map(fn (GroupCalibration $c): array => $c->toArray())->values()->all(),
+            'alpha_ceiling' => (float) config('civiclens.extraction.conformal.alpha_ceiling', 0.25),
             'uncertifiable_groups' => $groupwise->reject(fn (GroupCalibration $c): bool => $c->certifiable())
+                ->map(fn (GroupCalibration $c): string => $c->key())->values()->all(),
+            // Certified about themselves, at a level their own size forced.
+            'relaxed_groups' => $groupwise
+                ->filter(fn (GroupCalibration $c): bool => $c->certifiable() && $c->conditional() && $c->certifiedAlpha > $alpha)
+                ->map(fn (GroupCalibration $c): string => $c->key())->values()->all(),
+            // Certified by a threshold fitted on a wider population. The bound
+            // holds for that population; for these groups it is not conditional,
+            // and a write-up that reports them together overclaims.
+            'borrowed_groups' => $groupwise
+                ->filter(fn (GroupCalibration $c): bool => $c->certifiable() && ! $c->conditional())
                 ->map(fn (GroupCalibration $c): string => $c->key())->values()->all(),
             'label_leakage' => $this->labelLeakage(),
             'realized' => $this->realized($groupwise, $pooled, $alpha, $split),

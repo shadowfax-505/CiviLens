@@ -50,6 +50,125 @@ class ConformalCalibrator
     }
 
     /**
+     * The tightest alpha a group of this size can satisfy at all.
+     *
+     * Inverting the same correction: n >= 1/alpha - 1 rearranges to
+     * alpha >= 1/(n+1). Nineteen labels is not a wall, it is the price of alpha
+     * = 0.05 specifically. A group with nine can be certified honestly at 0.10,
+     * and one with four at 0.20 — which is what makes rare publishers reportable
+     * instead of permanently deferred.
+     */
+    public function attainableAlpha(int $calibrationSize): float
+    {
+        return $calibrationSize < 1 ? 1.0 : 1.0 / ($calibrationSize + 1);
+    }
+
+    /**
+     * Calibrate every group, relaxing alpha where a group is too small for the
+     * one asked for, and borrowing a coarser threshold where even that is out of
+     * reach.
+     *
+     * The ladder is publisher x script, then script across publishers, then
+     * everything. Each rung is a valid split-conformal calibration for the
+     * population it was fitted on — a borrowed threshold is not a claim about the
+     * rare group, and is labelled as such rather than presented as one.
+     *
+     * @return Collection<string, GroupCalibration>
+     */
+    public function calibrateAdaptive(float $alpha, string $split = 'calibration', ?float $ceiling = null): Collection
+    {
+        $ceiling ??= (float) config('civiclens.extraction.conformal.alpha_ceiling', 0.25);
+        $fields = ExtractionField::query()
+            ->calibratable()
+            ->where('calibration_split', $split)
+            ->get(['publisher_group', 'script_class', 'nonconformity_score', 'is_correct']);
+
+        $byScript = $fields->groupBy(fn (ExtractionField $field): string => (string) $field->script_class);
+
+        return $fields
+            ->groupBy(fn (ExtractionField $field): string => $field->publisher_group.'|'.$field->script_class)
+            ->map(function (Collection $rows) use ($alpha, $ceiling, $byScript, $fields): GroupCalibration {
+                $own = $this->calibrateGroup($rows, $alpha);
+                $attainable = $this->attainableAlpha($own->calibrationSize);
+
+                // Big enough for what was asked: nothing to relax, nothing to
+                // borrow, and the guarantee is conditional on this group.
+                if ($attainable <= $alpha) {
+                    return $this->reframe($own, $attainable, $alpha, 'group');
+                }
+
+                // Too small for that alpha but not too small to say anything.
+                if ($attainable <= $ceiling) {
+                    return $this->reframe(
+                        $this->calibrateGroup($rows, $attainable),
+                        $attainable,
+                        $attainable,
+                        'group',
+                    );
+                }
+
+                $script = $byScript->get($own->scriptClass) ?? collect();
+                $borrowed = $this->borrow($own, $script, $alpha, 'script');
+
+                return $borrowed ?? $this->borrow($own, $fields, $alpha, 'marginal')
+                    ?? $this->reframe($own, $attainable, $attainable, 'none');
+            })
+            ->keyBy(fn (GroupCalibration $calibration): string => $calibration->key());
+    }
+
+    /**
+     * A threshold fitted on a wider pool, kept only if the pool itself is large
+     * enough to certify at the alpha asked for.
+     *
+     * @param  Collection<int, ExtractionField>  $pool
+     */
+    private function borrow(GroupCalibration $own, Collection $pool, float $alpha, string $basis): ?GroupCalibration
+    {
+        if ($pool->isEmpty() || $this->attainableAlpha($pool->count()) > $alpha) {
+            return null;
+        }
+
+        $pooled = $this->calibrateGroup($pool, $alpha);
+
+        if (! $pooled->certifiable()) {
+            return null;
+        }
+
+        return new GroupCalibration(
+            $own->publisherGroup,
+            $own->scriptClass,
+            $alpha,
+            $own->calibrationSize,
+            $this->minimumCalibrationSize($alpha),
+            $pooled->threshold,
+            $own->empiricalFalseAcceptanceRate,
+            $own->acceptanceRate,
+            $own->empiricalErrorAmongAccepted,
+            $this->attainableAlpha($own->calibrationSize),
+            $alpha,
+            $basis,
+        );
+    }
+
+    private function reframe(GroupCalibration $c, float $attainable, float $certified, string $basis): GroupCalibration
+    {
+        return new GroupCalibration(
+            $c->publisherGroup,
+            $c->scriptClass,
+            $c->alpha,
+            $c->calibrationSize,
+            $c->minimumCalibrationSize,
+            $basis === 'none' ? null : $c->threshold,
+            $c->empiricalFalseAcceptanceRate,
+            $c->acceptanceRate,
+            $c->empiricalErrorAmongAccepted,
+            $attainable,
+            $certified,
+            $basis,
+        );
+    }
+
+    /**
      * @return Collection<string, GroupCalibration>
      */
     public function calibrate(float $alpha, string $split = 'calibration'): Collection

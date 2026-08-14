@@ -133,13 +133,16 @@ it('does not offer the same item twice', function (): void {
         ->assertSee('Nothing waiting');
 });
 
-it('shows the minimum a group needs before it is certified for anything', function (): void {
+it('shows what a group needs for the target level without calling a rare group hopeless', function (): void {
+    // The screen used to say a group below nineteen was certified for nothing,
+    // which describes the target rather than the group: n >= 1/alpha - 1
+    // rearranges to alpha >= 1/(n+1), so nine labels certify at 0.10.
     candidate();
 
     $this->actingAs(reviewAdmin())->get('/admin/sources/review')
         ->assertOk()
         ->assertSee('19')
-        ->assertSee('below this a group is certified for nothing');
+        ->assertSee('a smaller group certifies at a looser level, not at none');
 });
 
 it('keeps the queue behind the registry policy', function (): void {
