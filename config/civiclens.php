@@ -141,6 +141,14 @@ return [
         // Risk level the review screen reports its group minimum against.
         'default_alpha' => (float) env('EXTRACTION_DEFAULT_ALPHA', 0.05),
 
+        'conformal' => [
+            // Loosest risk level worth certifying at. A group of four labels can
+            // only support alpha = 0.20, which is a weak claim but a true one;
+            // below this the claim stops being worth making and the group either
+            // borrows a wider population's threshold or defers everything.
+            'alpha_ceiling' => (float) env('EXTRACTION_ALPHA_CEILING', 0.25),
+        ],
+
         'native_media_types' => [
             'application/pdf' => 'pdf',
             'text/plain' => 'text',
