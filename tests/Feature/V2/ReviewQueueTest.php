@@ -172,12 +172,15 @@ it('shows the page a value came from, not just the text around it', function ():
     // Without the page, the screen asks a reviewer to compare OCR output
     // against OCR output. It agrees with itself, so the only honest answer is
     // "can't tell" every time — which is what happened on the first attempt.
+    // The page alone was not enough either: on a budget table of hundreds of
+    // figures, finding the value became the reviewer's job, so the characters
+    // are marked and shown close up.
     $field = candidate();
 
     $this->actingAs(reviewAdmin())->get('/admin/sources/review')
         ->assertOk()
-        ->assertSee('The page it came from')
-        ->assertSee('It cannot confirm itself — the page does.', false)
+        ->assertSee('The whole page')
+        ->assertSee('marked on the page and')
         ->assertSee(route('admin.sources.review.page', $field), false);
 });
 

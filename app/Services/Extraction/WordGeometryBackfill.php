@@ -27,10 +27,18 @@ class WordGeometryBackfill
     /** Paths whose text came from a raster, which is what word boxes describe. */
     private const RASTER_PATHS = ['ocr_primary', 'ocr_enhanced'];
 
+    /**
+     * pdftotext reports boxes in PostScript points, so a native page's numbers
+     * are at 72 to the inch while every rendered page here is at 150. They are
+     * scaled on the way in so one stored coordinate space means one thing.
+     */
+    private const POINTS_PER_INCH = 72;
+
     public function __construct(
         private readonly ArtifactWorkspace $workspace,
         private readonly PageRasterizer $rasterizer,
         private readonly TesseractOcrEngine $engine,
+        private readonly BornDigitalWordExtractor $native,
     ) {}
 
     /**
@@ -100,7 +108,9 @@ class WordGeometryBackfill
     {
         $query = ExtractionPage::query()
             ->whereNull('recognized_words')
-            ->whereIn('extraction_path', self::RASTER_PATHS);
+            // Native pages carry geometry too, from the PDF's own text layer.
+            // Leaving them out left a quarter of the review queue unmarkable.
+            ->whereIn('extraction_path', [...self::RASTER_PATHS, 'native']);
 
         if ($candidatesOnly) {
             // Pages a reviewer is about to be shown come first; re-reading the
@@ -112,6 +122,42 @@ class WordGeometryBackfill
     }
 
     /**
+     * The PDF's own text layer, scaled from points to the DPI everything else
+     * is rendered at.
+     *
+     * @return array{0: list<array<string, mixed>>, 1: string, 2: int}
+     */
+    private function readNative(ExtractionPage $page, SourceArtifactVersion $artifact): array
+    {
+        $dpi = (int) config('civiclens.extraction.ocr.primary_dpi', 150);
+        $scale = $dpi / self::POINTS_PER_INCH;
+        $materialized = null;
+
+        try {
+            $materialized = $this->workspace->materialize($artifact);
+            $words = $this->native->words($materialized, (int) $page->page_number);
+        } finally {
+            $this->workspace->discard($materialized);
+        }
+
+        $scaled = array_map(
+            fn (RecognizedWord $word): array => [
+                't' => $word->text,
+                'c' => $word->confidence,
+                'l' => (int) round($word->left * $scale),
+                'y' => (int) round($word->top * $scale),
+                'w' => (int) round($word->width * $scale),
+                'h' => (int) round($word->height * $scale),
+            ],
+            $words,
+        );
+
+        // The text is left alone here as everywhere else, so nothing is compared
+        // against it and nothing can disagree.
+        return [$scaled, (string) $page->extracted_text, $dpi];
+    }
+
+    /**
      * @return array{0: list<array<string, mixed>>, 1: string, 2: int}|null
      */
     private function read(ExtractionPage $page): ?array
@@ -120,6 +166,10 @@ class WordGeometryBackfill
 
         if (! $artifact instanceof SourceArtifactVersion) {
             return null;
+        }
+
+        if ($page->extraction_path === 'native') {
+            return $this->readNative($page, $artifact);
         }
 
         // The DPI the page was originally read at, so the recovered boxes match
