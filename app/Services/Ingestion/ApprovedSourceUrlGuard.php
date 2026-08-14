@@ -13,6 +13,28 @@ class ApprovedSourceUrlGuard
 
     public function validate(string $url, SourceEndpoint $endpoint): ValidatedSourceUrl
     {
+        return $this->check($url, $endpoint, enforcePathPrefixes: true);
+    }
+
+    /**
+     * The same checks without the path allowlist, for robots.txt alone.
+     *
+     * robots.txt sits at the root by definition, outside whatever prefixes an
+     * endpoint is scoped to, so it cannot be fetched under the normal rule. Host
+     * allowlisting, address pinning and every other guard still apply: this
+     * relaxes one check for one well-known path, not the guard.
+     */
+    public function validateRobots(string $url, SourceEndpoint $endpoint): ValidatedSourceUrl
+    {
+        if (! str_ends_with((string) (parse_url($url, PHP_URL_PATH) ?: ''), '/robots.txt')) {
+            throw new UnsafeSourceUrl('Only robots.txt may skip the path allowlist.');
+        }
+
+        return $this->check($url, $endpoint, enforcePathPrefixes: false);
+    }
+
+    private function check(string $url, SourceEndpoint $endpoint, bool $enforcePathPrefixes): ValidatedSourceUrl
+    {
         if ($url === '' || preg_match('/[\x00-\x1F\x7F]/', $url) === 1) {
             throw new UnsafeSourceUrl('Source URL is empty or contains control characters.');
         }
@@ -73,7 +95,7 @@ class ApprovedSourceUrlGuard
             return $normalizedPrefix === '/' || $path === $normalizedPrefix || str_starts_with($path, $normalizedPrefix.'/');
         });
 
-        if (! $pathAllowed) {
+        if ($enforcePathPrefixes && ! $pathAllowed) {
             throw new UnsafeSourceUrl('Source URL path is not allowlisted for this endpoint.');
         }
 

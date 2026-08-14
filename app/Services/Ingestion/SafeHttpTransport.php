@@ -15,7 +15,19 @@ use Illuminate\Support\Facades\Log;
 
 class SafeHttpTransport
 {
-    public function __construct(private readonly ApprovedSourceUrlGuard $urlGuard) {}
+    /**
+     * True only while robots.txt itself is being fetched.
+     *
+     * Checking robots before fetching robots would never terminate, and the file
+     * sits outside the endpoint's allowed path prefixes by definition, so that
+     * one fetch is exempt from both checks and from nothing else.
+     */
+    private bool $fetchingRobots = false;
+
+    public function __construct(
+        private readonly ApprovedSourceUrlGuard $urlGuard,
+        private readonly RobotsPolicy $robots,
+    ) {}
 
     /** @param array<string, string> $requestHeaders */
     public function get(string $url, SourceEndpoint $endpoint, ?int $maximumBytes = null, array $requestHeaders = []): SafeHttpResponse
@@ -54,6 +66,12 @@ class SafeHttpTransport
 
         while (true) {
             $validated = $this->urlGuard->validate($currentUrl, $endpoint);
+
+            // Checked per hop rather than once: a redirect can land on a path
+            // the publisher disallows, and the hop we actually fetch is the one
+            // that has to be permitted.
+            $this->assertRobotsAllows($validated->url, $endpoint);
+
             $response = $this->request($validated, $endpoint, $requestHeaders, $form);
 
             if (in_array($response->status(), [301, 302, 303, 307, 308], true)) {
@@ -116,16 +134,76 @@ class SafeHttpTransport
     }
 
     /**
-     * @param  array<string, string>  $requestHeaders
-     * @param  array<string, scalar>|null  $form
+     * Refuse a fetch the publisher's robots.txt does not permit, saying which
+     * rule refused it.
      */
-    private function request(ValidatedSourceUrl $validated, SourceEndpoint $endpoint, array $requestHeaders, ?array $form = null): Response
+    private function assertRobotsAllows(string $url, SourceEndpoint $endpoint): void
+    {
+        if ($this->fetchingRobots) {
+            return;
+        }
+
+        $decision = $this->robots->decide($url, $endpoint, fn (string $robotsUrl): ?string => $this->fetchRobots($robotsUrl, $endpoint));
+
+        if (! $decision->allowed) {
+            throw new UnsafeSourceUrl((string) $decision->reason);
+        }
+
+        // The publisher's own pace where it is slower than ours. Ours is a
+        // default; theirs is a statement.
+        if ($decision->crawlDelaySeconds !== null && $decision->crawlDelaySeconds > 0) {
+            $stated = (int) floor(60 / max(0.001, $decision->crawlDelaySeconds));
+
+            if ($stated < (int) $endpoint->rate_limit_per_minute) {
+                $endpoint->forceFill(['rate_limit_per_minute' => max(1, $stated)])->save();
+            }
+        }
+    }
+
+    /**
+     * Fetch robots.txt itself, exempt from the robots check and from the path
+     * allowlist, but from nothing else.
+     *
+     * Requested directly rather than through send(), so there is no redirect
+     * chasing and no second robots check to recurse into.
+     */
+    private function fetchRobots(string $robotsUrl, SourceEndpoint $endpoint): ?string
+    {
+        $this->fetchingRobots = true;
+
+        try {
+            $validated = $this->urlGuard->validateRobots($robotsUrl, $endpoint);
+            // Not streamed. Streaming makes Guzzle report a certificate failure
+            // as "Connection refused", which sends an operator looking for a
+            // firewall when the publisher is actually serving an incomplete
+            // chain. robots.txt is small enough not to need it.
+            $response = $this->request($validated, $endpoint, [], null, stream: false);
+
+            // Absent is an answer, and the standard's answer is "unrestricted".
+            // A redirect or an error page is not a policy either.
+            return $response->status() === 200 ? (string) $response->body() : null;
+        } finally {
+            $this->fetchingRobots = false;
+        }
+    }
+
+    /**
+     * @param  array<string, scalar>|null  $form  null sends a GET
+     * @param  array<string, string>  $requestHeaders
+     */
+    private function request(ValidatedSourceUrl $validated, SourceEndpoint $endpoint, array $requestHeaders, ?array $form = null, bool $stream = true): Response
     {
         $options = [
             'allow_redirects' => false,
             'http_errors' => false,
-            'stream' => true,
+            'stream' => $stream,
         ];
+
+        $bundle = config('civiclens.ingestion.ca_bundle');
+
+        if (is_string($bundle) && $bundle !== '') {
+            $options['verify'] = $bundle;
+        }
 
         if (defined('CURLOPT_RESOLVE') && (bool) config('civiclens.ingestion.pin_resolved_address', true)) {
             $options['curl'] = [CURLOPT_RESOLVE => [$this->resolveEntry($validated)]];
