@@ -81,6 +81,67 @@ class BangladeshSourceCatalogue
                 ],
             ],
             [
+                'slug' => 'worldbank-bangladesh',
+                'name' => 'World Bank project and lending records for Bangladesh',
+                'class' => 'multilateral',
+                'homepage' => 'https://projects.worldbank.org/',
+                'authority' => 'The World Bank Group',
+                'authorisation' => 'I authorise CivicLens to fetch the World Bank public projects API for Bangladesh rate-limited.',
+                'endpoints' => [
+                    [
+                        // Records rather than documents: 407 Bangladesh projects
+                        // with no file behind a row. Each page is archived as
+                        // the publication it is, hashed and versioned like any
+                        // other artifact.
+                        'name' => 'Bangladesh project records',
+                        'connector_type' => 'paginated_api',
+                        'base_url' => 'https://search.worldbank.org/api/v2/projects?format=json&countrycode=BD',
+                        'connector_options' => [
+                            'pagination' => 'offset',
+                            'page_parameter' => 'os',
+                            'size_parameter' => 'rows',
+                            'page_size' => 50,
+                            'pages_per_run' => 4,
+                            'records_key' => 'projects',
+                        ],
+                        'allowed_hosts' => ['search.worldbank.org'],
+                        'allowed_path_prefixes' => ['/api'],
+                        'access_decision' => 'operator-authorised-public-data',
+                        'rate_limit_per_minute' => 6,
+                    ],
+                ],
+            ],
+            [
+                'slug' => 'gleif',
+                'name' => 'Global Legal Entity Identifier Foundation',
+                'class' => 'multilateral',
+                'homepage' => 'https://www.gleif.org/',
+                'authority' => 'GLEIF',
+                'authorisation' => 'I authorise CivicLens to fetch the public GLEIF LEI records API rate-limited.',
+                'endpoints' => [
+                    [
+                        // Entity records for Bangladesh-registered organisations,
+                        // which is what a contractor name has to be matched
+                        // against before anything is said about who it is.
+                        'name' => 'Bangladesh legal entity records',
+                        'connector_type' => 'paginated_api',
+                        'base_url' => 'https://api.gleif.org/api/v1/lei-records?filter%5Bentity.legalAddress.country%5D=BD',
+                        'connector_options' => [
+                            'pagination' => 'page',
+                            'page_parameter' => 'page[number]',
+                            'size_parameter' => 'page[size]',
+                            'page_size' => 50,
+                            'pages_per_run' => 4,
+                            'records_key' => 'data',
+                        ],
+                        'allowed_hosts' => ['api.gleif.org'],
+                        'allowed_path_prefixes' => ['/api'],
+                        'access_decision' => 'operator-authorised-public-data',
+                        'rate_limit_per_minute' => 6,
+                    ],
+                ],
+            ],
+            [
                 'slug' => 'cbad-bangladesh',
                 'name' => 'Directorate of Constitutional Bodies Audit, Bangladesh',
                 'class' => 'government',
