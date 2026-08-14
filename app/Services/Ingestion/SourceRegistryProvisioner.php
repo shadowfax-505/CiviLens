@@ -48,7 +48,13 @@ class SourceRegistryProvisioner
                 'metadata' => [
                     'authorisation' => $authorisation,
                     'authorisation_recorded_at' => $reviewedAt->toIso8601String(),
-                    'robots_txt' => 'absent (HTTP 404); no machine-readable restriction published',
+                    // Not recorded here any more. This said "absent (HTTP 404)"
+                    // about every publisher without ever fetching the file,
+                    // which was a claim about three hosts read by hand and would
+                    // have become a fabrication across a dozen. RobotsPolicy
+                    // fetches it, honours it per request, and records what it
+                    // actually found.
+                    'robots_txt' => 'fetched and enforced per request; see RobotsPolicy',
                     'published_terms' => 'none discoverable at the time of review',
                 ],
             ],
