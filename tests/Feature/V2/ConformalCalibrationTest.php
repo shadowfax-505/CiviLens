@@ -84,7 +84,9 @@ it('defers every field in an uncertifiable group instead of guessing', function 
     seedFields('tiny', 'bn', 'calibration', [[0.01, true], [0.02, true]]);
     seedFields('tiny', 'bn', 'test', [[0.01, true], [0.02, true]]);
 
-    $counts = app(FieldDecisionService::class)->decide(0.05);
+    // The split is named because deciding the corpus is now the default; these
+    // fixtures are held-out fields, which are decided only when asked for.
+    $counts = app(FieldDecisionService::class)->decide(0.05, 'test');
 
     expect($counts[FieldDecisionService::ACCEPTED])->toBe(0)
         ->and($counts[FieldDecisionService::DEFERRED])->toBe(2)
@@ -104,7 +106,7 @@ it('defers a field that has no nonconformity score', function (): void {
         'is_correct' => null,
     ]);
 
-    app(FieldDecisionService::class)->decide(0.05);
+    app(FieldDecisionService::class)->decide(0.05, 'test');
 
     expect(ExtractionField::query()->where('calibration_split', 'test')->sole()->decision)
         ->toBe(FieldDecisionService::DEFERRED);
