@@ -14,6 +14,7 @@ use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Extraction\KeyValueExtractor;
 use App\Services\Extraction\ReviewCandidateGenerator;
 use App\Services\Extraction\TableStructureDetector;
+use App\Services\Extraction\WordGeometryBackfill;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
 use App\Services\Ingestion\SourceRegistryProvisioner;
 use App\Services\Intelligence\AmendmentCountReader;
@@ -157,6 +158,20 @@ Artisan::command('civiclens:extract-tables {--limit=250} {--all}', function (Tab
 
     return 0;
 })->purpose('Queue table structure detection for pages a reviewer will see');
+
+Artisan::command('civiclens:backfill-word-geometry {--limit=250} {--all}', function (WordGeometryBackfill $backfill): int {
+    $limit = $this->option('limit');
+    $limit = is_numeric($limit) ? (int) $limit : 250;
+
+    // Extraction discarded word boxes until they were persisted, so pages read
+    // before that carry text no table cell can be matched against. This re-reads
+    // them for geometry alone and leaves their text untouched.
+    $summary = $backfill->backfill($limit, ! $this->option('all'));
+
+    $this->line(json_encode($summary, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Recover word geometry for pages extracted before it was stored');
 
 Artisan::command('civiclens:generate-review-candidates {--limit=200} {--from-cells}', function (ReviewCandidateGenerator $generator): int {
     $limit = $this->option('limit');
