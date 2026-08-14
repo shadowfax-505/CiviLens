@@ -14,6 +14,7 @@ class ExtractionField extends Model
     protected $fillable = [
         'extraction_run_id',
         'extraction_page_id',
+        'extraction_table_cell_id',
         'field_key',
         'field_type',
         'extracted_value',
@@ -75,6 +76,18 @@ class ExtractionField extends Model
     public function run(): BelongsTo
     {
         return $this->belongsTo(ExtractionRun::class, 'extraction_run_id');
+    }
+
+    /**
+     * The table cell this value sat in, when it came from one.
+     *
+     * Null for values taken from flat page text, which carry no row or column.
+     *
+     * @return BelongsTo<ExtractionTableCell, self>
+     */
+    public function tableCell(): BelongsTo
+    {
+        return $this->belongsTo(ExtractionTableCell::class, 'extraction_table_cell_id');
     }
 
     /** @return BelongsTo<ExtractionPage, self> */

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Sources;
 
 use App\Http\Controllers\Controller;
 use App\Models\ExtractionField;
+use App\Models\ExtractionTableCell;
 use App\Models\SourcePublisher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,19 +24,67 @@ class ReviewQueueController extends Controller
     {
         abort_unless($request->user()?->can('viewAny', SourcePublisher::class) === true, 403);
 
-        return view('admin.sources.review', [
+        $item = ExtractionField::query()
+            ->with(['page', 'tableCell'])
             // Uniform at random, never by confidence. Queueing the most
             // confident items first would make the calibration set
             // unrepresentative of what the system accepts, and a bound computed
             // from it would be correct arithmetic about the wrong population.
-            'item' => ExtractionField::query()
-                ->with('page')
-                ->whereNull('is_correct')
-                ->whereNull('gold_source')
-                ->inRandomOrder()
-                ->first(),
+            ->whereNull('is_correct')
+            ->whereNull('gold_source')
+            ->inRandomOrder()
+            ->first();
+
+        return view('admin.sources.review', [
+            'item' => $item,
             'progress' => $this->progress(),
+            'row' => $this->row($item),
         ]);
+    }
+
+    /**
+     * The table row a value sat in, so a reviewer can see it among its siblings.
+     *
+     * Empty for a value taken from flat page text. A row is context that makes a
+     * figure placeable, and offering an invented one would be worse than
+     * offering none.
+     *
+     * @return array{cells: list<array{column: int, text: string, is_value: bool}>, label: string|null}
+     */
+    private function row(?ExtractionField $item): array
+    {
+        $cell = $item?->tableCell;
+
+        if (! $cell instanceof ExtractionTableCell) {
+            return ['cells' => [], 'label' => null];
+        }
+
+        $cells = ExtractionTableCell::query()
+            ->where('extraction_page_id', $cell->extraction_page_id)
+            ->where('table_index', $cell->table_index)
+            ->where('row_index', $cell->row_index)
+            ->orderBy('column_index')
+            ->get();
+
+        $columns = [];
+
+        // Built by hand rather than mapped: a Collection carries its keys
+        // through ->all(), so the result is a map where the view expects a list.
+        foreach ($cells as $current) {
+            $columns[] = [
+                'column' => (int) $current->column_index,
+                'text' => (string) $current->text,
+                'is_value' => $current->is($cell),
+            ];
+        }
+
+        return [
+            'cells' => $columns,
+            // The leading cell is the line item the row describes. It is shown
+            // as read, not as verified: a mis-split row would attach a confident
+            // label to the wrong figure, which is worse than no label.
+            'label' => $cells->first()?->text,
+        ];
     }
 
     public function store(Request $request, ExtractionField $field): RedirectResponse
