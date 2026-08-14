@@ -24,6 +24,10 @@ class ExtractionField extends Model
         'calibration_split',
         'confidence',
         'nonconformity_score',
+        'score_basis',
+        'decision_basis',
+        'second_read_value',
+        'second_read_confidence',
         'prediction_set_size',
         'decision',
         'decision_alpha',
@@ -42,6 +46,7 @@ class ExtractionField extends Model
         return [
             'confidence' => 'float',
             'nonconformity_score' => 'float',
+            'second_read_confidence' => 'float',
             'prediction_set_size' => 'integer',
             'decision_alpha' => 'float',
             'evidence_page_number' => 'integer',
