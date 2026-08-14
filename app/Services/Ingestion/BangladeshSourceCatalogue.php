@@ -81,6 +81,72 @@ class BangladeshSourceCatalogue
                 ],
             ],
             [
+                'slug' => 'imed-bangladesh',
+                'name' => 'Implementation Monitoring and Evaluation Division',
+                'class' => 'government',
+                'homepage' => 'https://imed.gov.bd/',
+                'authority' => 'Implementation Monitoring and Evaluation Division, Ministry of Planning',
+                'authorisation' => 'I authorise CivicLens to fetch public evaluation and annual reports from imed.gov.bd rate-limited.',
+                'endpoints' => [
+                    [
+                        // Rendered, because the list is built by JavaScript: the
+                        // HTML this page serves carries forty-four links and no
+                        // documents. The files themselves are not on the
+                        // ministry's host at all — they sit in the government's
+                        // object storage, which is why it is allowlisted here.
+                        'name' => 'Annual and evaluation reports',
+                        'connector_type' => 'browser',
+                        'base_url' => 'https://imed.gov.bd/pages/annual-reports/',
+                        'allowed_hosts' => ['imed.gov.bd', 'objectstorage.ap-dcc-gazipur-1.oraclecloud15.com'],
+                        'allowed_path_prefixes' => ['/pages', '/site', '/n'],
+                        'access_decision' => 'operator-authorised-public-material',
+                        'rate_limit_per_minute' => 4,
+                    ],
+                ],
+            ],
+            [
+                'slug' => 'bgpress-gazette',
+                'name' => 'Bangladesh Government Press gazette',
+                'class' => 'government',
+                'homepage' => 'https://www.dpp.gov.bd/bgpress',
+                'authority' => 'Department of Printing and Publications',
+                'authorisation' => 'I authorise CivicLens to fetch published gazettes from dpp.gov.bd rate-limited.',
+                'endpoints' => [
+                    [
+                        // The gazette index, which is a page the site publishes
+                        // rather than a range of numbers to walk. Its documents
+                        // carry no file extension and are identified by what the
+                        // server returns, not by their URL.
+                        'name' => 'Extraordinary gazette index',
+                        'connector_type' => 'browser',
+                        'base_url' => 'https://www.dpp.gov.bd/bgpress/index.php/document/gazettes/140',
+                        'allowed_hosts' => ['www.dpp.gov.bd'],
+                        'allowed_path_prefixes' => ['/bgpress'],
+                        'access_decision' => 'operator-authorised-public-material',
+                        'rate_limit_per_minute' => 4,
+                    ],
+                ],
+            ],
+            [
+                'slug' => 'parliament-bangladesh',
+                'name' => 'Bangladesh Parliament',
+                'class' => 'government',
+                'homepage' => 'https://www.parliament.gov.bd/',
+                'authority' => 'Bangladesh Parliament Secretariat',
+                'authorisation' => 'I authorise CivicLens to fetch public parliamentary publications from parliament.gov.bd rate-limited.',
+                'endpoints' => [
+                    [
+                        'name' => 'Parliamentary publications',
+                        'connector_type' => 'browser',
+                        'base_url' => 'https://www.parliament.gov.bd/',
+                        'allowed_hosts' => ['www.parliament.gov.bd'],
+                        'allowed_path_prefixes' => ['/api/upload', '/en', '/bn', '/'],
+                        'access_decision' => 'operator-authorised-public-material',
+                        'rate_limit_per_minute' => 4,
+                    ],
+                ],
+            ],
+            [
                 'slug' => 'worldbank-bangladesh',
                 'name' => 'World Bank project and lending records for Bangladesh',
                 'class' => 'multilateral',
