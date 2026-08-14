@@ -86,6 +86,9 @@ class SourceAcquisitionService
                 'last_crawled_at' => now(),
             ]);
 
+            // A publisher that answers again has served its penalty.
+            $this->forgive($endpoint);
+
             // What the listing said at this moment, kept apart from the
             // operational record it will later update. A discovered resource is
             // overwritten on the next crawl; an observation is not, so a notice
@@ -230,9 +233,67 @@ class SourceAcquisitionService
             $locked->failure_count++;
             $locked->error_summary = str($message)->squish()->limit(1000)->toString();
             $locked->endpoint()->update(['health_status' => 'failing', 'last_error' => $locked->error_summary]);
+
+            $endpoint = $locked->endpoint;
+
+            if ($endpoint instanceof SourceEndpoint) {
+                $this->backOff($endpoint, $locked->error_summary ?? $message);
+            }
+
             $this->finishRunWhenComplete($locked);
             $locked->save();
         });
+    }
+
+    /**
+     * Leave a publisher that has stopped answering alone for a while.
+     *
+     * The delay doubles with each consecutive failure, and after enough of them
+     * the endpoint pauses and waits for a person. Before this, an endpoint
+     * marked failing was dispatched again on the next tick and every queued
+     * resource retried: ninety-three failed jobs accumulated against one host,
+     * which now refuses the connection outright.
+     */
+    private function backOff(SourceEndpoint $endpoint, string $reason): void
+    {
+        // Our own refusals are not the publisher's failures. A paused endpoint
+        // declines its own fetches, and counting that as the host not answering
+        // would punish a publisher for an operator's decision and extend the
+        // backoff every time someone paused it deliberately.
+        if ($endpoint->paused_at !== null) {
+            return;
+        }
+
+        $streak = ((int) $endpoint->failure_streak) + 1;
+        $base = max(1, (int) config('civiclens.ingestion.backoff.base_minutes', 15));
+        $ceiling = max($base, (int) config('civiclens.ingestion.backoff.max_minutes', 1440));
+        $pauseAfter = max(1, (int) config('civiclens.ingestion.backoff.pause_after', 8));
+
+        // Doubling, capped. Shifting rather than multiplying so a long streak
+        // cannot overflow into a negative delay.
+        $minutes = min($ceiling, $base * (2 ** min(10, $streak - 1)));
+
+        $endpoint->forceFill([
+            'failure_streak' => $streak,
+            'backoff_until' => now()->addMinutes($minutes),
+            'paused_at' => $streak >= $pauseAfter ? ($endpoint->paused_at ?? now()) : $endpoint->paused_at,
+            'last_error' => $streak >= $pauseAfter
+                ? 'Paused after '.$streak.' consecutive failures: '.$reason
+                : $reason,
+        ])->save();
+    }
+
+    /**
+     * A success clears the record. Backing off for ever because of one bad
+     * afternoon would quietly retire a healthy publisher.
+     */
+    private function forgive(SourceEndpoint $endpoint): void
+    {
+        if ((int) $endpoint->failure_streak === 0 && $endpoint->backoff_until === null) {
+            return;
+        }
+
+        $endpoint->forceFill(['failure_streak' => 0, 'backoff_until' => null])->save();
     }
 
     private function recordFetchCompletion(SourceCrawlRun $run, bool $quarantined): void
@@ -243,6 +304,12 @@ class SourceAcquisitionService
 
             if ($quarantined) {
                 $locked->quarantined_count++;
+            }
+
+            $endpoint = $locked->endpoint;
+
+            if ($endpoint instanceof SourceEndpoint) {
+                $this->forgive($endpoint);
             }
 
             $this->finishRunWhenComplete($locked);
