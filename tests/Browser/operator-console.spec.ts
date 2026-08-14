@@ -57,11 +57,11 @@ test.describe('operator console', () => {
     }
   });
 
-  test('review queue states the minimum a group needs before it certifies anything', async ({ page }) => {
+  test('review queue states the minimum for the target level, not a wall', async ({ page }) => {
     await page.goto('/admin/sources/review', { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('heading', { name: 'Do these characters match the page?' })).toBeVisible();
-    await expect(page.getByText('below this a group is certified for nothing')).toBeVisible();
+    await expect(page.getByText('a smaller group certifies at a looser level, not at none')).toBeVisible();
   });
 
   test("review queue offers can't tell beside the verdicts", async ({ page }) => {

@@ -14,6 +14,16 @@ final readonly class GroupCalibration
         public float $empiricalFalseAcceptanceRate,
         public float $acceptanceRate,
         public ?float $empiricalErrorAmongAccepted,
+        /** Smallest alpha this group's own count can satisfy: 1/(n+1). */
+        public float $attainableAlpha = 1.0,
+        /** The alpha actually certified at, which is never tighter than that. */
+        public float $certifiedAlpha = 1.0,
+        /**
+         * Which population the threshold was calibrated on:
+         * 'group' this publisher and script, 'script' every publisher writing
+         * this script, 'marginal' everything, 'none' nothing was certified.
+         */
+        public string $basis = 'group',
     ) {}
 
     public function key(): string
@@ -30,6 +40,18 @@ final readonly class GroupCalibration
         return $this->threshold !== null;
     }
 
+    /**
+     * Is the guarantee about this group, or about a wider population it sits in?
+     *
+     * A borrowed threshold is valid for the pool it was calibrated on and says
+     * nothing conditional about a rare group inside it. Reporting the two as one
+     * would be the exact overclaim per-group calibration exists to prevent.
+     */
+    public function conditional(): bool
+    {
+        return $this->basis === 'group';
+    }
+
     /** @return array<string, mixed> */
     public function toArray(): array
     {
@@ -44,6 +66,10 @@ final readonly class GroupCalibration
             'empirical_false_acceptance_rate' => $this->empiricalFalseAcceptanceRate,
             'acceptance_rate' => $this->acceptanceRate,
             'empirical_error_among_accepted' => $this->empiricalErrorAmongAccepted,
+            'attainable_alpha' => round($this->attainableAlpha, 6),
+            'certified_alpha' => round($this->certifiedAlpha, 6),
+            'basis' => $this->basis,
+            'conditional' => $this->conditional(),
         ];
     }
 }
