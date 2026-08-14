@@ -124,6 +124,14 @@ Measured facts worth not rediscovering:
 
 Each of these cost a debugging cycle. They generalise.
 
+- **A model's own text is not evidence of where its boxes are.** PP-Structure returned structure HTML
+  describing heading, amounts and growth while its cell boxes covered amounts, growth and a paragraph
+  below the table — one row out from itself. Pairing the two by emission order propagates the error
+  silently. Check a box against the rendered page, not against what the model says is in it.
+- **Before concluding a component is broken, draw its output on the page.** Two hours went into the
+  wrong diagnosis — "the words are landing in the wrong cells" — that a single crop with the detected
+  bands drawn on it settled in one look. The words were right; the grid was wrong.
+
 - **Relative spacing beats absolute thresholds in document layout.** Three separate defects came
   from one distance threshold trying to separate two different things — label-to-value gutter vs
   word spacing, value line vs next field. Compare a gap to the gaps around it.

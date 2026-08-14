@@ -5,6 +5,7 @@ namespace App\Services\Extraction;
 use App\Models\DiscoveredResource;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
+use App\Models\ExtractionTableCell;
 use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
 use App\Models\SourcePublisher;
@@ -30,6 +31,15 @@ use Illuminate\Support\Str;
  */
 class ReviewCandidateGenerator
 {
+    /**
+     * Most a cell may hold and still be treated as holding a value.
+     *
+     * Two rather than one so a figure carrying a unit or a bracketed sign stays
+     * eligible, and well below the three-to-seven words seen in cells that were
+     * prose rather than table.
+     */
+    private const MAX_VALUE_CELL_WORDS = 2;
+
     public function __construct(private readonly BengaliTextPlausibility $plausibility) {}
 
     /**
@@ -46,6 +56,81 @@ class ReviewCandidateGenerator
         'amount' => '/(?<![\w.])(?:[\d\x{09E6}-\x{09EF}]{1,3}(?:[,][\d\x{09E6}-\x{09EF}]{2,3})+(?:\.\d{1,2})?|[\d\x{09E6}-\x{09EF}]+\.\d{1,2}|[\d\x{09E6}-\x{09EF}]{5,})(?![\w])/u',
         'reference' => '/\b[\d\x{09E6}-\x{09EF}]{2,}(?:\.[\d\x{09E6}-\x{09EF}]{2,}){2,}\b/u',
     ];
+
+    /**
+     * Candidates taken from table cells, which carry their row and column.
+     *
+     * Generated from the cell rather than matched to it afterwards. A figure
+     * inside a cell knows which row and column it sat in by construction, so the
+     * ambiguity that defeats text matching — 81 of 300 sampled values appear
+     * more than once on their own page — never arises.
+     *
+     * @return array{created: int, cells: int}
+     */
+    public function generateFromCells(int $limit = 500): array
+    {
+        $created = 0;
+        $cells = 0;
+
+        $candidates = ExtractionTableCell::query()
+            ->with('page')
+            ->whereNotNull('text')
+            ->where('word_count', '>', 0)
+            // A cell holding a figure holds one word. On the page measured, every
+            // value cell held exactly one and the cells holding three to seven
+            // were running prose beneath the table that the detector's box had
+            // swept in; a token taken from those would carry a row and column it
+            // never sat in, which is worse than having no provenance at all.
+            ->where('word_count', '<=', self::MAX_VALUE_CELL_WORDS)
+            ->inRandomOrder()
+            ->limit(max(1, $limit))
+            ->get();
+
+        foreach ($candidates as $cell) {
+            $cells++;
+            $page = $cell->page;
+
+            if (! $page instanceof ExtractionPage) {
+                continue;
+            }
+
+            foreach ($this->tokens((string) $cell->text) as $token) {
+                if (ExtractionField::query()
+                    ->where('extraction_table_cell_id', $cell->getKey())
+                    ->where('extracted_value', $token['value'])
+                    ->exists()) {
+                    continue;
+                }
+
+                ExtractionField::query()->create([
+                    'extraction_run_id' => $page->extraction_run_id,
+                    'extraction_page_id' => $page->getKey(),
+                    'extraction_table_cell_id' => $cell->getKey(),
+                    'field_key' => $token['kind'],
+                    'field_type' => 'string',
+                    'extracted_value' => $token['value'],
+                    'normalized_value' => Str::of($token['value'])->replace(',', '')->trim()->value(),
+                    'script_class' => $page->script_class ?? 'unknown',
+                    'publisher_group' => $this->publisherGroup($page),
+                    'confidence' => $page->confidence,
+                    'nonconformity_score' => $page->confidence === null
+                        ? 1.0
+                        : round(max(0.0, min(1.0, 1.0 - ((float) $page->confidence / 100))), 8),
+                    'decision' => 'pending',
+                    'evidence_page_number' => $page->page_number,
+                    // Offsets are within the cell, not the page: the cell is the
+                    // context a reviewer is shown.
+                    'evidence_offset_start' => $token['start'],
+                    'evidence_offset_end' => $token['start'] + mb_strlen($token['value']),
+                    'gold_source' => null,
+                ]);
+
+                $created++;
+            }
+        }
+
+        return ['created' => $created, 'cells' => $cells];
+    }
 
     /**
      * @return array{created: int, pages: int, skipped_pages: int}
