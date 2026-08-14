@@ -123,7 +123,13 @@ class BangladeshSourceCatalogue
                         'allowed_hosts' => ['www.dpp.gov.bd'],
                         'allowed_path_prefixes' => ['/bgpress'],
                         'access_decision' => 'operator-authorised-public-material',
-                        'rate_limit_per_minute' => 4,
+                        // One a minute. At four this host stopped answering
+                        // altogether after roughly a hundred requests — port 443
+                        // now refuses the connection while port 80 returns 403 —
+                        // and a rate that gets a crawler blocked is not a rate,
+                        // it is a way of losing a source.
+                        'rate_limit_per_minute' => 1,
+                        'crawl_interval_minutes' => 1440,
                     ],
                 ],
             ],
