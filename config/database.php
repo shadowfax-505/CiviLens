@@ -44,7 +44,12 @@ return [
             // how a backfill died two hundred pages in. Ten seconds is far
             // longer than any write here takes.
             'busy_timeout' => env('DB_BUSY_TIMEOUT', 10000),
-            'journal_mode' => null,
+            // Under the default rollback journal a writer blocks every reader,
+            // so the console stalls behind whatever the crawl is doing. WAL lets
+            // readers carry on against the last committed state while a write is
+            // in flight. It is a property of the file, not of a connection: it
+            // survives here so a freshly created database gets it too.
+            'journal_mode' => env('DB_JOURNAL_MODE', 'WAL'),
             'synchronous' => null,
             'transaction_mode' => 'DEFERRED',
         ],
