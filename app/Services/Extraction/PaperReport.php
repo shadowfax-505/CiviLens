@@ -23,6 +23,15 @@ use Illuminate\Support\Collection;
  */
 class PaperReport
 {
+    /** What a publisher publishes as a document, rather than the site around it. */
+    private const DOCUMENT_MEDIA_TYPES = [
+        'application/pdf',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.oasis.opendocument.spreadsheet',
+        'text/csv',
+    ];
+
     public function __construct(
         private readonly ScoreDiscriminationReport $discrimination,
         private readonly CalibrationReport $calibration,
@@ -52,19 +61,24 @@ class PaperReport
      */
     private function corpus(): array
     {
-        $documents = SourceArtifactVersion::query()->count();
-
         return [
             'publishers_registered' => SourcePublisher::query()->count(),
             'endpoints' => SourceEndpoint::query()->count(),
             'resources_discovered' => DiscoveredResource::query()->count(),
-            'documents_acquired' => $documents,
+            // Split, because discovery follows every link a listing carries and
+            // acquisition therefore holds each publisher's own menus beside its
+            // reports. Counting them together reported 413 documents for a
+            // corpus that holds 11, which is the kind of figure that reaches a
+            // write-up and is never checked again.
+            'documents_acquired' => $this->artifactsOfKind(true),
+            'web_pages_and_records_archived' => $this->artifactsOfKind(false),
             // Structured rows captured from a listing that publishes records
             // rather than files. A second publisher's data, but not a second
             // publisher's documents, and the difference matters to any claim
             // about extraction.
             'tender_observations' => TenderObservation::query()->count(),
             'documents_by_publisher' => $this->documentsByPublisher(),
+            'archived_by_publisher' => $this->documentsByPublisher(documentsOnly: false),
         ];
     }
 
@@ -75,11 +89,17 @@ class PaperReport
      *
      * @return array<string, int>
      */
-    private function documentsByPublisher(): array
+    private function documentsByPublisher(bool $documentsOnly = true): array
     {
         $counts = [];
 
-        foreach (DiscoveredResource::query()->where('status', 'acquired')->with('endpoint.publisher')->get() as $resource) {
+        $resources = DiscoveredResource::query()
+            ->where('status', 'acquired')
+            ->with(['endpoint.publisher', 'artifactVersions'])
+            ->get()
+            ->filter(fn (DiscoveredResource $resource): bool => $this->isDocument($resource) === $documentsOnly);
+
+        foreach ($resources as $resource) {
             $endpoint = $resource->endpoint;
             $publisher = $endpoint instanceof SourceEndpoint ? $endpoint->publisher : null;
             $slug = $publisher instanceof SourcePublisher ? $publisher->slug : 'unattributed';
@@ -88,6 +108,28 @@ class PaperReport
         }
 
         return $counts;
+    }
+
+    /**
+     * A document is something the publisher published as one. HTML is the site
+     * around it and JSON is an archived record feed; both belong in the corpus
+     * and neither is a document.
+     */
+    private function isDocument(DiscoveredResource $resource): bool
+    {
+        $version = $resource->artifactVersions->first();
+
+        return $version instanceof SourceArtifactVersion
+            && in_array((string) $version->media_type, self::DOCUMENT_MEDIA_TYPES, true);
+    }
+
+    private function artifactsOfKind(bool $documents): int
+    {
+        $query = SourceArtifactVersion::query();
+
+        return $documents
+            ? $query->whereIn('media_type', self::DOCUMENT_MEDIA_TYPES)->count()
+            : $query->whereNotIn('media_type', self::DOCUMENT_MEDIA_TYPES)->count();
     }
 
     /**
