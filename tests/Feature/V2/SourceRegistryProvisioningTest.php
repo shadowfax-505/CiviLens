@@ -50,7 +50,7 @@ it('stores the authorising sentence verbatim', function (): void {
         // This used to assert the record said "absent (HTTP 404)", which was
         // written about every publisher without the file ever being fetched.
         // The record now points at the thing that actually reads it per request.
-        ->and($publisher->metadata['robots_txt'])->toContain('fetched and enforced per request');
+        ->and($publisher->metadata['robots_txt'])->toContain('governed by civiclens.ingestion.honour_robots');
 });
 
 it('scopes the endpoint to an exact host and path prefix', function (): void {

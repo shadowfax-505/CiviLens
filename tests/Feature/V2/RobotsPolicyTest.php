@@ -15,6 +15,11 @@ uses(RefreshDatabase::class);
 // A public address for the fixture host, so the guard's own resolution check
 // passes and what these tests measure is the robots decision alone.
 beforeEach(function (): void {
+    // These tests are about what the policy decides when it is consulted, so
+    // they turn it on explicitly. The project default is off, and the test
+    // below covers that.
+    config(['civiclens.ingestion.honour_robots' => true]);
+
     app()->instance(NetworkAddressResolver::class, new class implements NetworkAddressResolver
     {
         public function resolve(string $host): array
@@ -104,4 +109,38 @@ it('ignores comments and blank lines rather than reading them as rules', functio
     $parsed = app(RobotsPolicy::class)->parse("# a note\nUser-agent: *\n\nDisallow: /private # trailing note\n");
 
     expect($parsed['rules'])->toBe([['type' => 'disallow', 'pattern' => '/private']]);
+});
+
+it('does not consult robots.txt at all when it is not honoured', function (): void {
+    // The project default. A disallowed path is fetched, and no request is made
+    // for robots.txt itself: reading a file only to ignore it would spend a
+    // request for nothing and make every crawl depend on it being reachable.
+    config(['civiclens.ingestion.honour_robots' => false]);
+
+    Http::fake([
+        'https://data.example/robots.txt' => Http::response("User-agent: *\nDisallow: /\n", 200),
+        'https://data.example/*' => Http::response('body', 200, ['Content-Type' => 'application/pdf']),
+    ]);
+
+    $response = app(SafeHttpTransport::class)->get('https://data.example/reports/private/x.pdf', robotsEndpoint());
+
+    expect($response->content)->toBe('body');
+
+    Http::assertNotSent(fn ($request): bool => str_ends_with($request->url(), '/robots.txt'));
+});
+
+it('keeps the endpoint rate limit when robots is not honoured', function (): void {
+    // Ignoring robots is not permission to go faster. The limit is the
+    // endpoint's own, and a stated Crawl-delay is simply never read.
+    config(['civiclens.ingestion.honour_robots' => false]);
+
+    Http::fake([
+        'https://data.example/robots.txt' => Http::response("User-agent: *\nCrawl-delay: 30\n", 200),
+        'https://data.example/*' => Http::response('body', 200, ['Content-Type' => 'application/pdf']),
+    ]);
+
+    $endpoint = robotsEndpoint();
+    app(SafeHttpTransport::class)->get('https://data.example/reports/x.pdf', $endpoint);
+
+    expect($endpoint->fresh()->rate_limit_per_minute)->toBe(60);
 });

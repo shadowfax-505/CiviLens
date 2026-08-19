@@ -156,6 +156,14 @@ class SafeHttpTransport
             return;
         }
 
+        // When robots is not an authority here, it is not fetched either.
+        // Reading it only to ignore it would spend a request on a file whose
+        // answer changes nothing, and make every crawl depend on that file
+        // being reachable.
+        if (! config('civiclens.ingestion.honour_robots')) {
+            return;
+        }
+
         $decision = $this->robots->decide($url, $endpoint, fn (string $robotsUrl): ?string => $this->fetchRobots($robotsUrl, $endpoint));
 
         if (! $decision->allowed) {

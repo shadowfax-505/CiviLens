@@ -79,10 +79,11 @@ it('refuses to render for an endpoint with no allowlisted host', function (): vo
         ->toThrow(AcquisitionFailed::class, 'no allowlisted host');
 });
 
-it('checks robots before launching a browser at all', function (): void {
-    // The worker does not speak to the transport, so this is the only place a
-    // publisher's rules can reach a rendered fetch. A renderer that ignored
-    // robots would be a way round the rule rather than an exception to it.
+it('applies the same fetch policy as the transport before launching a browser', function (): void {
+    // The worker does not speak to the transport, so this is the only place the
+    // project's fetch policy can reach a rendered fetch. A renderer with its own
+    // policy would be a way round the rule rather than an exception to it.
+    config(['civiclens.ingestion.honour_robots' => true]);
     robotsFor('data.example', "User-agent: *\nDisallow: /reports\n");
     config(['civiclens.ingestion.browser.node' => '/bin/sh']);
 

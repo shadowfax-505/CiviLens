@@ -51,10 +51,10 @@ class SourceRegistryProvisioner
                     // Not recorded here any more. This said "absent (HTTP 404)"
                     // about every publisher without ever fetching the file,
                     // which was a claim about three hosts read by hand and would
-                    // have become a fabrication across a dozen. RobotsPolicy
-                    // fetches it, honours it per request, and records what it
-                    // actually found.
-                    'robots_txt' => 'fetched and enforced per request; see RobotsPolicy',
+                    // have become a fabrication across a dozen. What robots says
+                    // is now a runtime question, answered by one setting rather
+                    // than asserted per endpoint at registration time.
+                    'robots_txt' => 'governed by civiclens.ingestion.honour_robots; see RobotsPolicy',
                     'published_terms' => 'none discoverable at the time of review',
                 ],
             ],

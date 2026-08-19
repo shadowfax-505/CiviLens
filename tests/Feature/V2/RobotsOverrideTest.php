@@ -13,6 +13,11 @@ use Illuminate\Support\Facades\Log;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
+    // An override is only meaningful where robots is an authority, so these
+    // tests turn it on. With the project default it is off and nothing is
+    // refused for it to override.
+    config(['civiclens.ingestion.honour_robots' => true]);
+
     app()->instance(NetworkAddressResolver::class, new class implements NetworkAddressResolver
     {
         public function resolve(string $host): array

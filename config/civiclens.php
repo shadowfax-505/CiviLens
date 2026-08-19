@@ -234,9 +234,22 @@ return [
         'user_agent' => env('INGESTION_USER_AGENT', 'CivicLensBot/2.0 (+'.rtrim((string) env('APP_URL', 'http://localhost'), '/').'/about)'),
         'max_redirects' => (int) env('INGESTION_MAX_REDIRECTS', 3),
 
-        // How long a publisher's robots.txt is trusted for. This is an exposure
-        // window rather than a performance setting: a publisher that adds a
-        // Disallow keeps being crawled until it expires.
+        // Whether a publisher's robots.txt decides what may be fetched.
+        //
+        // Off by default. The operator's recorded position is that access to
+        // public-sector records for public-benefit research does not turn on a
+        // file the publisher can edit, and the routes this project needs were
+        // being refused by one. Turning it on restores robots as an authority
+        // for every endpoint at once.
+        //
+        // Rate limits do not depend on this: they are set per endpoint and
+        // enforced whatever robots says, so a source is never hammered because
+        // this is off.
+        'honour_robots' => filter_var(env('INGESTION_HONOUR_ROBOTS', false), FILTER_VALIDATE_BOOL),
+
+        // How long a publisher's robots.txt is trusted for, when it is honoured.
+        // This is an exposure window rather than a performance setting: a
+        // publisher that adds a Disallow keeps being crawled until it expires.
         'robots_cache_seconds' => (int) env('INGESTION_ROBOTS_CACHE_SECONDS', 3600),
 
         'backoff' => [

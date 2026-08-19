@@ -19,10 +19,10 @@ use Symfony\Component\Process\Process;
  * A browser is also a hole in every guarantee the rest of acquisition provides.
  * It fetches whatever a page asks for, from hosts nobody allowlisted, which is
  * what the address pinning and fail-closed egress exist to prevent. So the
- * properties are rebuilt rather than waived: robots.txt is checked here before
- * the browser is launched, and the worker aborts every request the page makes to
- * a host outside this endpoint's allowlist — eleven of them on the first page
- * rendered.
+ * properties are rebuilt rather than waived: the same fetch policy that governs
+ * the HTTP transport is applied here before the browser is launched, and the
+ * worker aborts every request the page makes to a host outside this endpoint's
+ * allowlist — eleven of them on the first page rendered.
  *
  * Optional at runtime. Without a configured Node binary this reports the
  * renderer as unavailable and the connector fails closed, exactly as it did
