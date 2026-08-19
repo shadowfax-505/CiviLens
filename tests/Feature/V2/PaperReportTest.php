@@ -21,6 +21,17 @@ it('reports abstention rather than counting only what was read', function (): vo
         ->and($report['extraction']['abstained_share'])->toBe(0.25);
 });
 
+it('counts documents apart from the web pages they were found on', function (): void {
+    // Discovery follows every link a listing carries, so acquisition holds each
+    // publisher's own menus. Counted together, a corpus of 11 documents reported
+    // 413 — the kind of figure that reaches a write-up and is never rechecked.
+    $report = app(PaperReport::class)->build();
+
+    expect($report['corpus'])->toHaveKey('documents_acquired')
+        ->and($report['corpus'])->toHaveKey('web_pages_and_records_archived')
+        ->and($report['corpus'])->toHaveKey('archived_by_publisher');
+});
+
 it('reports which publisher the documents actually came from', function (): void {
     // Every group-conditional claim rests on that answer, and a corpus drawn
     // from one publisher must not read as though it were drawn from several.
