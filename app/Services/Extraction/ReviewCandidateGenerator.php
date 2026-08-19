@@ -73,7 +73,22 @@ class ReviewCandidateGenerator
         // and are captured the same way, as written rather than interpreted.
         // A minus directly after a digit is a range, not a sign: 2013-2017 must
         // not yield -2017, so the sign is only taken where no digit precedes it.
-        'amount' => '/(?<![\w.])(?:\((?:[-\x{2212}]\x{0020}?)?(?:[\d\x{09E6}-\x{09EF}]{1,3}(?:[,][\d\x{09E6}-\x{09EF}]{2,3})+(?:\.\d{1,2})?|[\d\x{09E6}-\x{09EF}]+\.\d{1,2}|[\d\x{09E6}-\x{09EF}]{5,})\)|(?<![\d\x{09E6}-\x{09EF}])[-\x{2212}]?(?:[\d\x{09E6}-\x{09EF}]{1,3}(?:[,][\d\x{09E6}-\x{09EF}]{2,3})+(?:\.\d{1,2})?|[\d\x{09E6}-\x{09EF}]+\.\d{1,2}|[\d\x{09E6}-\x{09EF}]{5,}))(?![\w])/u',
+        // A match may not begin immediately after a comma, or end immediately
+        // before a decimal digit. Without those two guards the pattern read
+        // fragments of numbers it could not match whole: ৬.০২,৪৫,৩৯৫ — a
+        // thousands separator the recognizer read as a point — yielded
+        // ৪৫,৩৯৫, and the section number ৩.৬.৭ yielded ৩.৬. Both are values
+        // the page does not contain, and a reviewer shown one is being asked
+        // about a figure that is not there.
+        //
+        // The fractional part takes the same digits as the integer part.
+        // Accepting Bengali digits before the point and only Latin ones after
+        // it is what sent ৬.০২ down this path to begin with.
+        //
+        // A minus after a closing bracket is not a sign. These reports write a
+        // difference as (১,৫৯৪.৫২-১,১১৬.৮২)-৪৭৭.৭০, where the last minus
+        // introduces the result; reading it as negative reverses the figure.
+        'amount' => '/(?<![\w.,])(?:\((?:[-\x{2212}]\x{0020}?)?(?:[\d\x{09E6}-\x{09EF}]{1,3}(?:[,][\d\x{09E6}-\x{09EF}]{2,3})+(?:\.[\d\x{09E6}-\x{09EF}]{1,2})?|[\d\x{09E6}-\x{09EF}]+\.[\d\x{09E6}-\x{09EF}]{1,2}|[\d\x{09E6}-\x{09EF}]{5,})\)|(?<![\d\x{09E6}-\x{09EF}\)])[-\x{2212}]?(?:[\d\x{09E6}-\x{09EF}]{1,3}(?:[,][\d\x{09E6}-\x{09EF}]{2,3})+(?:\.[\d\x{09E6}-\x{09EF}]{1,2})?|[\d\x{09E6}-\x{09EF}]+\.[\d\x{09E6}-\x{09EF}]{1,2}|[\d\x{09E6}-\x{09EF}]{5,}))(?![\w])(?!\.[\d\x{09E6}-\x{09EF}])/u',
         'reference' => '/\b[\d\x{09E6}-\x{09EF}]{2,}(?:\.[\d\x{09E6}-\x{09EF}]{2,}){2,}\b/u',
     ];
 
