@@ -1,4 +1,5 @@
 <x-layouts.app :title="$organization->legal_name">
+    <x-illustrative-data-notice />
     @php($mapLocation = ($organization->headquarters_latitude !== null && $organization->headquarters_longitude !== null) ? $organization : $organization->branches->first(fn ($branch) => $branch->latitude !== null && $branch->longitude !== null))
     <section class="space-y-6">
         <div>

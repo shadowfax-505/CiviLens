@@ -1,4 +1,5 @@
 <x-layouts.app :title="$tender->title">
+    <x-illustrative-data-notice />
     <section class="space-y-8">
         <div>
             <p class="text-sm font-semibold uppercase text-emerald-700">{{ $tender->tender_number }}</p>

@@ -41,6 +41,7 @@ use App\Services\Screening\EntityScreener;
 use App\Services\Screening\ScreeningEntityLoader;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Storage;
 
@@ -204,6 +205,16 @@ Artisan::command('civiclens:extract-tables {--limit=250} {--all}', function (Tab
 
     if (! $this->option('all')) {
         $query->whereIn('id', ExtractionField::query()->whereNull('gold_source')->select('extraction_page_id'));
+
+        // A page whose structure is already known is not worth ninety seconds
+        // to learn again. Detection is the slowest thing this project runs, and
+        // dispatching a batch of 600 sent about 124 pages back through it for a
+        // result already in the database — three hours of the twelve.
+        //
+        // `--all` still re-detects everything, which is what to use after the
+        // page has been re-read and its word geometry has changed underneath
+        // the old grid.
+        $query->whereNotIn('id', DB::table('extraction_table_cells')->select('extraction_page_id'));
     }
 
     $dispatched = 0;

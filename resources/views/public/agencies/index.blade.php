@@ -1,4 +1,5 @@
 <x-layouts.app title="Public Agencies">
+    <x-illustrative-data-notice />
     <section class="space-y-6">
         <h1 class="text-3xl font-bold">Public Agencies</h1>
         <form method="GET" class="grid gap-3 md:grid-cols-3">

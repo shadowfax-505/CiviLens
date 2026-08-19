@@ -1,4 +1,5 @@
 <x-layouts.app :title="$project->name">
+    <x-illustrative-data-notice />
     @php($mapLocation = ($project->latitude !== null && $project->longitude !== null) ? $project : collect([$project->ward, $project->union, $project->upazila, $project->district, $project->division, $project->country])->first(fn ($location) => $location?->latitude !== null && $location?->longitude !== null))
     <section class="space-y-8">
         <div class="space-y-4">

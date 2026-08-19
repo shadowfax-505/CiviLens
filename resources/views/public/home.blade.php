@@ -1,4 +1,5 @@
 <x-layouts.app title="CivicLens — Public evidence for every district" shell="public" :immersive="$earthJourneyEnabled ?? false">
+    <x-illustrative-data-notice />
     {{-- ═══════════════════════════════════════════════════════════════
          HERO
     ═══════════════════════════════════════════════════════════════ --}}
