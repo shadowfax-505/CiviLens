@@ -62,6 +62,7 @@ use App\Http\Controllers\PublicPortal\PublicAgencyController;
 use App\Http\Controllers\PublicPortal\PublicContractorController;
 use App\Http\Controllers\PublicPortal\PublicDistrictLocatorController;
 use App\Http\Controllers\PublicPortal\PublicDocumentController;
+use App\Http\Controllers\PublicPortal\PublicEvidenceController;
 use App\Http\Controllers\PublicPortal\PublicHomeController;
 use App\Http\Controllers\PublicPortal\PublicProcurementController;
 use App\Http\Controllers\PublicPortal\PublicProjectController;
@@ -94,6 +95,11 @@ Route::prefix('public')->name('public.')->group(function (): void {
     Route::get('/contractors/{organization}', [PublicContractorController::class, 'show'])->name('contractors.show');
     Route::get('/documents', [PublicDocumentController::class, 'index'])->name('documents.index');
     Route::get('/documents/{document}/download', [PublicDocumentController::class, 'download'])->name('documents.download');
+    // The certified corpus. Reads only the published snapshot, never the
+    // domain tables, so nothing here can be a demonstration row.
+    Route::get('/evidence', [PublicEvidenceController::class, 'index'])->name('evidence.index');
+    Route::get('/evidence/notices', [PublicEvidenceController::class, 'notices'])->name('evidence.notices');
+    Route::get('/evidence/{document}', [PublicEvidenceController::class, 'show'])->name('evidence.show');
     Route::get('/search', PublicSearchController::class)->middleware('throttle:60,1')->name('search');
     Route::get('/reports/{uuid}', [CitizenReportController::class, 'show'])->whereUuid('uuid')->name('reports.show');
 });

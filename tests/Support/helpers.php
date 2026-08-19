@@ -1,6 +1,12 @@
 <?php
 
+use App\Models\DiscoveredResource;
+use App\Models\ExtractionField;
+use App\Models\ExtractionPage;
+use App\Models\ExtractionRun;
 use App\Models\Role;
+use App\Models\SourceArtifactVersion;
+use App\Models\SourceEndpoint;
 use App\Models\User;
 use App\Services\Ingestion\RobotsPolicy;
 use Illuminate\Support\Facades\Cache;
@@ -45,4 +51,50 @@ function robotsFor(string $host, string $body): void
         'status' => 'present',
         'fetched_at' => now()->toIso8601String(),
     ], 3600);
+}
+
+if (! function_exists('publishableDocument')) {
+    /**
+     * A document with one page, ready for fields to be hung off it.
+     *
+     * @return array{artifact: SourceArtifactVersion, page: ExtractionPage}
+     */
+    function publishableDocument(string $mediaType = 'application/pdf', bool $quarantined = false): array
+    {
+        $endpoint = SourceEndpoint::factory()->create();
+        $resource = DiscoveredResource::factory()->create(['source_endpoint_id' => $endpoint->id]);
+
+        $artifact = SourceArtifactVersion::factory()->create([
+            'discovered_resource_id' => $resource->id,
+            'media_type' => $mediaType,
+            'is_quarantined' => $quarantined,
+        ]);
+
+        $run = ExtractionRun::factory()->create([
+            'source_artifact_version_id' => $artifact->id,
+            'page_count' => 1,
+        ]);
+
+        $page = ExtractionPage::factory()->create([
+            'extraction_run_id' => $run->id,
+            'page_number' => 1,
+        ]);
+
+        return ['artifact' => $artifact, 'page' => $page];
+    }
+
+    function certifiedFieldOn(ExtractionPage $page, string $decision, array $overrides = []): ExtractionField
+    {
+        return ExtractionField::factory()->create(array_merge([
+            'extraction_run_id' => $page->extraction_run_id,
+            'extraction_page_id' => $page->id,
+            'field_type' => 'amount',
+            'extracted_value' => '১,২৩,৪৫৬',
+            'decision' => $decision,
+            'decision_alpha' => 0.05,
+            'decision_basis' => $decision === 'accepted' ? 'group' : null,
+            'publisher_group' => 'dgcivil-bangladesh',
+            'script_class' => 'bn',
+        ], $overrides));
+    }
 }

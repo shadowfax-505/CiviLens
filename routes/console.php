@@ -30,6 +30,7 @@ use App\Services\Intelligence\AmendmentCountReader;
 use App\Services\Intelligence\CivicIntegrityEngineService;
 use App\Services\Intelligence\NoticeRevisionDetector;
 use App\Services\Normalisation\OcdsTenderNormaliser;
+use App\Services\Publication\PublicationSnapshotBuilder;
 use App\Services\Screening\EntityScreener;
 use App\Services\Screening\ScreeningEntityLoader;
 use Illuminate\Foundation\Inspiring;
@@ -49,21 +50,28 @@ Artisan::command('civiclens:integrity-run', function (CivicIntegrityEngineServic
     return 0;
 })->purpose('Run deterministic CivicLens integrity analysis');
 
-Artisan::command('civiclens:sources-dispatch', function (): int {
+Artisan::command('civiclens:sources-dispatch {--endpoint=* : Crawl only these endpoint ids} {--force : Crawl whether or not the interval is due}', function (): int {
     if (! config('civiclens.ingestion.enabled')) {
         $this->comment('Governed source acquisition is disabled.');
 
         return 0;
     }
 
+    // The schedule runs this every five minutes and wants only what is due. An
+    // operator running it by hand has usually just fixed the reason a source
+    // failed and wants that source now, not at the top of its next interval.
+    $only = array_map('intval', (array) $this->option('endpoint'));
+    $force = (bool) $this->option('force');
+
     $dispatched = 0;
 
     SourceEndpoint::query()
         ->whereNull('paused_at')
+        ->when($only !== [], fn ($query) => $query->whereIn('id', $only))
         ->whereHas('publisher', fn ($query) => $query->where('is_active', true))
         ->orderBy('id')
-        ->each(function (SourceEndpoint $endpoint) use (&$dispatched): void {
-            if ($endpoint->isDue()) {
+        ->each(function (SourceEndpoint $endpoint) use (&$dispatched, $force): void {
+            if ($force || $endpoint->isDue()) {
                 RunSourceEndpointCrawl::dispatch($endpoint->id);
                 $dispatched++;
             }
@@ -73,6 +81,40 @@ Artisan::command('civiclens:sources-dispatch', function (): int {
 
     return 0;
 })->purpose('Dispatch due allowlisted source acquisition jobs');
+
+Artisan::command('civiclens:publish {label} {--notes=} {--publish : Make this snapshot the one the public site serves}', function (PublicationSnapshotBuilder $builder): int {
+    $label = $this->argument('label');
+    $notes = $this->option('notes');
+
+    $snapshot = $builder->build(is_string($label) ? $label : '', is_string($notes) ? $notes : null);
+
+    $this->info("Built snapshot {$snapshot->label}.");
+    $this->table(
+        ['documents', 'figures', 'notices', 'figures skipped', 'requested alpha'],
+        [[
+            $snapshot->document_count,
+            $snapshot->figure_count,
+            $snapshot->notice_count,
+            $snapshot->skipped_figure_count,
+            $snapshot->requested_alpha,
+        ]],
+    );
+
+    if ($snapshot->skipped_figure_count > 0) {
+        $this->warn("{$snapshot->skipped_figure_count} certified values could not be traced to a document and were left out.");
+    }
+
+    // Building and publishing are separate on purpose: a snapshot can be
+    // inspected before anyone sees it.
+    if ($this->option('publish')) {
+        $builder->publish($snapshot);
+        $this->info('Published. This is now the snapshot the public site serves.');
+    } else {
+        $this->comment('Not published. Re-run with --publish, or publish it from the admin side.');
+    }
+
+    return 0;
+})->purpose('Freeze the certified corpus into a publishable snapshot');
 
 Artisan::command('civiclens:extraction-summary', function (ExtractionRoutingReport $report): int {
     $summary = $report->build();

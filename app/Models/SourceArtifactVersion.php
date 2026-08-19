@@ -50,6 +50,7 @@ class SourceArtifactVersion extends Model
         static::updating(fn (self $artifact): bool => array_diff(array_keys($artifact->getDirty()), ['document_version_id', 'updated_at']) === []);
     }
 
+    /** @return BelongsTo<DiscoveredResource, self> */
     public function discoveredResource(): BelongsTo
     {
         return $this->belongsTo(DiscoveredResource::class);
