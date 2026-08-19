@@ -28,6 +28,21 @@ being made to produce results.
 
 Republication follows attribution: the publisher's name travels with the record.
 
+## Sources fetched against a publisher's robots directive
+
+One source is fetched despite its `robots.txt` disallowing automated agents:
+`data.opensanctions.org`, which answers `User-agent: * / Disallow: /` for its
+whole bulk-data host. The operator recorded a decision to fetch it anyway, on
+legal advice, for a non-commercial public-benefit project, against data the
+publisher licenses for reuse under CC BY-NC 4.0.
+
+That decision is stored against that endpoint alone, logged on every request, and
+listed by `civiclens:paper-report` under `fetched_against_robots`. It is recorded
+here because a reader deciding whether to trust this corpus is entitled to know
+which parts of it were taken against a publisher's stated wishes, and because the
+CC BY-NC term travels with anything derived from it: attribution is required and
+commercial reuse is not permitted.
+
 ## Composition and its biases
 
 - **Scripts.** Bengali dominates, with English and mixed pages behind it. Group-conditional
