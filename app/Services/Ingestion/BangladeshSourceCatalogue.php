@@ -184,6 +184,47 @@ class BangladeshSourceCatalogue
                 ],
             ],
             [
+                'slug' => 'iati',
+                'name' => 'IATI Datastore',
+                'class' => 'multilateral',
+                'homepage' => 'https://iatistandard.org/',
+                'authority' => 'International Aid Transparency Initiative',
+                'authorisation' => 'I authorise CivicLens to fetch IATI Datastore activity records for Bangladesh under a Full Access subscription key.',
+                'endpoints' => [
+                    [
+                        // 10,913 activities recorded against Bangladesh, each a
+                        // record rather than a document. The value here is the
+                        // reporting organisation and the participating org
+                        // names: donor-side spending that the Bangladeshi
+                        // publishers do not report at all, which is the only
+                        // route to a figure appearing in two independent places.
+                        'name' => 'Bangladesh aid activity records',
+                        'connector_type' => 'paginated_api',
+                        'base_url' => 'https://api.iatistandard.org/datastore/activity/select?q=recipient_country_code%3ABD&wt=json',
+                        'connector_options' => [
+                            'pagination' => 'offset',
+                            'page_parameter' => 'start',
+                            'size_parameter' => 'rows',
+                            'page_size' => 50,
+                            'pages_per_run' => 4,
+                            'records_key' => 'response.docs',
+                            // The header name and the *name* of the config key,
+                            // never the key. Endpoint rows are backed up, shown
+                            // in the admin registry and readable by anyone with
+                            // database access.
+                            'auth' => [
+                                'header' => 'Ocp-Apim-Subscription-Key',
+                                'config' => 'civiclens.ingestion.keys.iati',
+                            ],
+                        ],
+                        'allowed_hosts' => ['api.iatistandard.org'],
+                        'allowed_path_prefixes' => ['/datastore'],
+                        'access_decision' => 'operator-authorised-subscription-api',
+                        'rate_limit_per_minute' => 6,
+                    ],
+                ],
+            ],
+            [
                 'slug' => 'opensanctions',
                 'name' => 'OpenSanctions',
                 'class' => 'civil-society',

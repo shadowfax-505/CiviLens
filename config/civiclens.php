@@ -234,6 +234,17 @@ return [
         'user_agent' => env('INGESTION_USER_AGENT', 'CivicLensBot/2.0 (+'.rtrim((string) env('APP_URL', 'http://localhost'), '/').'/about)'),
         'max_redirects' => (int) env('INGESTION_MAX_REDIRECTS', 3),
 
+        // Credentials for the sources that require one.
+        //
+        // Endpoints reference these by key name, never by value: anything in
+        // `source_endpoints` is dumped in backups, shown in the admin registry
+        // and readable by anyone with database access, so a key stored there
+        // has effectively been published.
+        'keys' => [
+            'iati' => env('IATI_DATASTORE_KEY'),
+            'opensanctions' => env('OPENSANCTIONS_API_KEY'),
+        ],
+
         // Whether a publisher's robots.txt decides what may be fetched.
         //
         // Off by default. The operator's recorded position is that access to

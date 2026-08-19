@@ -228,6 +228,66 @@ class SafeHttpTransport
     }
 
     /**
+     * The credential an endpoint needs, if it needs one.
+     *
+     * Applied here rather than in each connector so that discovery and
+     * acquisition both carry it — a key that works while walking a feed and
+     * not while fetching a page from it is a source that half works.
+     *
+     * The endpoint stores the header name and the *name* of a config key, never
+     * a secret. Anything in `source_endpoints` is dumped in backups, shown in
+     * the admin registry and read by anyone with database access, and a key
+     * that lives there has effectively been published.
+     *
+     * The credential is dropped on any host outside the endpoint's allowlist.
+     * A redirect off-site is exactly how a key leaks to a third party, and the
+     * allowlist is already the boundary this project trusts.
+     *
+     * @return array<string, string>
+     */
+    private function credentialHeaders(SourceEndpoint $endpoint, ValidatedSourceUrl $validated): array
+    {
+        $options = $endpoint->connectorOptions();
+        $auth = $options['auth'] ?? null;
+
+        if (! is_array($auth)) {
+            return [];
+        }
+
+        $header = trim((string) ($auth['header'] ?? ''));
+        $configKey = trim((string) ($auth['config'] ?? ''));
+
+        if ($header === '' || $configKey === '') {
+            return [];
+        }
+
+        $allowed = is_array($endpoint->allowed_hosts) ? $endpoint->allowed_hosts : [];
+
+        if (! in_array(strtolower($validated->host), array_map('strtolower', $allowed), true)) {
+            Log::warning('Withholding an endpoint credential from a host outside its allowlist.', [
+                'endpoint_id' => $endpoint->id,
+                'host' => $validated->host,
+            ]);
+
+            return [];
+        }
+
+        $value = config($configKey);
+
+        // A source registered as needing a key, with no key configured, fails
+        // as an ordinary unauthorised response rather than being quietly
+        // fetched without one. A 401 names the problem; a silent anonymous
+        // fetch looks like the publisher changed its mind.
+        if (! is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        $prefix = trim((string) ($auth['prefix'] ?? ''));
+
+        return [$header => ($prefix === '' ? '' : $prefix.' ').trim($value)];
+    }
+
+    /**
      * @param  array<string, scalar>|null  $form  null sends a GET
      * @param  array<string, string>  $requestHeaders
      */
@@ -259,7 +319,7 @@ class SafeHttpTransport
 
         $request = Http::accept('*/*')
             ->withUserAgent((string) config('civiclens.ingestion.user_agent'))
-            ->withHeaders([...$requestHeaders, 'Accept-Encoding' => 'identity'])
+            ->withHeaders([...$requestHeaders, ...$this->credentialHeaders($endpoint, $validated), 'Accept-Encoding' => 'identity'])
             ->connectTimeout(min(10, max(1, $endpoint->timeout_seconds)))
             ->timeout(max(1, $endpoint->timeout_seconds))
             ->withOptions($options);
