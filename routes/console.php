@@ -5,6 +5,8 @@ use App\Jobs\RunSourceEndpointCrawl;
 use App\Jobs\ScorePageFields;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
+use App\Models\ScreeningEntity;
+use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
 use App\Models\SourcePublisher;
 use App\Services\Extraction\BenchmarkEvaluationService;
@@ -27,6 +29,8 @@ use App\Services\Intelligence\AmendmentCountReader;
 use App\Services\Intelligence\CivicIntegrityEngineService;
 use App\Services\Intelligence\NoticeRevisionDetector;
 use App\Services\Normalisation\OcdsTenderNormaliser;
+use App\Services\Screening\EntityScreener;
+use App\Services\Screening\ScreeningEntityLoader;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -178,6 +182,62 @@ Artisan::command('civiclens:backfill-word-geometry {--limit=250} {--all}', funct
 
     return 0;
 })->purpose('Recover word geometry for pages extracted before it was stored');
+
+Artisan::command('civiclens:load-screening-entities {--dataset=worldbank_debarred}', function (ScreeningEntityLoader $loader): int {
+    $dataset = $this->option('dataset');
+    $dataset = is_string($dataset) && $dataset !== '' ? $dataset : 'worldbank_debarred';
+
+    $artifact = SourceArtifactVersion::query()
+        ->where('media_type', 'text/csv')
+        ->latest('id')
+        ->first();
+
+    if (! $artifact instanceof SourceArtifactVersion) {
+        $this->error('No screening list has been acquired yet.');
+
+        return 1;
+    }
+
+    $summary = $loader->loadCsv($artifact, $dataset);
+    $summary['bangladesh_linked'] = ScreeningEntity::query()
+        ->where('dataset', $dataset)
+        ->where('countries', 'like', '%bd%')
+        ->count();
+
+    $this->line(json_encode($summary, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Parse an acquired screening list into entities that can be queried');
+
+Artisan::command('civiclens:screen {name}', function (EntityScreener $screener): int {
+    $name = $this->argument('name');
+
+    if (! is_string($name) || trim($name) === '') {
+        $this->error('A name is required.');
+
+        return 1;
+    }
+
+    // What comes back is evidence about a string, never an identification. A
+    // name matching a debarred entity is a fact about the name; whether it is
+    // the same organisation is a judgement someone makes with both records in
+    // front of them.
+    $candidates = $screener->candidates($name)->map(fn (array $hit): array => [
+        'name_as_published' => $hit['entity']->name,
+        'dataset' => $hit['entity']->dataset,
+        'countries' => $hit['entity']->countries,
+        'score' => $hit['score'],
+        'method' => $hit['method'],
+    ])->all();
+
+    $this->line(json_encode([
+        'queried' => $name,
+        'candidates' => $candidates,
+        'note' => 'A name match is evidence about a name, not an identification of an organisation.',
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Check a name against the acquired screening lists');
 
 Artisan::command('civiclens:paper-report {--alpha=0.05} {--save}', function (PaperReport $report): int {
     $alpha = $this->option('alpha');
