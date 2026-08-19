@@ -160,6 +160,7 @@ return [
             'text/xml' => 'text',
             'application/xml' => 'text',
             'application/json' => 'text',
+            'application/sparql-results+json' => 'text',
         ],
     ],
 
@@ -289,6 +290,7 @@ return [
         'allowed_media_types' => [
             'application/octet-stream',
             'application/json',
+            'application/sparql-results+json',
             'application/pdf',
             'application/rtf',
             'application/vnd.ms-excel',
