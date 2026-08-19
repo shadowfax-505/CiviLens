@@ -30,11 +30,16 @@ Republication follows attribution: the publisher's name travels with the record.
 
 ## Sources fetched against a publisher's robots directive
 
-One source is fetched despite its `robots.txt` disallowing automated agents:
-`data.opensanctions.org`, which answers `User-agent: * / Disallow: /` for its
-whole bulk-data host. The operator recorded a decision to fetch it anyway, on
-legal advice, for a non-commercial public-benefit project, against data the
-publisher licenses for reuse under CC BY-NC 4.0.
+Two sources are fetched despite their `robots.txt` disallowing automated agents,
+each on a decision the operator recorded against that endpoint alone, taken on
+legal advice for a non-commercial public-benefit project:
+
+- `data.opensanctions.org`, which answers `User-agent: * / Disallow: /` for its
+  whole bulk-data host. Its data is licensed for reuse under CC BY-NC 4.0.
+- `query.wikidata.org`, which disallows `/sparql` to every agent. One query a day
+  returning a few hundred rows, far below the load that directive exists to
+  prevent. Wikidata is CC0, so nothing licence-wise travels with what is derived
+  from it.
 
 That decision is stored against that endpoint alone, logged on every request, and
 listed by `civiclens:paper-report` under `fetched_against_robots`. It is recorded
