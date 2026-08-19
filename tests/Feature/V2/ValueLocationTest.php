@@ -174,3 +174,83 @@ it('does not treat a terminator as licence to match a longer number', function (
     expect(app(ValueLocator::class)->locate(fieldOn($page, '৩,৯৮,৭৪৮'), $page))
         ->toBeEmpty();
 });
+
+it('crops the value inside a cell rather than the whole cell', function (): void {
+    // A cell box is the box of the cell: ruling lines, padding, and where the
+    // grid is imperfect part of the next column. Re-reading one returned
+    // "৪৭৪.২৫ | ৪৬,৮৩০" for a value of ৪৬,৮৩০.৮৬, and that disagreement
+    // deferred the figure. The cell says where to look; the words say what to
+    // crop.
+    $page = pageWithWords([
+        ['৪৭৪.২৫', 100, 200],
+        ['৪৬,৮৩০.৮৬', 400, 200],
+    ]);
+
+    $field = fieldOn($page, '৪৬,৮৩০.৮৬');
+
+    $cell = ExtractionTableCell::factory()->create([
+        'extraction_page_id' => $page->id,
+        // Wide enough to swallow the neighbouring column, as a real one does.
+        'box_left' => 80,
+        'box_top' => 190,
+        'box_right' => 520,
+        'box_bottom' => 240,
+    ]);
+
+    $field->forceFill(['extraction_table_cell_id' => $cell->id])->save();
+
+    $boxes = app(ValueLocator::class)->locate($field->fresh(), $page);
+
+    expect($boxes)->toHaveCount(1)
+        ->and($boxes[0]['left'])->toBe(400)
+        ->and($boxes[0]['right'])->toBe(460);
+});
+
+it('falls back to the cell box when the value cannot be matched inside it', function (): void {
+    // The cell is still where the value is. A coarse crop beats no crop, which
+    // would defer the figure by rule.
+    $page = pageWithWords([['something else', 100, 200]]);
+
+    $field = fieldOn($page, '৪৬,৮৩০.৮৬');
+
+    $cell = ExtractionTableCell::factory()->create([
+        'extraction_page_id' => $page->id,
+        'box_left' => 80,
+        'box_top' => 190,
+        'box_right' => 520,
+        'box_bottom' => 240,
+    ]);
+
+    $field->forceFill(['extraction_table_cell_id' => $cell->id])->save();
+
+    $boxes = app(ValueLocator::class)->locate($field->fresh(), $page);
+
+    expect($boxes)->toHaveCount(1)
+        ->and($boxes[0]['left'])->toBe(80)
+        ->and($boxes[0]['right'])->toBe(520);
+});
+
+it('does not take a word from the neighbouring column into the cell', function (): void {
+    // Centre, not overlap: a word clipped by the cell edge belongs to whichever
+    // cell holds most of it.
+    $page = pageWithWords([
+        ['১২,৩৪৫', 500, 200],
+    ]);
+
+    $field = fieldOn($page, '১২,৩৪৫');
+
+    $cell = ExtractionTableCell::factory()->create([
+        'extraction_page_id' => $page->id,
+        // The word starts at 500 and is 60 wide, so its centre is 530 — outside.
+        'box_left' => 80,
+        'box_top' => 190,
+        'box_right' => 520,
+        'box_bottom' => 240,
+    ]);
+
+    $field->forceFill(['extraction_table_cell_id' => $cell->id])->save();
+
+    $boxes = app(ValueLocator::class)->locate($field->fresh(), $page);
+
+    expect($boxes[0]['left'])->toBe(80);
+});

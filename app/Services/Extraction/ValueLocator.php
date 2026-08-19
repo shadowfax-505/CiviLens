@@ -47,32 +47,75 @@ class ValueLocator
      */
     public function locate(ExtractionField $field, ExtractionPage $page): array
     {
+        $words = $page->recognized_words;
+        $words = is_array($words) ? array_values($words) : [];
+
+        $wanted = $this->normalise((string) $field->extracted_value);
         $cell = $field->tableCell;
 
-        // A cell-derived value knows its own box exactly, and no search over the
-        // page can improve on that.
+        // A cell box is the box of the *cell*, which is bigger than the value
+        // in it: it carries the ruling lines, the padding, and — where the grid
+        // is imperfect — part of the neighbouring column. Cropping it and
+        // re-reading returned things like "৪৭৪.২৫ | ৪৬,৮৩০" for a value of
+        // ৪৬,৮৩০.৮৬, and that disagreement deferred the figure.
+        //
+        // So the cell says *where to look*, and the words say *what to crop*.
+        // The value's own characters are found inside the cell's bounds, which
+        // keeps the precision of the word boxes and the certainty of being in
+        // the right cell. A cell whose words cannot be matched falls back to
+        // the cell box, which is still where the value is.
         if ($cell instanceof ExtractionTableCell) {
-            return [[
+            $box = [
                 'left' => (int) $cell->box_left,
                 'top' => (int) $cell->box_top,
                 'right' => (int) $cell->box_right,
                 'bottom' => (int) $cell->box_bottom,
-            ]];
+            ];
+
+            if ($words === [] || $wanted === '') {
+                return [$box];
+            }
+
+            $inside = $this->search($this->within($words, $box), $wanted);
+
+            return $inside === [] ? [$box] : $inside;
         }
 
-        $words = $page->recognized_words;
-
-        if (! is_array($words) || $words === []) {
+        if ($words === [] || $wanted === '') {
             return [];
         }
 
-        $wanted = $this->normalise((string) $field->extracted_value);
+        return $this->search($words, $wanted);
+    }
 
-        if ($wanted === '') {
-            return [];
+    /**
+     * The words whose centre falls inside a box, in reading order.
+     *
+     * Centre rather than any overlap: a word clipped by the edge of a cell
+     * belongs to whichever cell holds most of it, and taking every word that
+     * merely touches the box would pull the neighbouring column back in.
+     *
+     * @param  list<array<string, mixed>>  $words
+     * @param  array{left: int, top: int, right: int, bottom: int}  $box
+     * @return list<array<string, mixed>>
+     */
+    private function within(array $words, array $box): array
+    {
+        $inside = [];
+
+        foreach ($words as $word) {
+            $left = (int) ($word['l'] ?? 0);
+            $top = (int) ($word['y'] ?? 0);
+            $centreX = $left + ((int) ($word['w'] ?? 0)) / 2;
+            $centreY = $top + ((int) ($word['h'] ?? 0)) / 2;
+
+            if ($centreX >= $box['left'] && $centreX <= $box['right']
+                && $centreY >= $box['top'] && $centreY <= $box['bottom']) {
+                $inside[] = $word;
+            }
         }
 
-        return $this->search(array_values($words), $wanted);
+        return $inside;
     }
 
     /**
