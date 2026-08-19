@@ -84,28 +84,38 @@ class PipelineHealthReport
         $python = (string) config('civiclens.extraction.tables.python', '');
         $pagesWithTables = DB::table('extraction_table_cells')->distinct()->count('extraction_page_id');
 
-        // Interpreter present is not the same as the library being importable,
-        // which is exactly how this failed: the virtualenv survived and its
-        // packages did not.
-        if (! $this->tables->isAvailable()) {
+        if ($python === '') {
             return [
                 'ok' => false,
-                'detail' => $python === ''
-                    ? 'Not configured. Set EXTRACTION_TABLE_PYTHON.'
-                    : 'Interpreter missing: '.$python,
+                'detail' => 'Not configured. Set EXTRACTION_TABLE_PYTHON.',
                 'pages_with_tables' => $pagesWithTables,
             ];
         }
 
-        $inTemp = str_starts_with($python, '/tmp') || str_starts_with($python, '/private/tmp');
+        // Checked before availability, not after. An environment under /tmp is a
+        // fault whether or not it happens to work today — that is the whole
+        // point — and testing availability first made the warning depend on
+        // whether the purge had already happened.
+        if (str_starts_with($python, '/tmp') || str_starts_with($python, '/private/tmp')) {
+            return [
+                'ok' => false,
+                'detail' => 'Installed under /tmp, which the operating system purges: '.$python
+                    .($this->tables->isAvailable() ? '' : ' — and the interpreter is already gone.'),
+                'pages_with_tables' => $pagesWithTables,
+            ];
+        }
 
-        return [
-            'ok' => ! $inTemp,
-            'detail' => $inTemp
-                ? 'Installed under /tmp, which the operating system purges: '.$python
-                : $python,
-            'pages_with_tables' => $pagesWithTables,
-        ];
+        // An interpreter that exists is not a library that imports: the
+        // virtualenv survived the purge and its packages did not.
+        if (! $this->tables->isAvailable()) {
+            return [
+                'ok' => false,
+                'detail' => 'Interpreter missing: '.$python,
+                'pages_with_tables' => $pagesWithTables,
+            ];
+        }
+
+        return ['ok' => true, 'detail' => $python, 'pages_with_tables' => $pagesWithTables];
     }
 
     /**

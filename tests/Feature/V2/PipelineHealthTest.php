@@ -11,7 +11,9 @@ it('reports the table sidecar as failing when its interpreter is gone', function
     // from /tmp, every table job failed with "No module named 'paddleocr'", and
     // the only visible symptom was pages that stopped gaining tables — which
     // looks exactly like a corpus that has none.
-    config(['civiclens.extraction.tables.python' => '/tmp/gone/bin/python']);
+    // Deliberately outside /tmp, so this asserts the missing-interpreter case
+    // rather than the purge warning.
+    config(['civiclens.extraction.tables.python' => '/opt/nonexistent/bin/python']);
 
     $report = app(PipelineHealthReport::class)->build();
 
