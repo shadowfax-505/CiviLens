@@ -17,6 +17,7 @@ use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Extraction\FieldDecisionService;
 use App\Services\Extraction\KeyValueExtractor;
 use App\Services\Extraction\PaperReport;
+use App\Services\Extraction\PipelineHealthReport;
 use App\Services\Extraction\ReviewCandidateGenerator;
 use App\Services\Extraction\ScoreDiscriminationReport;
 use App\Services\Extraction\TableStructureDetector;
@@ -238,6 +239,19 @@ Artisan::command('civiclens:screen {name}', function (EntityScreener $screener):
 
     return 0;
 })->purpose('Check a name against the acquired screening lists');
+
+Artisan::command('civiclens:health', function (PipelineHealthReport $health): int {
+    // Table detection was dead for days because its Python environment sat under
+    // /tmp and the operating system removed it. Everything here is optional at
+    // runtime and fails closed, which is right and also silent: pages simply
+    // stop gaining tables, and that looks exactly like a corpus without any.
+    $report = $health->build();
+    $report['pages_missing_table_structure'] = $health->pagesMissingTables();
+
+    $this->line(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+
+    return $report['healthy'] === true ? 0 : 1;
+})->purpose('Check that every part of the pipeline can still do its job');
 
 Artisan::command('civiclens:paper-report {--alpha=0.05} {--save}', function (PaperReport $report): int {
     $alpha = $this->option('alpha');
@@ -512,6 +526,12 @@ Schedule::command('civiclens:publisher-report bppa-egp --save')
 
 // After scores exist and calibration has moved, decisions are stale. Daily is
 // the pace labels arrive at.
+// Daily, so a part of the pipeline that has quietly stopped working is noticed
+// within a day rather than whenever somebody happens to look.
+Schedule::command('civiclens:health')
+    ->dailyAt('06:00')
+    ->withoutOverlapping();
+
 Schedule::command('civiclens:decide-fields')
     ->dailyAt('04:00')
     ->withoutOverlapping();
