@@ -4,6 +4,7 @@ namespace App\Services\Extraction;
 
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
+use App\Models\PublicationSnapshot;
 use App\Models\SourceEndpoint;
 use Illuminate\Support\Facades\DB;
 
@@ -42,6 +43,7 @@ class PipelineHealthReport
             'queue' => $this->queue(),
             'endpoints' => $this->endpoints(),
             'scoring' => $this->scoring(),
+            'publication' => $this->publication(),
         ];
 
         $failing = [];
@@ -199,6 +201,52 @@ class PipelineHealthReport
             'detail' => $unscored === 0
                 ? 'Every candidate carries a score.'
                 : $unscored.' candidates have never been scored, so they defer by rule rather than by threshold.',
+        ];
+    }
+
+    /**
+     * Whether what the public site is serving still matches what the pipeline
+     * has certified.
+     *
+     * Nothing rebuilds a snapshot automatically, which is deliberate — an
+     * unattended rebuild would move published figures under a citation. The
+     * cost of that choice is that a stale snapshot is a silent failure, so it
+     * is reported here rather than left to be noticed.
+     *
+     * @return array{ok: bool, snapshot: string|null, published_figures: int, certified_figures: int, drift: int, detail: string}
+     */
+    private function publication(): array
+    {
+        $snapshot = PublicationSnapshot::current();
+        $certified = ExtractionField::query()->where('decision', 'accepted')->count();
+
+        if (! $snapshot instanceof PublicationSnapshot) {
+            return [
+                // An empty corpus is not a fault. A check that fires on every
+                // fresh install is a check everyone learns to ignore.
+                'ok' => $certified === 0,
+                'snapshot' => null,
+                'published_figures' => 0,
+                'certified_figures' => $certified,
+                'drift' => $certified,
+                'detail' => $certified === 0
+                    ? 'Nothing has been certified yet, so there is nothing to publish.'
+                    : $certified.' certified values exist and none are published. Run civiclens:publish.',
+            ];
+        }
+
+        $published = (int) $snapshot->figure_count;
+        $drift = abs($certified - $published);
+
+        return [
+            'ok' => $drift === 0,
+            'snapshot' => (string) $snapshot->label,
+            'published_figures' => $published,
+            'certified_figures' => $certified,
+            'drift' => $drift,
+            'detail' => $drift === 0
+                ? 'The published snapshot matches what is certified.'
+                : 'The published snapshot is behind by '.$drift.' certified values. It is not wrong, only old: rebuild when you want the site to catch up.',
         ];
     }
 

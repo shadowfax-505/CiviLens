@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\PublicationSnapshot;
+use App\Services\Extraction\PipelineHealthReport;
 use App\Services\Publication\PublicationSnapshotBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -121,4 +122,44 @@ it('distinguishes two snapshots that rest on different calibrations', function (
 
     expect($before->figure_count)->toBe($after->figure_count)
         ->and($before->calibration_digest)->not->toBe($after->calibration_digest);
+});
+
+it('reports an unpublished corpus as a health failure', function (): void {
+    // Certified values nobody can see is the state this whole layer exists to
+    // end. It is reported rather than left to be noticed.
+    ['page' => $page] = publishableDocument();
+    certifiedFieldOn($page, 'accepted');
+
+    $health = app(PipelineHealthReport::class)->build();
+
+    expect($health['checks']['publication']['ok'])->toBeFalse()
+        ->and($health['checks']['publication']['drift'])->toBe(1);
+});
+
+it('reports a snapshot that has fallen behind, without calling it wrong', function (): void {
+    // Nothing rebuilds a snapshot automatically, because an unattended rebuild
+    // would move published figures under a citation. The cost is that stale is
+    // silent, so it is surfaced here.
+    ['page' => $page] = publishableDocument();
+    certifiedFieldOn($page, 'accepted');
+
+    $builder = app(PublicationSnapshotBuilder::class);
+    $builder->publish($builder->build('published'));
+
+    certifiedFieldOn($page, 'accepted', ['extracted_value' => '৯৯৯']);
+
+    $publication = app(PipelineHealthReport::class)->build()['checks']['publication'];
+
+    expect($publication['ok'])->toBeFalse()
+        ->and($publication['drift'])->toBe(1)
+        ->and($publication['detail'])->toContain('not wrong, only old');
+});
+
+it('is healthy when nothing has been certified and nothing published', function (): void {
+    // An empty corpus is not a fault. Reporting it as one would make the check
+    // fire on every fresh install and teach everyone to ignore it.
+    $publication = app(PipelineHealthReport::class)->build()['checks']['publication'];
+
+    expect($publication['ok'])->toBeTrue()
+        ->and($publication['detail'])->toContain('nothing to publish');
 });
