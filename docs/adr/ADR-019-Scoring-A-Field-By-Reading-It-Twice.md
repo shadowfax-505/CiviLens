@@ -140,8 +140,11 @@ A guarantee over a silently biased subset is the failure mode this addendum
 exists to record: nothing in the calibration could have detected it, because
 deferring is always allowed and never breaches the bound.
 
-**Still outstanding.** 1,012 values remain unlocatable, and 22.7% of accepted
-values are contents-page section numbers matched by the amount pattern. Both are
-candidate-generation and location problems rather than certification ones, and
-the second is stated on the public document page rather than corrected in the
-count (ADR-021).
+**Still outstanding.** 1,012 values remain unlocatable, which is the direct route
+to certifying more and is worth more than tuning the score's weights.
+
+A second claim made here on the same day — that a fifth of accepted values were
+contents-page section numbers — was withdrawn. It was inferred from the shape of
+the value and not checked against the page; in context most values of that shape
+are budget figures in crore or percentages. ADR-021 records the correction and
+the measurement that replaced it.

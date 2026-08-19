@@ -52,13 +52,27 @@ corpus look like it certifies everything it holds.
 
 ## What the guarantee does not cover
 
-The bound is about the **reading**, not the meaning. 1,131 of the 5,186 accepted values are short
-decimals like `২.২` from contents pages — paragraph numbers matched by the amount pattern. They were
-read correctly, so the bound holds exactly as stated; what fails is the label. The document page says
-so in as many words rather than letting a reader treat a section heading as money.
+The bound is about the **reading**, not the meaning. A value certified as an amount is a number the
+system is confident it read off the page correctly; whether that number is a sum of money, a
+percentage or a section heading is not something it decides. `৩.১` beginning `৩.১ ভূমিকা:` is a
+heading, and it is certified as read rather than as money. The document page says so in as many
+words.
 
-Tightening the amount pattern would reduce this, and is worth doing. It is a candidate-generation
-question, not a certification one, and conflating the two would misdescribe both.
+**A correction, recorded because the wrong figure was published.** This section first claimed that
+1,131 of 5,186 accepted values were contents-page section numbers. That number came from the *shape*
+of the value — one or two digits, a point, one or two digits — and was never checked against the
+page. Read in context, most values of that shape are budget figures in crore or percentages, which
+is how these reports write them: `GDP এর ১১.৫৩ শতাংশ`, or a row of `541.85 13.89 0.00 555.74`.
+
+Classifying a sample of 658 by what surrounds them on the page — a heading number is followed by
+words, a budget figure sits among other numbers — puts roughly three quarters in the budget-figure
+bucket, and inspection of the remainder finds percentages there too. Heading numbers are a small
+minority of accepted values, on the order of a few per cent, not a fifth. The classification is a
+heuristic and the figure is an estimate; what is certain is that the original claim was wrong and
+was arrived at by exactly the method this project's standing rules forbid.
+
+The general point survives the correction and is why the caveat stays on the page: the guarantee
+covers the reading, and a reader must not take a certified number as a certified *kind* of number.
 
 ## Consequences
 

@@ -93,10 +93,10 @@ it('says a tender notice is a listing row rather than a contract record', functi
 });
 
 it('says the guarantee is about the reading rather than the meaning', function (): void {
-    // 1,131 of 5,186 accepted values on the real corpus are section numbers
-    // like ২.২ off a contents page. They were read correctly, so the bound
-    // holds; calling them amounts without saying what that claims would let a
-    // reader treat a paragraph reference as money.
+    // The amount pattern matches money, percentages and section headings alike.
+    // Each is read correctly and the bound holds; what a certified number *is*
+    // sits outside the guarantee, so the page says so rather than letting a
+    // reader take a heading number for a sum of money.
     ['page' => $page] = publishableDocument();
     certifiedFieldOn($page, 'accepted');
 

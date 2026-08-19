@@ -123,9 +123,11 @@ Python environment sat in `/tmp` and the OS purged it.
   environment inside the repo's storage directory.
 - **Backlog**: 143 failed jobs and roughly 1,700 unscored candidates at the time
   of writing, visible because health reports them.
-- **The amount pattern over-matches.** 1,484 of the 6,547 accepted values (22.7%)
-  are section numbers like `২.২` off contents pages. They were read correctly and
-  the bound holds as stated; the label is what overreaches (ADR-021).
+- **The amount pattern matches more than money**, including section headings and
+  percentages. Every such value was read correctly and the bound holds as stated;
+  what a certified number *is* remains outside the guarantee, and the public page
+  says so (ADR-021). An earlier estimate that a fifth of accepted values were
+  section headings was withdrawn as unmeasured; the real share is a few per cent.
 - **1,012 values still cannot be located** and defer by rule. Improving location
   coverage certifies more than tuning the score would.
 
@@ -189,9 +191,9 @@ publishers directly** — see the constraint above.
 **Work:** drain table and scoring queues; sample abstained pages and classify why
 (blank, poorly scanned, unusual layout); consider a third OCR attempt at higher
 DPI for the near-threshold band; extend word geometry to remaining native pages.
-**Tighten the amount pattern** so contents-page section numbers stop being
-generated as amount candidates — this is candidate generation, not certification,
-and re-scoring plus recalibration must follow it (ADR-019).
+**Reduce the 1,012 unlocatable values** — split tokens, native pages, values
+inside merged cells. This certifies more than tuning the score would, and
+re-scoring plus recalibration must follow any change to it (ADR-019).
 **Gate:** health reports zero backlog; abstention has a breakdown, not just a rate.
 
 ### M4 · Review throughput

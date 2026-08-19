@@ -60,9 +60,9 @@
         <p class="max-w-3xl text-sm text-slate-500">
             The guarantee is about the reading, not the meaning. A value certified as an amount is a
             number the system is confident it read off the page correctly; whether that number is a
-            sum of money, a section heading or a paragraph reference is not something it decides. A
-            figure like <span class="font-mono">২.২</span> on a contents page is certified as read,
-            not as money.
+            sum of money, a percentage, or the number of a section is not something it decides.
+            <span class="font-mono">৩.১</span> beginning
+            <span class="font-mono">৩.১ ভূমিকা:</span> is a heading, and it is certified as read.
         </p>
 
         <p class="text-sm text-slate-500">
