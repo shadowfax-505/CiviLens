@@ -196,24 +196,21 @@ class BangladeshSourceCatalogue
                 'authorisation' => 'Public bulk data published under CC BY-NC 4.0; used for non-commercial academic research with attribution.',
                 'endpoints' => [
                     [
-                        // Registered and refused, on the publisher's own
-                        // instruction. data.opensanctions.org answers
-                        // "User-agent: * / Disallow: /" for the whole bulk host,
-                        // and the main site's robots file says the exclusion is
-                        // deliberate: "Full access EXCEPT ... the bulk-data dump
-                        // endpoints". The data is licensed CC BY-NC and would
-                        // suit this research, but a licence to reuse data is not
-                        // permission for a crawler to take it, and the rule this
-                        // project holds every publisher to applies to the ones
-                        // whose data we want.
+                        // data.opensanctions.org answers "User-agent: * /
+                        // Disallow: /" for the whole bulk host. The operator has
+                        // recorded a decision to fetch anyway, on legal advice,
+                        // for a non-commercial public-benefit project, and that
+                        // decision is stored on this endpoint alone and logged
+                        // on every use rather than applied as a global setting.
                         //
-                        // What is missing is a person asking. Left here so the
-                        // decision is visible rather than deleted, exactly as
-                        // the CAG endpoint is.
+                        // The data is CC BY-NC 4.0, so attribution and the
+                        // non-commercial restriction travel with anything
+                        // derived from it. Rate limited to two a minute for a
+                        // file fetched once a day, because a recorded right to
+                        // fetch is not a reason to be expensive to serve.
                         //
-                        // Sizes, for when permission exists: this list is 4,283
-                        // entities in 477KB; the consolidated debarment and
-                        // sanctions files are 416MB and 352MB, past the byte
+                        // 4,283 entities in 477KB. The consolidated debarment
+                        // and sanctions files are 416MB and 352MB, past the byte
                         // ceiling this pipeline fetches under.
                         'name' => 'World Bank debarred providers',
                         'connector_type' => 'direct_download',
@@ -221,6 +218,7 @@ class BangladeshSourceCatalogue
                         'allowed_hosts' => ['data.opensanctions.org'],
                         'allowed_path_prefixes' => ['/datasets', '/artifacts'],
                         'access_decision' => 'operator-authorised-public-data',
+                        'robots_override_reason' => 'Operator decision on legal advice: non-commercial public-benefit research, data published under CC BY-NC 4.0, one small file fetched daily. robots.txt disallows the bulk host to all agents.',
                         'rate_limit_per_minute' => 2,
                         'crawl_interval_minutes' => 1440,
                     ],
