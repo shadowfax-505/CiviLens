@@ -184,6 +184,47 @@ class BangladeshSourceCatalogue
                 ],
             ],
             [
+                'slug' => 'opensanctions',
+                'name' => 'OpenSanctions',
+                'class' => 'civil-society',
+                'homepage' => 'https://www.opensanctions.org/',
+                'authority' => 'OpenSanctions / OpenSanctions Datenbanken GmbH',
+                // Bulk downloads carry no key at all — the API key sells the
+                // hosted matching service, not the data. Published under
+                // CC BY-NC 4.0, which permits this research and forbids
+                // commercial reuse, so anything derived from it must say so.
+                'authorisation' => 'Public bulk data published under CC BY-NC 4.0; used for non-commercial academic research with attribution.',
+                'endpoints' => [
+                    [
+                        // data.opensanctions.org answers "User-agent: * /
+                        // Disallow: /" for the whole bulk host. The operator has
+                        // recorded a decision to fetch anyway, on legal advice,
+                        // for a non-commercial public-benefit project, and that
+                        // decision is stored on this endpoint alone and logged
+                        // on every use rather than applied as a global setting.
+                        //
+                        // The data is CC BY-NC 4.0, so attribution and the
+                        // non-commercial restriction travel with anything
+                        // derived from it. Rate limited to two a minute for a
+                        // file fetched once a day, because a recorded right to
+                        // fetch is not a reason to be expensive to serve.
+                        //
+                        // 4,283 entities in 477KB. The consolidated debarment
+                        // and sanctions files are 416MB and 352MB, past the byte
+                        // ceiling this pipeline fetches under.
+                        'name' => 'World Bank debarred providers',
+                        'connector_type' => 'direct_download',
+                        'base_url' => 'https://data.opensanctions.org/datasets/latest/worldbank_debarred/targets.simple.csv',
+                        'allowed_hosts' => ['data.opensanctions.org'],
+                        'allowed_path_prefixes' => ['/datasets', '/artifacts'],
+                        'access_decision' => 'operator-authorised-public-data',
+                        'robots_override_reason' => 'Operator decision on legal advice: non-commercial public-benefit research, data published under CC BY-NC 4.0, one small file fetched daily. robots.txt disallows the bulk host to all agents.',
+                        'rate_limit_per_minute' => 2,
+                        'crawl_interval_minutes' => 1440,
+                    ],
+                ],
+            ],
+            [
                 'slug' => 'gleif',
                 'name' => 'Global Legal Entity Identifier Foundation',
                 'class' => 'multilateral',

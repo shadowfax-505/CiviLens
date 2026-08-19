@@ -159,7 +159,26 @@ class SafeHttpTransport
         $decision = $this->robots->decide($url, $endpoint, fn (string $robotsUrl): ?string => $this->fetchRobots($robotsUrl, $endpoint));
 
         if (! $decision->allowed) {
-            throw new UnsafeSourceUrl((string) $decision->reason);
+            $override = trim((string) $endpoint->robots_override_reason);
+
+            // An operator may decide to fetch anyway. The decision is theirs and
+            // it is recorded against this endpoint alone; it is logged every
+            // time it is used, because a source taken against a publisher's
+            // stated wishes has to be identifiable later rather than blending in
+            // with the rest.
+            if ($override === '') {
+                throw new UnsafeSourceUrl((string) $decision->reason);
+            }
+
+            Log::warning('Fetching a path robots.txt disallows, on a recorded operator decision.', [
+                'endpoint_id' => $endpoint->id,
+                'url' => $url,
+                'robots_said' => $decision->reason,
+                'operator_reason' => $override,
+                'recorded_at' => (string) $endpoint->getAttribute('robots_override_recorded_at'),
+            ]);
+
+            return;
         }
 
         // The publisher's own pace where it is slower than ours. Ours is a
