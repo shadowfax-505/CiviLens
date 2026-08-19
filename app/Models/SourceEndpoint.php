@@ -21,6 +21,8 @@ class SourceEndpoint extends Model
         'allowed_hosts',
         'allowed_path_prefixes',
         'access_decision',
+        'robots_override_reason',
+        'robots_override_recorded_at',
         'access_reviewed_at',
         'crawl_interval_minutes',
         'rate_limit_per_minute',
@@ -42,6 +44,7 @@ class SourceEndpoint extends Model
         return [
             'connector_options' => 'array',
             'backoff_until' => 'immutable_datetime',
+            'robots_override_recorded_at' => 'immutable_datetime',
             'allowed_hosts' => 'array',
             'allowed_path_prefixes' => 'array',
             'access_reviewed_at' => 'immutable_datetime',
