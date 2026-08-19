@@ -132,3 +132,45 @@ it('shows the marked region as the thing to read, not the whole page', function 
         // agree with itself.
         ->assertDontSee('Recognized text around it');
 });
+
+it('finds a figure the page prints with a currency terminator after it', function (): void {
+    // The amount pattern stops at the last digit, so the value is ৩,৯৮,৭৪৮
+    // while the recognized word is ৩,৯৮,৭৪৮/-. Requiring an exact match made
+    // 691 of 1,703 unlocatable values unlocatable, and an unlocatable value
+    // defers by rule (ADR-019) — so the effect was to certify section numbers
+    // off contents pages and withhold the sums of money.
+    $page = pageWithWords([['৩,৯৮,৭৪৮/-', 400, 640]]);
+
+    $boxes = app(ValueLocator::class)->locate(fieldOn($page, '৩,৯৮,৭৪৮'), $page);
+
+    expect($boxes)->toHaveCount(1)
+        ->and($boxes[0]['left'])->toBe(400);
+});
+
+it('accepts the other terminators these documents use', function (): void {
+    foreach (['/=', '/', ':-'] as $terminator) {
+        $page = pageWithWords([['৭১৬,৯৫৩'.$terminator, 400, 640]]);
+
+        expect(app(ValueLocator::class)->locate(fieldOn($page, '৭১৬,৯৫৩'), $page))
+            ->toHaveCount(1);
+    }
+});
+
+it('still refuses a value whose separators sit differently on the page', function (): void {
+    // The property the exact match was protecting. A thousands separator in the
+    // wrong place is a hundredfold error and is exactly the misreading the
+    // reviewer is being asked to judge, so it must not be normalised away.
+    $page = pageWithWords([['৩,৯৮৭,৪৮/-', 400, 640]]);
+
+    expect(app(ValueLocator::class)->locate(fieldOn($page, '৩,৯৮,৭৪৮'), $page))
+        ->toBeEmpty();
+});
+
+it('does not treat a terminator as licence to match a longer number', function (): void {
+    // ৩,৯৮,৭৪৮ must not match ৩,৯৮,৭৪৮৯ merely because trailing characters are
+    // tolerated. Only the listed terminators are, and a digit is not one.
+    $page = pageWithWords([['৩,৯৮,৭৪৮৯', 400, 640]]);
+
+    expect(app(ValueLocator::class)->locate(fieldOn($page, '৩,৯৮,৭৪৮'), $page))
+        ->toBeEmpty();
+});

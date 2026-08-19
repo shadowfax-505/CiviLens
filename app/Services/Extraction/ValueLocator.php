@@ -24,6 +24,25 @@ class ValueLocator
     private const MAX_WORDS_PER_VALUE = 4;
 
     /**
+     * What these documents print after a figure to mark it as money.
+     *
+     * The amount pattern stops at the last digit, so the value never carries
+     * one of these while the recognized word does. Requiring an exact match
+     * therefore failed on precisely the figures that are sums of money — 691
+     * of 1,703 unlocatable values on the corpus, and a value that cannot be
+     * located defers by rule (ADR-019). The effect was to certify section
+     * numbers and withhold the amounts.
+     *
+     * Trailing only, and only these literals. A separator *inside* a number is
+     * left exactly as read: one in the wrong place is a hundredfold error and
+     * is the misreading the reviewer is being asked about.
+     */
+    private const CURRENCY_TERMINATORS = ['/-', '/=', '/', ':-'];
+
+    /** Longest terminator, so the search knows when a run can only grow. */
+    private const LONGEST_TERMINATOR = 2;
+
+    /**
      * @return list<array{left: int, top: int, right: int, bottom: int}>
      */
     public function locate(ExtractionField $field, ExtractionPage $page): array
@@ -71,7 +90,7 @@ class ValueLocator
             for ($span = 0; $span < self::MAX_WORDS_PER_VALUE && $start + $span < $count; $span++) {
                 $joined .= $this->normalise((string) ($words[$start + $span]['t'] ?? ''));
 
-                if ($joined === $wanted) {
+                if ($this->matches($joined, $wanted)) {
                     $found[] = $this->box(array_slice($words, $start, $span + 1));
 
                     // Past the words just consumed: a run that matched cannot
@@ -81,15 +100,35 @@ class ValueLocator
                     break;
                 }
 
-                // Once the run is longer than the value it can only grow, so
-                // there is nothing left to find from this starting word.
-                if (mb_strlen($joined) >= mb_strlen($wanted)) {
+                // Once the run is longer than the value plus the longest thing
+                // that may follow it, it can only grow further, so there is
+                // nothing left to find from this starting word.
+                if (mb_strlen($joined) > mb_strlen($wanted) + self::LONGEST_TERMINATOR) {
                     break;
                 }
             }
         }
 
         return $found;
+    }
+
+    /**
+     * Whether a run of words is the value, allowing for a currency terminator
+     * the value itself never carries.
+     */
+    private function matches(string $joined, string $wanted): bool
+    {
+        if ($joined === $wanted) {
+            return true;
+        }
+
+        foreach (self::CURRENCY_TERMINATORS as $terminator) {
+            if ($joined === $wanted.$terminator) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
