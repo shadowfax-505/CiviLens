@@ -184,6 +184,49 @@ class BangladeshSourceCatalogue
                 ],
             ],
             [
+                'slug' => 'opensanctions',
+                'name' => 'OpenSanctions',
+                'class' => 'civil-society',
+                'homepage' => 'https://www.opensanctions.org/',
+                'authority' => 'OpenSanctions / OpenSanctions Datenbanken GmbH',
+                // Bulk downloads carry no key at all — the API key sells the
+                // hosted matching service, not the data. Published under
+                // CC BY-NC 4.0, which permits this research and forbids
+                // commercial reuse, so anything derived from it must say so.
+                'authorisation' => 'Public bulk data published under CC BY-NC 4.0; used for non-commercial academic research with attribution.',
+                'endpoints' => [
+                    [
+                        // Registered and refused, on the publisher's own
+                        // instruction. data.opensanctions.org answers
+                        // "User-agent: * / Disallow: /" for the whole bulk host,
+                        // and the main site's robots file says the exclusion is
+                        // deliberate: "Full access EXCEPT ... the bulk-data dump
+                        // endpoints". The data is licensed CC BY-NC and would
+                        // suit this research, but a licence to reuse data is not
+                        // permission for a crawler to take it, and the rule this
+                        // project holds every publisher to applies to the ones
+                        // whose data we want.
+                        //
+                        // What is missing is a person asking. Left here so the
+                        // decision is visible rather than deleted, exactly as
+                        // the CAG endpoint is.
+                        //
+                        // Sizes, for when permission exists: this list is 4,283
+                        // entities in 477KB; the consolidated debarment and
+                        // sanctions files are 416MB and 352MB, past the byte
+                        // ceiling this pipeline fetches under.
+                        'name' => 'World Bank debarred providers',
+                        'connector_type' => 'direct_download',
+                        'base_url' => 'https://data.opensanctions.org/datasets/latest/worldbank_debarred/targets.simple.csv',
+                        'allowed_hosts' => ['data.opensanctions.org'],
+                        'allowed_path_prefixes' => ['/datasets', '/artifacts'],
+                        'access_decision' => 'operator-authorised-public-data',
+                        'rate_limit_per_minute' => 2,
+                        'crawl_interval_minutes' => 1440,
+                    ],
+                ],
+            ],
+            [
                 'slug' => 'gleif',
                 'name' => 'Global Legal Entity Identifier Foundation',
                 'class' => 'multilateral',
