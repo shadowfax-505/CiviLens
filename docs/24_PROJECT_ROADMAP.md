@@ -59,10 +59,12 @@ and the *name* of a config key, and the value is read at request time and withhe
 from any host outside the allowlist.
 
 ### Extraction
-**1,799 pages**; born-digital text where it exists, OCR (`ben+eng`) where it does
-not, and roughly a fifth abstained — attempted and declined, counted rather than
-hidden. Legacy-font mojibake detected and routed to OCR; 92% of one publisher's
-"native" pages were unreadable text layers. Word geometry persisted wherever
+**1,804 pages**; born-digital text where it exists, OCR (`ben+eng`) where it does
+not, and 388 abstained — attempted and declined, counted rather than hidden.
+Legacy-font mojibake is detected and routed to OCR. 307 pages across the four
+largest audit reports had been read before that check existed and kept an
+unreadable text layer; `civiclens:reroute-pages` re-read them, and no page in the
+corpus now holds mojibake. Word geometry persisted wherever
 recoverable, which is what lets a value be marked on its page. Table structure
 from a PaddleOCR sidecar that supplies **structure only** — text always comes from
 Tesseract, because adopting a recognizer with no established Bengali quality would
@@ -88,7 +90,8 @@ section numbers were certified. Fixing it raised coverage from 205 to 247 of 265
 and moved all three groups onto conditional certification at α = 0.05, where two
 of them previously needed the ADR-018 ladder.
 
-**6,547 accepted, 1,797 deferred.** The bound is applied, not merely computed.
+**10,399 accepted, 3,343 deferred**, from 14,009 candidates. The bound is
+applied, not merely computed.
 
 ### Publication
 `civiclens:publish` freezes a snapshot of what the project is prepared to stand
@@ -121,14 +124,16 @@ Python environment sat in `/tmp` and the OS purged it.
   anything.
 - **It runs on one laptop** under launchd, against SQLite, with a 1.2GB Python
   environment inside the repo's storage directory.
-- **Backlog**: 143 failed jobs and roughly 1,700 unscored candidates at the time
-  of writing, visible because health reports them.
+- **Backlog**: every candidate is scored; 1,843 cannot be located on their page
+  and defer by rule. 137 failed jobs remain, all publisher-side. 506 pages carry
+  candidates but no table structure — at roughly ninety seconds a page that is
+  about thirteen hours of detection.
 - **The amount pattern matches more than money**, including section headings and
   percentages. Every such value was read correctly and the bound holds as stated;
   what a certified number *is* remains outside the guarantee, and the public page
   says so (ADR-021). An earlier estimate that a fifth of accepted values were
   section headings was withdrawn as unmeasured; the real share is a few per cent.
-- **1,012 values still cannot be located** and defer by rule. Improving location
+- **1,843 values still cannot be located** and defer by rule. Improving location
   coverage certifies more than tuning the score would.
 
 ---
