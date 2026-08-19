@@ -28,25 +28,31 @@ being made to produce results.
 
 Republication follows attribution: the publisher's name travels with the record.
 
-## Sources fetched against a publisher's robots directive
+## How this corpus was crawled
 
-Two sources are fetched despite their `robots.txt` disallowing automated agents,
-each on a decision the operator recorded against that endpoint alone, taken on
-legal advice for a non-commercial public-benefit project:
+**`robots.txt` is not consulted for any of the thirteen endpoints.** The operator's
+recorded position, taken on legal advice for a non-commercial public-benefit
+project, is that access to public-sector records for research of this kind does
+not turn on a file the publisher can edit. A reader deciding whether to trust this
+corpus is entitled to know that outright rather than infer it, so it is stated
+here, in the method card, and by `civiclens:paper-report` under
+`crawling_posture`.
+
+Rate limits do not depend on that decision. They are set per endpoint and enforced
+either way, so no source is fetched harder because robots is not consulted.
+
+Two endpoints carry an earlier, narrower decision recorded before the policy was
+made project-wide, and they are kept as a record of the reasoning rather than as
+exceptions to it:
 
 - `data.opensanctions.org`, which answers `User-agent: * / Disallow: /` for its
-  whole bulk-data host. Its data is licensed for reuse under CC BY-NC 4.0.
+  whole bulk-data host. Its data is licensed for reuse under CC BY-NC 4.0, so
+  attribution is required and commercial reuse is not permitted for anything
+  derived from it.
 - `query.wikidata.org`, which disallows `/sparql` to every agent. One query a day
   returning a few hundred rows, far below the load that directive exists to
   prevent. Wikidata is CC0, so nothing licence-wise travels with what is derived
   from it.
-
-That decision is stored against that endpoint alone, logged on every request, and
-listed by `civiclens:paper-report` under `fetched_against_robots`. It is recorded
-here because a reader deciding whether to trust this corpus is entitled to know
-which parts of it were taken against a publisher's stated wishes, and because the
-CC BY-NC term travels with anything derived from it: attribution is required and
-commercial reuse is not permitted.
 
 ## Composition and its biases
 

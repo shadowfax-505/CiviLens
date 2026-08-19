@@ -77,11 +77,13 @@ class PaperReport
             // publisher's documents, and the difference matters to any claim
             // about extraction.
             'tender_observations' => TenderObservation::query()->count(),
-            // Sources fetched against a publisher's stated robots directive, on
-            // a recorded operator decision. Anything derived from them carries
-            // that provenance, and a write-up that omitted it would be hiding
-            // the one thing a reader might object to.
-            'fetched_against_robots' => $this->overriddenEndpoints(),
+            // How this corpus was crawled, which is the thing a reader is most
+            // likely to object to and so is stated outright rather than left to
+            // be inferred. Listing two endpoints as exceptions was accurate only
+            // while robots governed the rest; once it governed nothing, the same
+            // list understated the posture by naming two sources out of
+            // thirteen.
+            'crawling_posture' => $this->crawlingPosture(),
             'documents_by_publisher' => $this->documentsByPublisher(),
             'archived_by_publisher' => $this->documentsByPublisher(documentsOnly: false),
         ];
@@ -123,21 +125,36 @@ class PaperReport
      *
      * @return list<array{publisher: string, endpoint: string, reason: string}>
      */
-    private function overriddenEndpoints(): array
+    /**
+     * @return array{honours_robots_txt: bool, applies_to_endpoints: int, statement: string, earlier_per_endpoint_decisions: list<array{publisher: string, endpoint: string, reason: string}>}
+     */
+    private function crawlingPosture(): array
     {
-        $overridden = [];
+        $honoured = (bool) config('civiclens.ingestion.honour_robots');
+
+        $recorded = [];
 
         foreach (SourceEndpoint::query()->whereNotNull('robots_override_reason')->with('publisher')->get() as $endpoint) {
             $publisher = $endpoint->publisher;
 
-            $overridden[] = [
+            $recorded[] = [
                 'publisher' => $publisher instanceof SourcePublisher ? $publisher->slug : 'unattributed',
                 'endpoint' => (string) $endpoint->name,
                 'reason' => (string) $endpoint->robots_override_reason,
             ];
         }
 
-        return $overridden;
+        return [
+            'honours_robots_txt' => $honoured,
+            'applies_to_endpoints' => SourceEndpoint::query()->count(),
+            'statement' => $honoured
+                ? 'robots.txt is fetched and enforced per request; the endpoints listed below carry a recorded operator decision to fetch anyway.'
+                : 'robots.txt is not consulted for any endpoint, on a recorded operator decision that access to public-sector records for public-benefit research does not turn on it. Per-endpoint rate limits are enforced regardless.',
+            // Kept because they are a record of decisions actually taken, and
+            // deleting them would erase the reasoning that preceded the
+            // project-wide policy. They are not exceptions to it.
+            'earlier_per_endpoint_decisions' => $recorded,
+        ];
     }
 
     /**

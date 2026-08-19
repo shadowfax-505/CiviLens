@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\PublicationSnapshot;
+use App\Services\Extraction\PaperReport;
 use App\Services\Extraction\PipelineHealthReport;
 use App\Services\Publication\PublicationSnapshotBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -162,4 +163,27 @@ it('is healthy when nothing has been certified and nothing published', function 
 
     expect($publication['ok'])->toBeTrue()
         ->and($publication['detail'])->toContain('nothing to publish');
+});
+
+it('states the crawling posture as a policy rather than a list of exceptions', function (): void {
+    // Naming two endpoints as robots exceptions was accurate only while robots
+    // governed the rest. Once it governed nothing, the same list understated
+    // the posture by naming two sources out of thirteen — in the artifact a
+    // write-up draws from.
+    config(['civiclens.ingestion.honour_robots' => false]);
+
+    $posture = app(PaperReport::class)->build()['corpus']['crawling_posture'];
+
+    expect($posture['honours_robots_txt'])->toBeFalse()
+        ->and($posture['statement'])->toContain('not consulted for any endpoint')
+        ->and($posture['statement'])->toContain('rate limits are enforced regardless');
+});
+
+it('says so plainly when robots is honoured', function (): void {
+    config(['civiclens.ingestion.honour_robots' => true]);
+
+    $posture = app(PaperReport::class)->build()['corpus']['crawling_posture'];
+
+    expect($posture['honours_robots_txt'])->toBeTrue()
+        ->and($posture['statement'])->toContain('fetched and enforced per request');
 });

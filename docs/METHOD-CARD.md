@@ -66,3 +66,8 @@ not that it was filed under the wrong heading, not that it sits in the wrong col
   authorised.
 - **Errors are rare in absolute terms**, so the realized-risk estimate is coarse and the reported
   interval should be read accordingly.
+- **The corpus was crawled without consulting `robots.txt`**, on a recorded operator decision taken
+  on legal advice for non-commercial public-benefit research. It bears on how the corpus was
+  obtained rather than on the guarantee, and is stated because a reader is entitled to weigh it.
+  Per-endpoint rate limits are enforced regardless. `civiclens:paper-report` reports the posture
+  under `crawling_posture`; the dataset card gives the reasoning.
