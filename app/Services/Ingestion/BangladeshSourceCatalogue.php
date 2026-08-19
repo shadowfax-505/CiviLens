@@ -225,6 +225,41 @@ class BangladeshSourceCatalogue
                 ],
             ],
             [
+                'slug' => 'wikidata',
+                'name' => 'Wikidata',
+                'class' => 'civil-society',
+                'homepage' => 'https://www.wikidata.org/',
+                'authority' => 'Wikimedia Foundation',
+                // CC0: no rights reserved, so nothing licence-wise travels with
+                // what is derived from it.
+                'authorisation' => 'Public query service; data published under CC0 1.0.',
+                'endpoints' => [
+                    [
+                        // 610 Bangladeshi companies with labels, industries and
+                        // any LEI recorded. Thin, and skewed to utilities,
+                        // banks and conglomerates rather than the construction
+                        // firms that fill audit reports — only two rows carry an
+                        // LEI. Registered as a reference table to match large
+                        // contractors against, not as a registry substitute.
+                        //
+                        // query.wikidata.org disallows /sparql to every agent.
+                        // The operator has recorded a decision to query it
+                        // anyway: one request a day for a result set of a few
+                        // hundred rows, which is far below the load that
+                        // directive exists to prevent.
+                        'name' => 'Bangladeshi company entities',
+                        'connector_type' => 'direct_download',
+                        'base_url' => 'https://query.wikidata.org/sparql?format=json&query=SELECT%20%3Fcompany%20%3FcompanyLabel%20%3Flei%20%3Finception%20%3FindustryLabel%20WHERE%20%7B%20%3Fcompany%20wdt%3AP17%20wd%3AQ902%20%3B%20wdt%3AP31%2Fwdt%3AP279%2A%20wd%3AQ4830453%20.%20OPTIONAL%20%7B%20%3Fcompany%20wdt%3AP1278%20%3Flei%20%7D%20OPTIONAL%20%7B%20%3Fcompany%20wdt%3AP571%20%3Finception%20%7D%20OPTIONAL%20%7B%20%3Fcompany%20wdt%3AP452%20%3Findustry%20%7D%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22en%2Cbn%22.%20%7D%20%7D',
+                        'allowed_hosts' => ['query.wikidata.org'],
+                        'allowed_path_prefixes' => ['/sparql'],
+                        'access_decision' => 'operator-authorised-public-data',
+                        'robots_override_reason' => 'Operator decision on legal advice: non-commercial public-benefit research. One query a day returning a few hundred rows, well under the load robots.txt exists to prevent. Data is CC0.',
+                        'rate_limit_per_minute' => 1,
+                        'crawl_interval_minutes' => 1440,
+                    ],
+                ],
+            ],
+            [
                 'slug' => 'gleif',
                 'name' => 'Global Legal Entity Identifier Foundation',
                 'class' => 'multilateral',

@@ -30,8 +30,17 @@ class ArtifactMediaTypeInspector
 
     private function isCompatible(string $declared, string $detected): bool
     {
-        if (in_array($declared, ['text/html', 'text/csv', 'text/xml', 'application/json', 'application/xml'], true)) {
-            return $detected === 'text/plain' || $detected === 'application/xml';
+        // A structured-syntax suffix says what the payload is: RFC 6839 defines
+        // application/*+json as JSON, and a query service answering
+        // application/sparql-results+json is serving JSON that finfo reports as
+        // plain text. Matching the suffix rather than listing every such type
+        // keeps the next one from being a special case.
+        $textLike = in_array($declared, ['text/html', 'text/csv', 'text/xml', 'application/json', 'application/xml'], true)
+            || str_ends_with($declared, '+json')
+            || str_ends_with($declared, '+xml');
+
+        if ($textLike) {
+            return in_array($detected, ['text/plain', 'application/json', 'application/xml'], true);
         }
 
         if (in_array($declared, [

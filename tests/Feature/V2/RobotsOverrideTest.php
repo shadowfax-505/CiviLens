@@ -1,8 +1,10 @@
 <?php
 
 use App\Contracts\Ingestion\NetworkAddressResolver;
+use App\Exceptions\Ingestion\AcquisitionFailed;
 use App\Exceptions\Ingestion\UnsafeSourceUrl;
 use App\Models\SourceEndpoint;
+use App\Services\Ingestion\ArtifactMediaTypeInspector;
 use App\Services\Ingestion\SafeHttpTransport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -76,4 +78,24 @@ it('applies the decision to one endpoint and not to its neighbours', function ()
     expect(app(SafeHttpTransport::class)->get($decided->base_url, $decided)->status)->toBe(200)
         ->and(fn () => app(SafeHttpTransport::class)->get($undecided->base_url, $undecided))
         ->toThrow(UnsafeSourceUrl::class);
+});
+
+it('accepts a media type whose suffix says it is json', function (): void {
+    // RFC 6839: application/*+json is JSON. A query service answering
+    // application/sparql-results+json serves JSON that finfo reports as plain
+    // text, and rejecting it as a content mismatch turned a working source into
+    // an acquisition failure.
+    $inspector = app(ArtifactMediaTypeInspector::class);
+
+    expect($inspector->inspect('application/sparql-results+json', '{"results":{"bindings":[]}}'))
+        ->toBe('application/sparql-results+json');
+});
+
+it('still refuses content that contradicts what was declared', function (): void {
+    // The check exists to catch a publisher serving something other than what
+    // it says. Loosening it for suffixes must not loosen it for that.
+    $inspector = app(ArtifactMediaTypeInspector::class);
+
+    expect(fn () => $inspector->inspect('application/pdf', '{"not":"a pdf"}'))
+        ->toThrow(AcquisitionFailed::class, 'does not match');
 });
