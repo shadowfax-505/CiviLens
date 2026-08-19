@@ -51,6 +51,15 @@ class ReviewCandidateGenerator
      */
     private const NON_DOCUMENT_MEDIA_TYPES = ['text/html', 'application/json', 'text/plain'];
 
+    /**
+     * The amount pattern, so a caller can ask what this class would produce
+     * without duplicating the expression and drifting from it.
+     */
+    public static function amountPattern(): string
+    {
+        return self::PATTERNS['amount'];
+    }
+
     public function __construct(
         private readonly BengaliTextPlausibility $plausibility,
         private readonly AmountGrouping $grouping,

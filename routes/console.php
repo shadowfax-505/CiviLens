@@ -5,6 +5,7 @@ use App\Jobs\RunSourceEndpointCrawl;
 use App\Jobs\ScorePageFields;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
+use App\Models\PublicationFigure;
 use App\Models\ScreeningEntity;
 use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
@@ -337,6 +338,84 @@ Artisan::command('civiclens:decide-fields {--alpha=0.05}', function (FieldDecisi
 
     return 0;
 })->purpose('Apply the certified thresholds to extracted values, deferring anything uncertified');
+
+Artisan::command('civiclens:prune-candidates {--apply : Delete them; without this it only reports}', function (): int {
+    // A candidate the current pattern would not produce is one the page does
+    // not contain — a fragment left behind when the pattern was fixed. Asking a
+    // reviewer whether ৪৫,৩৯৫ matches a page reading ৬.০২,৪৫,৩৯৫ is asking
+    // about a figure that is not there, so these are cleared out rather than
+    // left in the queue.
+    $pattern = ReviewCandidateGenerator::amountPattern();
+
+    $stale = [];
+    $keptAdjudicated = 0;
+    $keptAccepted = 0;
+
+    ExtractionPage::query()
+        ->whereIn('id', ExtractionField::query()->select('extraction_page_id'))
+        ->orderBy('id')
+        ->chunkById(200, function ($pages) use ($pattern, &$stale, &$keptAdjudicated, &$keptAccepted): void {
+            foreach ($pages as $page) {
+                preg_match_all($pattern, (string) $page->extracted_text, $matches);
+                $produced = array_flip($matches[0]);
+
+                $fields = ExtractionField::query()
+                    ->where('extraction_page_id', $page->getKey())
+                    // A cell-derived candidate came from a table cell, not from
+                    // this text, so the pattern says nothing about it.
+                    ->whereNull('extraction_table_cell_id')
+                    ->where('field_key', 'amount')
+                    ->get();
+
+                foreach ($fields as $field) {
+                    if (isset($produced[(string) $field->extracted_value])) {
+                        continue;
+                    }
+
+                    // A judgement is evidence about the system, and two of
+                    // these were reviewers correctly marking a fragment wrong.
+                    // Deleting a label would change the bound without saying so.
+                    if ($field->gold_source !== null || $field->is_correct !== null) {
+                        $keptAdjudicated++;
+
+                        continue;
+                    }
+
+                    // Nothing published is ever removed here, and "published"
+                    // means any snapshot, not only the current one. A value
+                    // accepted under an earlier calibration and deferred under
+                    // this one is still pinned in the snapshot that published
+                    // it, and deleting it would break a citation someone may
+                    // already have made. The database's own foreign key says
+                    // the same thing; this makes the reason explicit rather
+                    // than letting the constraint be met as a surprise.
+                    if ($field->decision === 'accepted' || PublicationFigure::query()->where('extraction_field_id', $field->getKey())->exists()) {
+                        $keptAccepted++;
+
+                        continue;
+                    }
+
+                    $stale[] = (int) $field->getKey();
+                }
+            }
+        });
+
+    $this->info(count($stale).' candidates are no longer produced by the amount pattern.');
+    $this->line("  {$keptAdjudicated} kept because a reviewer judged them.");
+    $this->line("  {$keptAccepted} kept because they are accepted or already published in a snapshot.");
+
+    if (! $this->option('apply')) {
+        $this->comment('Nothing deleted. Re-run with --apply.');
+
+        return 0;
+    }
+
+    $deleted = ExtractionField::query()->whereIn('id', $stale)->delete();
+
+    $this->info("Deleted {$deleted} candidates.");
+
+    return 0;
+})->purpose('Remove review candidates the current amount pattern would not produce');
 
 Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Score in this process instead of queueing}', function (SecondReadScorer $scorer): int {
     $limit = $this->option('limit');
