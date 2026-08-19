@@ -77,6 +77,11 @@ class PaperReport
             // publisher's documents, and the difference matters to any claim
             // about extraction.
             'tender_observations' => TenderObservation::query()->count(),
+            // Sources fetched against a publisher's stated robots directive, on
+            // a recorded operator decision. Anything derived from them carries
+            // that provenance, and a write-up that omitted it would be hiding
+            // the one thing a reader might object to.
+            'fetched_against_robots' => $this->overriddenEndpoints(),
             'documents_by_publisher' => $this->documentsByPublisher(),
             'archived_by_publisher' => $this->documentsByPublisher(documentsOnly: false),
         ];
@@ -108,6 +113,31 @@ class PaperReport
         }
 
         return $counts;
+    }
+
+    /**
+     * Sources fetched against a publisher's stated robots directive.
+     *
+     * Built by hand: the publisher is a relation away and can be missing, which
+     * a chained accessor hides.
+     *
+     * @return list<array{publisher: string, endpoint: string, reason: string}>
+     */
+    private function overriddenEndpoints(): array
+    {
+        $overridden = [];
+
+        foreach (SourceEndpoint::query()->whereNotNull('robots_override_reason')->with('publisher')->get() as $endpoint) {
+            $publisher = $endpoint->publisher;
+
+            $overridden[] = [
+                'publisher' => $publisher instanceof SourcePublisher ? $publisher->slug : 'unattributed',
+                'endpoint' => (string) $endpoint->name,
+                'reason' => (string) $endpoint->robots_override_reason,
+            ];
+        }
+
+        return $overridden;
     }
 
     /**
