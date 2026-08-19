@@ -20,6 +20,7 @@ use App\Services\Extraction\PaperReport;
 use App\Services\Extraction\PipelineHealthReport;
 use App\Services\Extraction\ReviewCandidateGenerator;
 use App\Services\Extraction\ScoreDiscriminationReport;
+use App\Services\Extraction\SecondReadScorer;
 use App\Services\Extraction\TableStructureDetector;
 use App\Services\Extraction\WordGeometryBackfill;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
@@ -337,7 +338,7 @@ Artisan::command('civiclens:decide-fields {--alpha=0.05}', function (FieldDecisi
     return 0;
 })->purpose('Apply the certified thresholds to extracted values, deferring anything uncertified');
 
-Artisan::command('civiclens:score-fields {--limit=500} {--labelled}', function (): int {
+Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Score in this process instead of queueing}', function (SecondReadScorer $scorer): int {
     $limit = $this->option('limit');
     $limit = is_numeric($limit) ? (int) $limit : 500;
 
@@ -352,9 +353,37 @@ Artisan::command('civiclens:score-fields {--limit=500} {--labelled}', function (
         $query->whereIn('id', ExtractionField::query()->whereNotNull('is_correct')->select('extraction_page_id'));
     }
 
+    $pages = $query->orderBy('id')->limit(max(1, $limit))->get();
+
+    // Scoring shares one queue with the crawlers, and a crawler rate-limited to
+    // a request a minute holds it for hours. Re-scoring after an extraction
+    // change is not something to leave behind that, so it can be run here.
+    if ($this->option('sync')) {
+        $scored = 0;
+        $unlocatable = 0;
+
+        $done = 0;
+        $total = $pages->count();
+
+        foreach ($pages as $page) {
+            $result = $scorer->scorePage($page);
+            $scored += $result['scored'];
+            $unlocatable += $result['unlocatable'];
+            $done++;
+
+            if ($done % 50 === 0 || $done === $total) {
+                $this->line("  {$done}/{$total} pages");
+            }
+        }
+
+        $this->info("Scored {$scored} values; {$unlocatable} could not be located and defer by rule.");
+
+        return 0;
+    }
+
     $dispatched = 0;
 
-    $query->orderBy('id')->limit(max(1, $limit))->each(function (ExtractionPage $page) use (&$dispatched): void {
+    $pages->each(function (ExtractionPage $page) use (&$dispatched): void {
         ScorePageFields::dispatch($page->getKey());
         $dispatched++;
     });
