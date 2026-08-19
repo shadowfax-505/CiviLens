@@ -78,3 +78,7 @@ __pycache__/
 # Publishers that serve only their leaf certificate need the intermediates
 # supplied; build with civiclens:build-ca-bundle.
 /storage/app/ca/
+
+# A 1.2GB Python environment for table structure detection, rebuilt with
+# tools/table-structure/requirements.txt rather than committed.
+/storage/app/python/
