@@ -75,3 +75,38 @@ it('still reads a figure that follows a comma and a space', function (): void {
     expect(amountsFrom('রাজস্ব খাতে, ১২,৩৪৫ টাকা ব্যয় হয়েছে বলে প্রতিবেদনে উল্লেখ করা হয়েছে এই বছরে'))
         ->toContain('১২,৩৪৫');
 });
+
+it('counts an unreadable page apart from one that has nothing left to give', function (): void {
+    // Reported as one number, these opposite states are indistinguishable: a
+    // corpus already harvested to its last figure looks like a corpus the
+    // reader could not read. That reading cost real time.
+    ExtractionPage::factory()->create([
+        'extracted_text' => str_repeat('স ূ ড ি ত ্ র ে া ি ু ', 40),
+        'extraction_path' => 'native',
+        'character_count' => 500,
+        'script_class' => 'bn',
+        'confidence' => 84.0,
+    ]);
+
+    $first = app(ReviewCandidateGenerator::class)->generate(50);
+
+    expect($first['unreadable_pages'])->toBe(1)
+        ->and($first['pages_without_new_candidates'])->toBe(0);
+
+    // A readable page, harvested twice: the second pass finds nothing new and
+    // that is not the same as being unable to read it.
+    ExtractionPage::factory()->create([
+        'extracted_text' => 'মোট ১,২৩,৪৫৬ টাকা ব্যয় হয়েছে বলে প্রতিবেদনে উল্লেখ করা হয়েছে এই অর্থবছরে',
+        'extraction_path' => 'ocr_primary',
+        'character_count' => 120,
+        'script_class' => 'bn',
+        'confidence' => 84.0,
+    ]);
+
+    app(ReviewCandidateGenerator::class)->generate(50);
+    $third = app(ReviewCandidateGenerator::class)->generate(50);
+
+    expect($third['created'])->toBe(0)
+        ->and($third['unreadable_pages'])->toBe(1)
+        ->and($third['pages_without_new_candidates'])->toBe(1);
+});

@@ -179,13 +179,19 @@ class ReviewCandidateGenerator
     }
 
     /**
-     * @return array{created: int, pages: int, skipped_pages: int}
+     * @return array{created: int, pages: int, unreadable_pages: int, pages_without_new_candidates: int}
      */
     public function generate(int $limit = 200): array
     {
         $created = 0;
         $pages = 0;
-        $skipped = 0;
+
+        // Counted apart. A page rejected as unreviewable and a page already
+        // harvested down to its last figure are opposite states, and reporting
+        // both as "skipped" once made a corpus that had nothing left to give
+        // look like a corpus the reader could not read.
+        $unreadable = 0;
+        $exhausted = 0;
 
         $candidates = ExtractionPage::query()
             ->with('run')
@@ -228,7 +234,7 @@ class ReviewCandidateGenerator
             // nine in ten incorrect and the bound would have described an
             // encoding bug rather than how well the system reads.
             if ($this->plausibility->isImplausible((string) $page->extracted_text)) {
-                $skipped++;
+                $unreadable++;
 
                 continue;
             }
@@ -269,11 +275,16 @@ class ReviewCandidateGenerator
             }
 
             if ($created === $before) {
-                $skipped++;
+                $exhausted++;
             }
         }
 
-        return ['created' => $created, 'pages' => $pages, 'skipped_pages' => $skipped];
+        return [
+            'created' => $created,
+            'pages' => $pages,
+            'unreadable_pages' => $unreadable,
+            'pages_without_new_candidates' => $exhausted,
+        ];
     }
 
     /**
