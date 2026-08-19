@@ -93,3 +93,55 @@ usually means the score was derived from the gold value. It reports four incorre
 below the worst correct one, so it does not fire — the separation is good and imperfect, which is
 what an independent signal looks like. Had it fired, the honest response would have been to explain
 why a re-read of pixels cannot see a label, never to silence the check.
+
+## Addendum, 2026-08-19: the unlocatable share was mostly a bug
+
+"Roughly a quarter of fields carry no score" was recorded above as a property of
+the corpus. It was largely a defect in the locator.
+
+These documents write a sum as `৩,৯৮,৭৪৮/-`. The amount pattern stops at the last
+digit, so the extracted value never carried the terminator while the recognized
+word always did, and the locator required an exact match. Since an unlocatable
+value scores `null` and defers by rule, the effect was not cosmetic: the system
+was withholding the sums of money and certifying the short decimals that happen
+to be printed without a terminator — paragraph numbers off contents pages.
+
+Tolerating a trailing currency terminator, and only a trailing one:
+
+| | before | after |
+| --- | --- | --- |
+| Unlocatable, whole corpus | 1,703 | **1,012** |
+| Coverage over adjudicated fields | 205 of 265 | **247 of 265** |
+| AUC over adjudicated fields | 0.8954 | 0.8818 |
+| — `dgcivil-bangladesh\|bn` | 0.9554 | 0.9443 |
+| — `dgcivil-bangladesh\|mixed` | 0.8280 | 0.8333 |
+| Accepted, whole corpus | 5,563 | **6,547** |
+| — carrying thousands separators | 1,215 | **1,704** |
+
+The AUC fell by 0.014 while coverage rose by 16 points. That is the expected
+direction: the values that were invisible are harder than the ones that were
+not, so ranking over more of them is slightly weaker ranking. The earlier 0.8954
+was measured over a subset selected, unintentionally, for being easy to find.
+
+Calibration sizes rose with coverage, and all three groups now certify at
+α = 0.05 **conditionally** rather than through the ADR-018 ladder:
+
+| group | before | after |
+| --- | --- | --- |
+| `dgcivil-bangladesh\|bn` | n = 85, α = 0.05 | n = 121, α = 0.05 |
+| `dgcivil-bangladesh\|en` | n = 17, α = 0.056 relaxed | n = 29, α = 0.05 |
+| `dgcivil-bangladesh\|mixed` | n = 9, α = 0.10 relaxed | n = 19, α = 0.05 |
+
+**What this says about the method.** The bound was correct throughout. Both the
+old numbers and the new ones are sound statements about `P(accepted AND wrong)`;
+what changed is which population they are about, and the old population was worse
+than it looked because it excluded the figures a reader would care about most.
+A guarantee over a silently biased subset is the failure mode this addendum
+exists to record: nothing in the calibration could have detected it, because
+deferring is always allowed and never breaches the bound.
+
+**Still outstanding.** 1,012 values remain unlocatable, and 22.7% of accepted
+values are contents-page section numbers matched by the amount pattern. Both are
+candidate-generation and location problems rather than certification ones, and
+the second is stated on the public document page rather than corrected in the
+count (ADR-021).

@@ -16,7 +16,7 @@ a single publisher, can publish only that publisher's values as certified.
 
 | publisher | documents | labels | publishable as certified? |
 | --- | --- | --- | --- |
-| dgcivil-bangladesh | 9 | 267 | **yes** — 3 groups at α = 0.05 |
+| dgcivil-bangladesh | 9 | 267 | **yes** — 3 groups at α = 0.05, all conditional |
 | cbad-bangladesh | 1 | 0 | no — deferred by rule |
 | imed-bangladesh | 1 | 0 | no |
 | bgpress gazette, parliament | 0 | 0 | no |
@@ -78,10 +78,17 @@ never reported as a conditional one (ADR-018).
 
 The score was rebuilt and it mattered. Page-level OCR confidence ranked errors at
 **AUC 0.5106** — a coin flip, identical for every field on a page. A second read
-of each value's own marked region scores **AUC 0.8949**, and at α = 0.03
-acceptance rises from 60% to 98% (ADR-019).
+of each value's own marked region scores **AUC 0.8818** over 247 of 265
+adjudicated fields (ADR-019).
 
-**5,186 accepted, 2,730 deferred.** The bound is applied, not merely computed.
+A locator defect was withholding the sums of money: these documents print an
+amount as `৩,৯৮,৭৪৮/-` and an exact match failed on the terminator, so the
+figures that mattered went unlocated and deferred by rule while contents-page
+section numbers were certified. Fixing it raised coverage from 205 to 247 of 265
+and moved all three groups onto conditional certification at α = 0.05, where two
+of them previously needed the ADR-018 ladder.
+
+**6,547 accepted, 1,797 deferred.** The bound is applied, not merely computed.
 
 ### Publication
 `civiclens:publish` freezes a snapshot of what the project is prepared to stand
@@ -116,9 +123,11 @@ Python environment sat in `/tmp` and the OS purged it.
   environment inside the repo's storage directory.
 - **Backlog**: 143 failed jobs and roughly 1,700 unscored candidates at the time
   of writing, visible because health reports them.
-- **The amount pattern over-matches.** 1,131 of the 5,186 accepted values are
-  section numbers like `২.২` off contents pages. They were read correctly and the
-  bound holds as stated; the label is what overreaches (ADR-021).
+- **The amount pattern over-matches.** 1,484 of the 6,547 accepted values (22.7%)
+  are section numbers like `২.২` off contents pages. They were read correctly and
+  the bound holds as stated; the label is what overreaches (ADR-021).
+- **1,012 values still cannot be located** and defer by rule. Improving location
+  coverage certifies more than tuning the score would.
 
 ---
 
