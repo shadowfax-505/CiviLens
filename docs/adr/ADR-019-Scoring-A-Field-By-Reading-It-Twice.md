@@ -148,3 +148,35 @@ contents-page section numbers — was withdrawn. It was inferred from the shape 
 the value and not checked against the page; in context most values of that shape
 are budget figures in crore or percentages. ADR-021 records the correction and
 the measurement that replaced it.
+
+## Addendum, 2026-08-19: what the second read is cropping
+
+The score is only as good as the region it re-reads, and twice on the same day
+the region was wrong in a way no measurement of the *score* could reveal.
+
+**Values printed with a currency terminator could not be located at all** — the
+first addendum above.
+
+**Values taken from a table cell were cropped by the cell.** A cell box is the
+box of the cell: ruling lines, padding, and where the grid is imperfect, part of
+the neighbouring column. Re-reading all of it returned `৪৭৪.২৫ | ৪৬,৮৩০` for a
+value of `৪৬,৮৩০.৮৬`, a pipe where a rule line was, or nothing. Cropping the
+value's own words *inside* the cell's bounds instead:
+
+| | before | after |
+| --- | --- | --- |
+| Cell-derived, unlocatable | 0% | 0% |
+| Cell-derived, accepted | 64.2% | **89.0%** |
+| Text-derived, accepted | 77.5% | 77.5% |
+
+Cell-derived values went from certifying *worse* than text-derived ones to
+certifying substantially better, which is what they should always have done:
+their location is known exactly rather than searched for.
+
+**The pattern worth recording.** In both cases the score behaved correctly on
+the pixels it was given, the bound held throughout, and the calibration could
+not have flagged either — deferring never breaches `P(accepted AND wrong)`, so a
+systematically mis-cropped population simply abstains and the guarantee stays
+true over a quietly narrower set. AUC over the adjudicated fields is unchanged
+at 0.8818 across both fixes. **What moved was coverage, and coverage is where
+this method can go wrong without saying so.**

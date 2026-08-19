@@ -90,8 +90,13 @@ section numbers were certified. Fixing it raised coverage from 205 to 247 of 265
 and moved all three groups onto conditional certification at α = 0.05, where two
 of them previously needed the ADR-018 ladder.
 
-**10,399 accepted, 3,343 deferred**, from 14,009 candidates. The bound is
+**11,175 accepted, 2,908 deferred**, from 14,350 candidates. The bound is
 applied, not merely computed.
+
+Values taken from a table cell certify at 89.0% against 77.5% for values matched
+in flowing text, and none of them fail to locate. They are also the only ones
+that know which row and column they sat in, which is what a budget table has to
+carry to be analysed as a table.
 
 ### Publication
 `civiclens:publish` freezes a snapshot of what the project is prepared to stand
@@ -133,8 +138,9 @@ Python environment sat in `/tmp` and the OS purged it.
   what a certified number *is* remains outside the guarantee, and the public page
   says so (ADR-021). An earlier estimate that a fifth of accepted values were
   section headings was withdrawn as unmeasured; the real share is a few per cent.
-- **1,843 values still cannot be located** and defer by rule. Improving location
-  coverage certifies more than tuning the score would.
+- **1,843 values still cannot be located** and defer by rule, all of them matched
+  in flowing text. Improving location coverage certifies more than tuning the
+  score would.
 
 ---
 
@@ -193,7 +199,10 @@ publishers directly** — see the constraint above.
 ### M3 · Extraction completeness
 **State:** roughly a fifth abstained; scoring backlog outstanding.
 **Target:** backlog cleared; abstention understood rather than merely counted.
-**Work:** drain table and scoring queues; sample abstained pages and classify why
+**Work:** table structure for the 506 pages that carry candidates without it —
+measured at 42% of pages holding a table, ~18 candidates each, ~1.5 minutes a
+page, so about thirteen hours for roughly 3,400 certified figures carrying row
+and column; sample abstained pages and classify why
 (blank, poorly scanned, unusual layout); consider a third OCR attempt at higher
 DPI for the near-threshold band; extend word geometry to remaining native pages.
 **Reduce the 1,012 unlocatable values** — split tokens, native pages, values
