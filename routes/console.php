@@ -5,23 +5,27 @@ use App\Jobs\RunSourceEndpointCrawl;
 use App\Jobs\ScorePageFields;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
+use App\Models\ExtractionRun;
 use App\Models\PublicationFigure;
 use App\Models\ScreeningEntity;
 use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
 use App\Models\SourcePublisher;
 use App\Services\Extraction\BenchmarkEvaluationService;
+use App\Services\Extraction\BengaliTextPlausibility;
 use App\Services\Extraction\BornDigitalWordExtractor;
 use App\Services\Extraction\CalibrationReport;
 use App\Services\Extraction\CorpusLegibilityProbe;
 use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Extraction\FieldDecisionService;
 use App\Services\Extraction\KeyValueExtractor;
+use App\Services\Extraction\PageRoutingPolicy;
 use App\Services\Extraction\PaperReport;
 use App\Services\Extraction\PipelineHealthReport;
 use App\Services\Extraction\ReviewCandidateGenerator;
 use App\Services\Extraction\ScoreDiscriminationReport;
 use App\Services\Extraction\SecondReadScorer;
+use App\Services\Extraction\SelectiveOcrService;
 use App\Services\Extraction\TableStructureDetector;
 use App\Services\Extraction\WordGeometryBackfill;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
@@ -338,6 +342,81 @@ Artisan::command('civiclens:decide-fields {--alpha=0.05}', function (FieldDecisi
 
     return 0;
 })->purpose('Apply the certified thresholds to extracted values, deferring anything uncertified');
+
+Artisan::command('civiclens:reroute-pages {--apply : Re-read them; without this it only reports}', function (BengaliTextPlausibility $plausibility, SelectiveOcrService $ocr): int {
+    // A page read before the mojibake check existed kept its text layer and the
+    // path `native`, and the OCR service only revisits pages already marked as
+    // needing OCR. So these sit in the corpus decoding to the wrong characters,
+    // excluded from review — correctly, since a reviewer would mark nine in ten
+    // wrong — and contributing nothing.
+    //
+    // Re-applying the current routing policy to what is already stored is
+    // enough to find them: the policy would send this text to OCR today.
+    $stale = [];
+    $skippedWithFields = 0;
+
+    ExtractionPage::query()
+        ->where('extraction_path', PageRoutingPolicy::NATIVE)
+        ->whereNotNull('extracted_text')
+        ->orderBy('id')
+        ->chunkById(200, function ($pages) use ($plausibility, &$stale, &$skippedWithFields): void {
+            foreach ($pages as $page) {
+                if (! $plausibility->isImplausible((string) $page->extracted_text)) {
+                    continue;
+                }
+
+                // A page someone has already reviewed, or that produced a
+                // certified value, keeps the text those judgements were made
+                // about. Re-reading it would leave a label describing characters
+                // that are no longer there.
+                if (ExtractionField::query()->where('extraction_page_id', $page->getKey())->exists()) {
+                    $skippedWithFields++;
+
+                    continue;
+                }
+
+                $stale[] = $page;
+            }
+        });
+
+    $runs = collect($stale)->pluck('extraction_run_id')->unique()->values();
+
+    $this->info(count($stale).' pages hold a text layer the routing policy would send to OCR today.');
+    $this->line("  across {$runs->count()} extraction runs.");
+    $this->line("  {$skippedWithFields} left alone because candidates already rest on their text.");
+
+    if (! $this->option('apply')) {
+        $this->comment('Nothing changed. Re-run with --apply.');
+
+        return 0;
+    }
+
+    foreach ($stale as $page) {
+        $page->forceFill(['extraction_path' => PageRoutingPolicy::OCR_REQUIRED])->save();
+    }
+
+    $failed = 0;
+
+    foreach ($runs as $runId) {
+        $run = ExtractionRun::query()->find($runId);
+
+        if (! $run instanceof ExtractionRun) {
+            continue;
+        }
+
+        try {
+            $ocr->process($run);
+            $this->line("  re-read run {$runId}");
+        } catch (Throwable $exception) {
+            $failed++;
+            $this->warn("  run {$runId} failed: ".$exception->getMessage());
+        }
+    }
+
+    $this->info('Re-read '.($runs->count() - $failed).' runs.');
+
+    return 0;
+})->purpose('Re-read pages whose stored text layer the routing policy would now reject');
 
 Artisan::command('civiclens:prune-candidates {--apply : Delete them; without this it only reports}', function (): int {
     // A candidate the current pattern would not produce is one the page does
