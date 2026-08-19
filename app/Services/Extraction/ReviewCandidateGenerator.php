@@ -5,7 +5,9 @@ namespace App\Services\Extraction;
 use App\Models\DiscoveredResource;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
+use App\Models\ExtractionRun;
 use App\Models\ExtractionTableCell;
+use App\Models\ScreeningEntity;
 use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
 use App\Models\SourcePublisher;
@@ -171,6 +173,17 @@ class ReviewCandidateGenerator
             // says "HOME | LINK | CONTACT US", and a reviewer asked to adjudicate
             // that is being asked to certify website furniture.
             ->whereHas('run.artifactVersion', fn ($query) => $query->whereNotIn('media_type', self::NON_DOCUMENT_MEDIA_TYPES))
+            // Reference lists are inputs, not corpus. The debarment CSV is
+            // archived as a document and read as one, and it produced 901 review
+            // candidates asking whether a World Bank record number was read
+            // correctly — a question about somebody else's published register,
+            // not about a Bangladeshi document this project certifies.
+            ->whereNotIn(
+                'extraction_run_id',
+                ExtractionRun::query()
+                    ->whereIn('source_artifact_version_id', ScreeningEntity::query()->select('source_artifact_version_id'))
+                    ->select('id'),
+            )
             // A page the recognizer would not vouch for is not worth a
             // reviewer's attention: they would be adjudicating text the system
             // has already declined to stand behind.
