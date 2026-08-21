@@ -306,7 +306,7 @@ Artisan::command('civiclens:health', function (PipelineHealthReport $health): in
     // runtime and fails closed, which is right and also silent: pages simply
     // stop gaining tables, and that looks exactly like a corpus without any.
     $report = $health->build();
-    $report['pages_missing_table_structure'] = $health->pagesMissingTables();
+    $report['table_detection'] = $health->tableDetection();
 
     $this->line(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 

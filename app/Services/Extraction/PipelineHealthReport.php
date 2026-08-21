@@ -253,11 +253,32 @@ class PipelineHealthReport
     /**
      * Pages that could carry table structure and do not.
      */
-    public function pagesMissingTables(): int
+    /**
+     * What is left to detect, and what has been settled.
+     *
+     * Counting pages that merely lack cells conflated "there is no table here"
+     * with "nobody has looked", and most pages of an audit report are prose.
+     * Reported that way the figure read as outstanding work when it was mostly
+     * a finished answer — the same conflation that made `skipped_pages`
+     * unreadable, in the one number an operator uses to decide whether to spend
+     * a night on detection.
+     *
+     * @return array{pages_examined: int, pages_holding_tables: int, pages_with_no_table: int, pages_not_yet_examined: int}
+     */
+    public function tableDetection(): array
     {
-        return ExtractionPage::query()
-            ->whereNotNull('recognized_words')
-            ->whereNotIn('id', DB::table('extraction_table_cells')->select('extraction_page_id'))
+        $eligible = ExtractionPage::query()->whereNotNull('recognized_words');
+
+        $examined = (clone $eligible)->whereNotNull('tables_detected_at')->count();
+        $holding = (clone $eligible)
+            ->whereIn('id', DB::table('extraction_table_cells')->select('extraction_page_id'))
             ->count();
+
+        return [
+            'pages_examined' => $examined,
+            'pages_holding_tables' => $holding,
+            'pages_with_no_table' => max(0, $examined - $holding),
+            'pages_not_yet_examined' => (clone $eligible)->whereNull('tables_detected_at')->count(),
+        ];
     }
 }

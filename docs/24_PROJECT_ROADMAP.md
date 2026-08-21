@@ -206,7 +206,7 @@ cells and 3,218 candidates. 403 pages still lack structure. Detection cost is
 to sixteen minutes, and twelve exceeded the 900-second timeout. A timed-out job
 leaves no row in `failed_jobs` — the job's own `$tries = 2` overrides a worker's
 `--tries=1` — so the page simply ends up without structure, visible only as
-`pages_missing_table_structure`. Sample abstained pages and classify why
+`table_detection.pages_not_yet_examined`. Sample abstained pages and classify why
 (blank, poorly scanned, unusual layout); consider a third OCR attempt at higher
 DPI for the near-threshold band; extend word geometry to remaining native pages.
 **Reduce the 1,012 unlocatable values** — split tokens, native pages, values

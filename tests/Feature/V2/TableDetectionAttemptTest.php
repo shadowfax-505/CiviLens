@@ -3,6 +3,7 @@
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
 use App\Models\ExtractionTableCell;
+use App\Services\Extraction\PipelineHealthReport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 
@@ -65,4 +66,29 @@ it('treats a page that holds cells as looked at', function (): void {
     ExtractionTableCell::factory()->create(['extraction_page_id' => $page->id]);
 
     expect(ExtractionTableCell::query()->where('extraction_page_id', $page->id)->exists())->toBeTrue();
+});
+
+it('does not report a page with no table as work still to do', function (): void {
+    // Most pages of an audit report are prose. Counting them as "missing table
+    // structure" made a finished answer read as outstanding work, in the one
+    // number an operator uses to decide whether to spend a night on detection.
+    detectablePage('2026-08-20 10:00:00');
+    detectablePage(null);
+
+    $detection = app(PipelineHealthReport::class)->tableDetection();
+
+    expect($detection['pages_examined'])->toBe(1)
+        ->and($detection['pages_with_no_table'])->toBe(1)
+        ->and($detection['pages_holding_tables'])->toBe(0)
+        ->and($detection['pages_not_yet_examined'])->toBe(1);
+});
+
+it('counts a page holding cells as holding a table', function (): void {
+    $page = detectablePage('2026-08-20 10:00:00');
+    ExtractionTableCell::factory()->create(['extraction_page_id' => $page->id]);
+
+    $detection = app(PipelineHealthReport::class)->tableDetection();
+
+    expect($detection['pages_holding_tables'])->toBe(1)
+        ->and($detection['pages_with_no_table'])->toBe(0);
 });
