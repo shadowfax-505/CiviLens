@@ -40,6 +40,11 @@ class PageTableAssembler
         $artifact = $page->run?->artifactVersion;
 
         if (! $artifact instanceof SourceArtifactVersion) {
+            // Nothing to render, so nothing to detect. Stamped all the same:
+            // otherwise this page is re-dispatched for ever, and a run that
+            // never gets anywhere is worse than one that records why.
+            $page->forceFill(['tables_detected_at' => now()])->save();
+
             return ['tables' => 0, 'cells' => 0, 'words_placed' => 0];
         }
 
@@ -85,6 +90,12 @@ class PageTableAssembler
             // copy, so a corrected model or a re-render does not leave two
             // conflicting structures behind.
             ExtractionTableCell::query()->where('extraction_page_id', $page->getKey())->delete();
+
+            // Stamped whether or not a table is found. "No table on this page"
+            // and "nobody has looked at this page" are different answers, and
+            // without the stamp the slowest step in the pipeline pays for the
+            // negatives again on every run.
+            $page->forceFill(['tables_detected_at' => now()])->save();
 
             foreach ($tables as $table) {
                 $tableIndex = (int) ($table['index'] ?? 0);
