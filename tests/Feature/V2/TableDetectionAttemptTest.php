@@ -49,16 +49,6 @@ it('looks at a page nothing has looked at, whether or not others found tables', 
         ->assertSuccessful();
 });
 
-it('looks again at everything when told to', function (): void {
-    // What to use after a page has been re-read and its word geometry has
-    // changed underneath the old grid.
-    detectablePage('2026-08-20 10:00:00');
-
-    $this->artisan('civiclens:extract-tables', ['--limit' => 50, '--all' => true])
-        ->expectsOutputToContain('Queued 1 pages')
-        ->assertSuccessful();
-});
-
 it('treats a page that holds cells as looked at', function (): void {
     // The backfill's rule: cells prove detection ran, whatever the stamp says.
     $page = detectablePage(null);
@@ -91,4 +81,41 @@ it('counts a page holding cells as holding a table', function (): void {
 
     expect($detection['pages_holding_tables'])->toBe(1)
         ->and($detection['pages_with_no_table'])->toBe(0);
+});
+
+it('does not re-examine already examined pages even with --all', function (): void {
+    // The two flags answer different questions — coverage and repetition — and
+    // folding them together is what made --all mean "spend another twelve
+    // hours re-deriving what is already known".
+    detectablePage('2026-08-20 10:00:00');
+
+    $this->artisan('civiclens:extract-tables', ['--limit' => 50, '--all' => true])
+        ->expectsOutputToContain('Queued 0 pages')
+        ->assertSuccessful();
+});
+
+it('reaches a page carrying no review candidates with --all', function (): void {
+    // A page with no text candidates can still hold a table, and a table yields
+    // candidates of its own — the ones that know their row and column.
+    ExtractionPage::factory()->create([
+        'recognized_words' => [['t' => 'x', 'c' => 90.0, 'l' => 1, 'y' => 1, 'w' => 5, 'h' => 5]],
+        'recognized_dpi' => 150,
+        'tables_detected_at' => null,
+    ]);
+
+    $this->artisan('civiclens:extract-tables', ['--limit' => 50])
+        ->expectsOutputToContain('Queued 0 pages')
+        ->assertSuccessful();
+
+    $this->artisan('civiclens:extract-tables', ['--limit' => 50, '--all' => true])
+        ->expectsOutputToContain('Queued 1 pages')
+        ->assertSuccessful();
+});
+
+it('re-examines an examined page with --again', function (): void {
+    detectablePage('2026-08-20 10:00:00');
+
+    $this->artisan('civiclens:extract-tables', ['--limit' => 50, '--again' => true])
+        ->expectsOutputToContain('Queued 1 pages')
+        ->assertSuccessful();
 });

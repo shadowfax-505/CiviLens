@@ -187,7 +187,7 @@ Artisan::command('civiclens:probe-legibility {manifest} {--pages=}', function (C
     return 0;
 })->purpose('Measure whether the OCR engine can read a benchmark corpus at all');
 
-Artisan::command('civiclens:extract-tables {--limit=250} {--all}', function (TableStructureDetector $detector): int {
+Artisan::command('civiclens:extract-tables {--limit=250} {--all : Include pages carrying no review candidates} {--again : Examine pages already examined}', function (TableStructureDetector $detector): int {
     if (! $detector->isAvailable()) {
         $this->error('Table structure detection is not configured on this machine.');
 
@@ -203,18 +203,22 @@ Artisan::command('civiclens:extract-tables {--limit=250} {--all}', function (Tab
     $query = ExtractionPage::query()->whereNotNull('recognized_words');
 
     if (! $this->option('all')) {
+        // Pages a reviewer is about to look at, first. Detection is the slowest
+        // thing this project runs and most pages hold no table, so the order
+        // matters more than the coverage.
         $query->whereIn('id', ExtractionField::query()->whereNull('gold_source')->select('extraction_page_id'));
+    }
 
-        // A page already looked at is not worth looking at again. Detection is
-        // the slowest thing this project runs, and the test has to be "has this
-        // been attempted", not "does this have cells": most pages have no table,
-        // so testing for cells re-derived every negative on every run — about
-        // 297 of the 451 pages detected overnight, at up to sixteen minutes
-        // each.
-        //
-        // `--all` still re-detects everything, which is what to use after a page
-        // has been re-read and its word geometry has changed underneath the old
-        // grid.
+    // A page already looked at is not worth looking at again, and this holds
+    // even under `--all`: the two flags answer different questions, and folding
+    // them together is what made `--all` mean "spend another twelve hours".
+    // The test is "has this been attempted", not "does this have cells" — most
+    // pages have no table, so testing for cells re-derived every negative on
+    // every run, about 297 of the 451 pages detected in one night.
+    //
+    // `--again` is for after a page has been re-read and its word geometry has
+    // changed underneath the old grid.
+    if (! $this->option('again')) {
         $query->whereNull('tables_detected_at');
     }
 
