@@ -90,12 +90,12 @@ section numbers were certified. Fixing it raised coverage from 205 to 247 of 265
 and moved all three groups onto conditional certification at α = 0.05, where two
 of them previously needed the ADR-018 ladder.
 
-**13,975 accepted, 3,326 deferred**, from 17,568 candidates. The bound is
+**14,394 accepted, 3,399 deferred**, from 18,060 candidates. The bound is
 applied, not merely computed.
 
-Values taken from a table cell certify at **88.2%** against 77.5% for values
+Values taken from a table cell certify at **88.0%** against 77.5% for values
 matched in flowing text, and none of them fail to locate — a gap that held as
-the cell-derived set grew from 2,247 values to 5,324. They are also the only
+the cell-derived set grew from 2,247 values to 5,816. They are also the only
 ones that know which row and column they sat in, which is what a budget table
 has to carry to be analysed as a table.
 
@@ -200,13 +200,14 @@ publishers directly** — see the constraint above.
 ### M3 · Extraction completeness
 **State:** roughly a fifth abstained; scoring backlog outstanding.
 **Target:** backlog cleared; abstention understood rather than merely counted.
-**Work:** 451 pages were detected overnight — 34% held a table, yielding 11,318
-cells and 3,218 candidates. 403 pages still lack structure. Detection cost is
-**bimodal**: most pages take about 75 seconds, a tail of roughly thirty take ten
-to sixteen minutes, and twelve exceeded the 900-second timeout. A timed-out job
-leaves no row in `failed_jobs` — the job's own `$tries = 2` overrides a worker's
-`--tries=1` — so the page simply ends up without structure, visible only as
-`table_detection.pages_not_yet_examined`. Sample abstained pages and classify why
+**Table detection is complete**: all 688 pages carrying word geometry have been
+examined, 309 hold a table and 379 do not, and the answer is recorded per page
+so no run repeats it. Detection cost is **bimodal** — most pages take about 75
+seconds, a tail of roughly thirty take ten to sixteen minutes, and twelve
+exceeded the 900-second timeout. A timed-out job leaves no row in `failed_jobs`,
+because the job's own `$tries = 2` overrides a worker's `--tries=1`, so the page
+ends up unexamined while the queue reads clean. Sample abstained pages and
+classify why
 (blank, poorly scanned, unusual layout); consider a third OCR attempt at higher
 DPI for the near-threshold band; extend word geometry to remaining native pages.
 **Reduce the 1,012 unlocatable values** — split tokens, native pages, values
