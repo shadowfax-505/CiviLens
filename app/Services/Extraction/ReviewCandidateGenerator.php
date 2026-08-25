@@ -345,22 +345,29 @@ class ReviewCandidateGenerator
      * decimals, and nothing dangling at either end.
      */
     /**
+     * A bracketed calculation, whose result these reports write after it.
+     *
+     * `(৩,১৩,৫৪২-২,৮১,৪১৭) -৩২,১২৫` is a subtraction and its answer — the
+     * arithmetic is exact — and the mark before the answer is an equals sign
+     * the recognizer read as a hyphen.
+     */
+    private const RESULT_OF_CALCULATION = '/\((?:\s*[\d\x{09E6}-\x{09EF}][\d\x{09E6}-\x{09EF},.\x{0020}]*[-+\x{2212}])+\s*[\d\x{09E6}-\x{09EF}][\d\x{09E6}-\x{09EF},.\x{0020}]*\)\s*$/u';
+
+    /**
      * Strip a leading minus that introduces a result rather than a sign.
      *
-     * These reports write a difference as `(৩,১৩,৫৪২-২,৮১,৪১৭) -৩২,১২৫`, where
-     * the last mark is an equals sign the recognizer read as a hyphen — and
-     * 313,542 − 281,417 is 32,125 exactly, so the figure is positive. Reading it
-     * as negative reverses a recovery into a loss.
+     * The bracket has to hold a calculation, and that condition is the whole
+     * substance of this method. A first attempt tested only for a closing
+     * bracket, which in a budget table is the shape of every ordinary row: a
+     * percentage in parentheses sits before the next column's figure, so
+     * `(১৭.৩৮) -১৯৩৭৮` is a genuine negative and stripping it invented money in
+     * eight places before a reviewer's screenshot caught it.
      *
-     * The second read cannot catch this. It re-reads the same glyph with the
-     * same engine family, agrees with itself, and the value is certified wrong;
-     * a reviewer looking at the page is the only thing that sees it, which is
-     * what ADR-019 means by a correlated failure.
-     *
-     * The test is a closing bracket before the mark, whitespace aside. A minus
-     * anywhere else is left exactly as read: reappropriation columns run
-     * genuinely negative throughout this corpus — 385 of the 425 such values —
-     * and stripping those would invent money.
+     * A minus anywhere else is left exactly as read. Reappropriation columns run
+     * negative throughout this corpus — 385 of the 425 values that begin with
+     * one — and the second read cannot arbitrate: it re-reads the same glyph
+     * with the same engine family and agrees with itself, which is what ADR-019
+     * means by a correlated failure.
      */
     private function withoutResultMarker(string $value, string $text, int $byteOffset): string
     {
@@ -368,9 +375,11 @@ class ReviewCandidateGenerator
             return $value;
         }
 
-        $before = rtrim(substr($text, 0, $byteOffset));
+        $before = substr($text, 0, $byteOffset);
 
-        return str_ends_with($before, ')') ? mb_substr($value, 1) : $value;
+        return preg_match(self::RESULT_OF_CALCULATION, $before) === 1
+            ? mb_substr($value, 1)
+            : $value;
     }
 
     private function wellFormedAmount(string $value): bool

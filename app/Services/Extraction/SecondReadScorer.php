@@ -103,6 +103,25 @@ class SecondReadScorer
     }
 
     /**
+     * Do the two readings disagree about whether the figure is negative?
+     *
+     * Only about the presence of a sign, never about which sign: a minus and a
+     * Unicode minus are the same claim written two ways, and normalising them
+     * apart would fire on every page that uses the typographic form.
+     */
+    private function signsDisagree(string $first, string $second): bool
+    {
+        return $this->negative($first) !== $this->negative($second);
+    }
+
+    private function negative(string $text): bool
+    {
+        $trimmed = ltrim(trim($text), '(');
+
+        return $trimmed !== '' && in_array(mb_substr($trimmed, 0, 1), ['-', "\u{2212}"], true);
+    }
+
+    /**
      * @return array{nonconformity_score: float|null, score_basis: string, second_read_value: string|null, second_read_confidence: float|null}
      */
     private function score(ExtractionField $field, ExtractionPage $page, ?GdImage $raster): array
@@ -151,6 +170,21 @@ class SecondReadScorer
         $score = (0.6 * $distance)
             + (0.3 * (1.0 - (max(0.0, min(100.0, $confidence)) / 100)))
             + (0.1 * ($this->grouping->groupsCorrectly((string) $field->extracted_value) ? 0.0 : 1.0));
+
+        // A sign is not a character. Edit distance called ১৯৩৭৮ against
+        // -১৯৩৭৮ a one-in-six difference and scored it 0.156, inside every
+        // group's threshold, so a figure the two readings disagree about the
+        // meaning of was certified — and published as a recovery when the page
+        // showed a loss. Nineteen values on this corpus were accepted that way.
+        //
+        // There is no reading of "one says positive, the other says negative"
+        // that this project should stand behind, so it is scored as maximally
+        // nonconforming and defers by threshold. It stays in calibration,
+        // unlike an unlocatable value: the disagreement is evidence about the
+        // reading rather than an absence of it.
+        if ($this->signsDisagree((string) $field->extracted_value, $text)) {
+            $score = 1.0;
+        }
 
         return [
             'nonconformity_score' => round(max(0.0, min(1.0, $score)), 8),

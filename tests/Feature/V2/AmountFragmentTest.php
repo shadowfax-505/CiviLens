@@ -138,10 +138,24 @@ it('keeps a genuine negative', function (): void {
         ->toContain('-১০.৭');
 });
 
-it('keeps a negative that merely follows a bracketed figure elsewhere in the line', function (): void {
-    // The bracket has to be what the minus follows. A bracket earlier in the
-    // line is not a result marker, and treating it as one would strip signs off
-    // a whole table row.
-    expect(amountsFrom('তহবিল (বিবরণী-০৫) খাতে মোট ৭০,১৪০ এবং -২৮,২১৯ টাকা সমন্বয় করা হয়েছে বলে'))
-        ->toContain('-২৮,২১৯');
+it('keeps a negative that follows a percentage in brackets', function (): void {
+    // The shape of every ordinary budget row: a percentage in parentheses sits
+    // before the next column's figure. Testing only for a closing bracket
+    // stripped the sign off eight genuine negatives before a reviewer's
+    // screenshot caught it — this is that case.
+    expect(amountsFrom('সরকারি ঋণ পরিশোধ ১৪০১১৫ (১৭.৩৮) -১৯৩৭৮ (-১৬.০৫) ১৮৭৯০ বলে প্রতিবেদনে উল্লেখ'))
+        ->toContain('-১৯৩৭৮');
+});
+
+it('keeps a negative that follows a bracketed single figure', function (): void {
+    expect(amountsFrom('তহবিল হতে ৪৪৩১৭৮ (৫৩১৮৫) (৩৯৮.৭৭) -২৮২১৯৬ টাকা সমন্বয় করা হয়েছে বলে জানা যায়'))
+        ->toContain('-২৮২১৯৬');
+});
+
+it('reads the answer to a sum written after it', function (): void {
+    // 19,67,799 + 2,24,295 + 2,78,801 is 24,70,895 exactly, so the mark before
+    // the answer is an equals sign however many terms the bracket holds.
+    expect(amountsFrom('আর্থিক ক্ষতি (১৯,৬৭,৭৯৯+২,২৪,২৯৫+২,৭৮,৮০১) -২৪,৭০,৮৯৫ টাকা আদায়যোগ্য বলে'))
+        ->toContain('২৪,৭০,৮৯৫')
+        ->not->toContain('-২৪,৭০,৮৯৫');
 });

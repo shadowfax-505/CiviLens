@@ -3,6 +3,7 @@
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
 use App\Services\Extraction\ReviewCandidateGenerator;
+use App\Services\Extraction\SecondReadScorer;
 use App\Services\Extraction\ValueLocator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -98,4 +99,36 @@ it('marks the sign as part of the value on the page', function (): void {
     expect($boxes)->toHaveCount(1)
         ->and($boxes[0]['left'])->toBe(380)
         ->and($boxes[0]['right'])->toBe(460);
+});
+
+it('will not certify a figure the two readings disagree the sign of', function (): void {
+    // Edit distance called ১৯৩৭৮ against -১৯৩৭৮ a one-in-six difference and
+    // scored it 0.156, inside every group's threshold. A sign is not a
+    // character: that figure was published as a recovery where the page showed
+    // a loss, and nineteen values on the corpus were accepted the same way.
+    $scorer = app(SecondReadScorer::class);
+
+    $method = new ReflectionMethod($scorer, 'signsDisagree');
+
+    expect($method->invoke($scorer, '১৯৩৭৮', '-১৯৩৭৮'))->toBeTrue()
+        ->and($method->invoke($scorer, '-১৯৩৭৮', '১৯৩৭৮'))->toBeTrue()
+        ->and($method->invoke($scorer, '-১৯৩৭৮', '-১৯৩৭৮'))->toBeFalse()
+        ->and($method->invoke($scorer, '১৯৩৭৮', '১৯৩৭৮'))->toBeFalse();
+});
+
+it('treats a typographic minus as the same claim as a hyphen', function (): void {
+    // Two ways of writing one thing. Reading them as disagreement would fire on
+    // every page that uses the typographic form.
+    $scorer = app(SecondReadScorer::class);
+    $method = new ReflectionMethod($scorer, 'signsDisagree');
+
+    expect($method->invoke($scorer, '-১৯৩৭৮', "\u{2212}১৯৩৭৮"))->toBeFalse();
+});
+
+it('reads an accounting parenthesis as negative', function (): void {
+    // (-২.৫১) means the same as -২.৫১, and the value keeps what the page shows.
+    $scorer = app(SecondReadScorer::class);
+    $method = new ReflectionMethod($scorer, 'signsDisagree');
+
+    expect($method->invoke($scorer, '(-২.৫১)', '-২.৫১'))->toBeFalse();
 });
