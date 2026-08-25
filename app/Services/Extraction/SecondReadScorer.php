@@ -172,18 +172,26 @@ class SecondReadScorer
             + (0.1 * ($this->grouping->groupsCorrectly((string) $field->extracted_value) ? 0.0 : 1.0));
 
         // A sign is not a character. Edit distance called ১৯৩৭৮ against
-        // -১৯৩৭৮ a one-in-six difference and scored it 0.156, inside every
-        // group's threshold, so a figure the two readings disagree about the
-        // meaning of was certified — and published as a recovery when the page
-        // showed a loss. Nineteen values on this corpus were accepted that way.
+        // -১৯৩৭৮ a one-in-six difference and scored it 0.156, so a figure the
+        // two readings disagree about the *meaning* of was certified — and
+        // published as a recovery where the page showed a loss.
         //
-        // There is no reading of "one says positive, the other says negative"
-        // that this project should stand behind, so it is scored as maximally
-        // nonconforming and defers by threshold. It stays in calibration,
-        // unlike an unlocatable value: the disagreement is evidence about the
-        // reading rather than an absence of it.
+        // Deferred by rule rather than by score. Scoring it 1.0 was the first
+        // attempt and did nothing: the `bn` group's threshold is itself 1.0,
+        // because its measured error rate sits inside α and conformal correctly
+        // asks for no threshold at all there. A score can only express "worse
+        // than most" and this has to express "not at any level".
+        //
+        // The bound is untouched, by the same argument as an unlocatable value
+        // (ADR-019): a field that is never accepted cannot contribute to
+        // P(accepted AND wrong).
         if ($this->signsDisagree((string) $field->extracted_value, $text)) {
-            $score = 1.0;
+            return [
+                'nonconformity_score' => null,
+                'score_basis' => 'sign-disagreement',
+                'second_read_value' => mb_substr(trim($text), 0, 255),
+                'second_read_confidence' => round($confidence, 4),
+            ];
         }
 
         return [

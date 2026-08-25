@@ -2,6 +2,7 @@
 
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
+use App\Services\Extraction\FieldDecisionService;
 use App\Services\Extraction\ReviewCandidateGenerator;
 use App\Services\Extraction\SecondReadScorer;
 use App\Services\Extraction\ValueLocator;
@@ -131,4 +132,35 @@ it('reads an accounting parenthesis as negative', function (): void {
     $method = new ReflectionMethod($scorer, 'signsDisagree');
 
     expect($method->invoke($scorer, '(-২.৫১)', '-২.৫১'))->toBeFalse();
+});
+
+it('defers a contested sign by rule, not by score', function (): void {
+    // Scoring it 1.0 did nothing: the bn group's threshold is itself 1.0,
+    // because its measured error rate sits inside alpha and conformal asks for
+    // no threshold there at all. A score can only say "worse than most"; this
+    // has to say "not at any level".
+    $page = ExtractionPage::factory()->create([
+        'extraction_path' => 'ocr_primary',
+        'recognized_dpi' => 150,
+        'recognized_words' => [['t' => '১৯৩৭৮', 'c' => 90.0, 'l' => 10, 'y' => 10, 'w' => 60, 'h' => 20]],
+    ]);
+
+    $field = ExtractionField::query()->create([
+        'extraction_run_id' => $page->extraction_run_id,
+        'extraction_page_id' => $page->id,
+        'field_key' => 'amount', 'field_type' => 'string',
+        'extracted_value' => '১৯৩৭৮', 'script_class' => 'bn',
+        'publisher_group' => 'dgcivil-bangladesh', 'confidence' => 84.0,
+        'nonconformity_score' => 0.15, 'decision' => 'pending',
+        'evidence_page_number' => 1, 'evidence_offset_start' => 0, 'evidence_offset_end' => 5,
+    ]);
+
+    // A null score defers whatever the threshold is, which is the property that
+    // matters and the one a score could not provide.
+    $field->forceFill(['nonconformity_score' => null, 'score_basis' => 'sign-disagreement'])->save();
+
+    $decisions = app(FieldDecisionService::class)->decide(0.05);
+
+    expect($field->fresh()->decision)->toBe('deferred')
+        ->and($decisions)->toHaveKey('deferred');
 });
