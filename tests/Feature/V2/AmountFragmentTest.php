@@ -110,3 +110,38 @@ it('counts an unreadable page apart from one that has nothing left to give', fun
         ->and($third['unreadable_pages'])->toBe(1)
         ->and($third['pages_without_new_candidates'])->toBe(1);
 });
+
+it('does not read an equals sign as a negative', function (): void {
+    // These reports write a difference as (A-B) = C, and the recognizer reads
+    // that equals sign as a hyphen. 313,542 − 281,417 is 32,125 exactly, so the
+    // figure is positive; reading it as negative turns a recovery into a loss.
+    //
+    // The second read cannot catch it — same engine family, same glyph, agrees
+    // with itself — so it certifies the wrong sign. A reviewer on the page is
+    // the only thing that sees it.
+    expect(amountsFrom('জমা প্রদান করায় (৩,১৩,৫৪২-২,৮১,৪১৭) -৩২,১২৫ টাকা আদায়যোগ্য বলে প্রতিবেদনে'))
+        ->toContain('৩২,১২৫')
+        ->and(amountsFrom('জমা প্রদান করায় (৩,১৩,৫৪২-২,৮১,৪১৭) -৩২,১২৫ টাকা আদায়যোগ্য বলে প্রতিবেদনে'))
+        ->not->toContain('-৩২,১২৫');
+});
+
+it('reads the result marker whether or not a space follows the bracket', function (): void {
+    expect(amountsFrom('ফলে (৩,৩৩,৪৪২.৬৮-৭০,৬৪১)-২,৬২,৭৮২ টাকা আদায়যোগ্য বলে প্রতিবেদনে উল্লেখ আছে'))
+        ->not->toContain('-২,৬২,৭৮২');
+});
+
+it('keeps a genuine negative', function (): void {
+    // Reappropriation columns run negative throughout this corpus — 385 of the
+    // 425 values that start with a minus. Stripping those would invent money.
+    expect(amountsFrom('পুনঃ উপযোজন খাতে ০ -২৫.২৫ ০ -১০.৭ ০ ০ কমোট মঞ্জুরি বরাদ্দ হয়েছে এই খাতে'))
+        ->toContain('-২৫.২৫')
+        ->toContain('-১০.৭');
+});
+
+it('keeps a negative that merely follows a bracketed figure elsewhere in the line', function (): void {
+    // The bracket has to be what the minus follows. A bracket earlier in the
+    // line is not a result marker, and treating it as one would strip signs off
+    // a whole table row.
+    expect(amountsFrom('তহবিল (বিবরণী-০৫) খাতে মোট ৭০,১৪০ এবং -২৮,২১৯ টাকা সমন্বয় করা হয়েছে বলে'))
+        ->toContain('-২৮,২১৯');
+});

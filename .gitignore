@@ -85,3 +85,6 @@ __pycache__/
 
 # Rows removed by civiclens:prune-candidates, kept so a prune is reversible.
 /storage/app/pruned
+
+# Field values replaced by a correction, kept so a repair is reversible.
+/storage/app/corrections

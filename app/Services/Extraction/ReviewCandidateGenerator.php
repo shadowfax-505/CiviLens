@@ -321,8 +321,19 @@ class ReviewCandidateGenerator
                     continue;
                 }
 
+                $value = $match[0];
+
+                if ($kind === 'amount') {
+                    $value = $this->withoutResultMarker($value, $text, $match[1]);
+
+                    // Dropping the marker moves the token one character along,
+                    // and the offset is what the review screen locates the
+                    // value by.
+                    $start += mb_strlen($match[0]) - mb_strlen($value);
+                }
+
                 $claimed[] = [$start, $end];
-                $found[] = ['kind' => $kind, 'value' => $match[0], 'start' => $start];
+                $found[] = ['kind' => $kind, 'value' => $value, 'start' => $start];
             }
         }
 
@@ -333,6 +344,35 @@ class ReviewCandidateGenerator
      * A figure a reviewer can judge: digits, optional grouping, optional
      * decimals, and nothing dangling at either end.
      */
+    /**
+     * Strip a leading minus that introduces a result rather than a sign.
+     *
+     * These reports write a difference as `(৩,১৩,৫৪২-২,৮১,৪১৭) -৩২,১২৫`, where
+     * the last mark is an equals sign the recognizer read as a hyphen — and
+     * 313,542 − 281,417 is 32,125 exactly, so the figure is positive. Reading it
+     * as negative reverses a recovery into a loss.
+     *
+     * The second read cannot catch this. It re-reads the same glyph with the
+     * same engine family, agrees with itself, and the value is certified wrong;
+     * a reviewer looking at the page is the only thing that sees it, which is
+     * what ADR-019 means by a correlated failure.
+     *
+     * The test is a closing bracket before the mark, whitespace aside. A minus
+     * anywhere else is left exactly as read: reappropriation columns run
+     * genuinely negative throughout this corpus — 385 of the 425 such values —
+     * and stripping those would invent money.
+     */
+    private function withoutResultMarker(string $value, string $text, int $byteOffset): string
+    {
+        if ($value === '' || ! in_array(mb_substr($value, 0, 1), ['-', "\u{2212}"], true)) {
+            return $value;
+        }
+
+        $before = rtrim(substr($text, 0, $byteOffset));
+
+        return str_ends_with($before, ')') ? mb_substr($value, 1) : $value;
+    }
+
     private function wellFormedAmount(string $value): bool
     {
         return preg_match(
