@@ -58,6 +58,7 @@ class SourceEndpoint extends Model
         ];
     }
 
+    /** @return BelongsTo<SourcePublisher, self> */
     public function publisher(): BelongsTo
     {
         return $this->belongsTo(SourcePublisher::class, 'source_publisher_id');

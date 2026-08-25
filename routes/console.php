@@ -32,6 +32,7 @@ use App\Services\Ingestion\BangladeshSourceCatalogue;
 use App\Services\Ingestion\CertificateChainRepair;
 use App\Services\Ingestion\SourceCandidateVerifier;
 use App\Services\Ingestion\SourceRegistryProvisioner;
+use App\Services\Ingestion\SourceYieldReport;
 use App\Services\Intelligence\AmendmentCountReader;
 use App\Services\Intelligence\CivicIntegrityEngineService;
 use App\Services\Intelligence\NoticeRevisionDetector;
@@ -701,6 +702,45 @@ Artisan::command('civiclens:build-ca-bundle {hosts?*} {--out=}', function (Certi
 
     return 0;
 })->purpose('Fetch the intermediate certificates publishers omit, so their chains verify');
+
+Artisan::command('civiclens:sources-report {--json}', function (SourceYieldReport $report): int {
+    $built = $report->build();
+
+    if ($this->option('json')) {
+        $this->line(json_encode($built, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+
+        return 0;
+    }
+
+    $this->table(
+        ['id', 'publisher', 'docs', 'archived', 'health', 'what it produced'],
+        array_map(fn (array $row): array => [
+            $row['id'],
+            $row['publisher'],
+            $row['documents'],
+            $row['artifacts_archived'],
+            $row['paused'] ? 'paused' : $row['health'],
+            $row['verdict'],
+        ], $built['endpoints']),
+    );
+
+    // The gate for M1: an endpoint that produced nothing must say why. One that
+    // produced nothing and has no failure against it is the case ADR-020 warns
+    // about, where an unnoticed breakage passes for a governance decision.
+    if ($built['unexplained'] !== []) {
+        $this->warn(count($built['unexplained']).' endpoints produced nothing and recorded no failure:');
+
+        foreach ($built['unexplained'] as $row) {
+            $this->line("  {$row['publisher']} — {$row['name']}");
+        }
+
+        return 1;
+    }
+
+    $this->info('Every endpoint has either something to show or a reason it has not.');
+
+    return 0;
+})->purpose('Report what every registered endpoint produced, and why it produced nothing');
 
 Artisan::command('civiclens:verify-sources {url?} {--hosts=} {--prefix=/}', function (SourceCandidateVerifier $verifier, BangladeshSourceCatalogue $catalogue): int {
     $single = $this->argument('url');
