@@ -218,7 +218,16 @@ class PipelineHealthReport
     private function publication(): array
     {
         $snapshot = PublicationSnapshot::current();
-        $certified = ExtractionField::query()->where('decision', 'accepted')->count();
+
+        // Counted the way publication counts. A value a reviewer rejected keeps
+        // its accepted decision — deciding the calibration set from its own
+        // calibration would be circular — and is excluded at publication, so
+        // measuring drift against the raw count reported a permanent gap of
+        // exactly the values the guard is there to withhold.
+        $certified = ExtractionField::query()
+            ->where('decision', 'accepted')
+            ->where(fn ($query) => $query->whereNull('is_correct')->orWhere('is_correct', true))
+            ->count();
 
         if (! $snapshot instanceof PublicationSnapshot) {
             return [

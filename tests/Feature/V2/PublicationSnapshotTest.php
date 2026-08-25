@@ -217,3 +217,26 @@ it('never publishes a value a reviewer marked wrong', function (): void {
         ->and($values)->toContain('CONFIRMED-BY-A-PERSON')
         ->and($values)->not->toContain('REJECTED-BY-A-PERSON');
 });
+
+it('does not report a withheld rejection as drift', function (): void {
+    // Publication excludes a value a reviewer rejected; the drift check counted
+    // it as certified. That is a permanent gap of exactly the values the guard
+    // exists to withhold, and a health check that can never go green is one
+    // people stop reading.
+    ['page' => $page] = publishableDocument();
+
+    certifiedFieldOn($page, 'accepted');
+    certifiedFieldOn($page, 'accepted', [
+        'extracted_value' => 'REJECTED',
+        'is_correct' => false,
+        'gold_source' => 'reviewer',
+    ]);
+
+    $builder = app(PublicationSnapshotBuilder::class);
+    $builder->publish($builder->build('published'));
+
+    $publication = app(PipelineHealthReport::class)->build()['checks']['publication'];
+
+    expect($publication['drift'])->toBe(0)
+        ->and($publication['ok'])->toBeTrue();
+});
