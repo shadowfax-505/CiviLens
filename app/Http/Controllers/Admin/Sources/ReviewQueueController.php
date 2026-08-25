@@ -32,6 +32,24 @@ class ReviewQueueController extends Controller
     {
         abort_unless($request->user()?->can('viewAny', SourcePublisher::class) === true, 403);
 
+        // Which calibration group to draw from, remembered so the choice
+        // survives the redirect after each judgement. `?group=` with no value
+        // returns to the whole corpus.
+        //
+        // Without this a rare publisher is unreachable in practice rather than
+        // in principle. cbad-bangladesh holds 69 of 17,773 unlabelled
+        // candidates, so drawing uniformly over the corpus means about 5,000
+        // judgements to find the 19 its own calibration needs. The
+        // group-conditional scheme of ADR-018 exists for publishers exactly
+        // that rare, and the queue was the reason it could never be used on one.
+        if ($request->has('group')) {
+            $chosen = trim((string) $request->query('group'));
+            $request->session()->put('review.group', $chosen === '' ? null : $chosen);
+        }
+
+        $group = $request->session()->get('review.group');
+        $group = is_string($group) && $group !== '' ? $group : null;
+
         $item = ExtractionField::query()
             ->with(['page', 'tableCell'])
             // Uniform at random, never by confidence. Queueing the most
@@ -40,6 +58,14 @@ class ReviewQueueController extends Controller
             // from it would be correct arithmetic about the wrong population.
             ->whereNull('is_correct')
             ->whereNull('gold_source')
+            // Narrowing to a group does not weaken that. Exchangeability is
+            // required within the group a threshold is fitted on, and
+            // calibration is already per publisher and script, so drawing
+            // uniformly from one group is exactly as valid as drawing from the
+            // corpus and discarding everything else — it merely stops wasting
+            // 257 draws in 258. Choosing which items *inside* the group to show
+            // would still break it, and nothing here does.
+            ->when($group !== null, fn ($query) => $query->where('publisher_group', $group))
             ->inRandomOrder()
             ->first();
 
@@ -47,6 +73,8 @@ class ReviewQueueController extends Controller
             'item' => $item,
             'progress' => $this->progress(),
             'row' => $this->row($item),
+            'group' => $group,
+            'groups' => $this->unjudgedByGroup(),
             // How many places on the page carry these characters. One means the
             // crop is the value; several means the reviewer is judging the
             // reading, not which of them was meant; none means the page was read
@@ -66,6 +94,25 @@ class ReviewQueueController extends Controller
                 && $item->field_key === 'amount'
                 && ! $this->grouping->groupsCorrectly((string) $item->extracted_value),
         ]);
+    }
+
+    /**
+     * Groups that still have something to judge, and how many.
+     *
+     * @return array<string, int>
+     */
+    private function unjudgedByGroup(): array
+    {
+        return ExtractionField::query()
+            ->whereNull('is_correct')
+            ->whereNull('gold_source')
+            ->whereNotNull('publisher_group')
+            ->selectRaw('publisher_group, count(*) as aggregate')
+            ->groupBy('publisher_group')
+            ->orderBy('publisher_group')
+            ->pluck('aggregate', 'publisher_group')
+            ->map(fn (int|string $value): int => (int) $value)
+            ->all();
     }
 
     /**

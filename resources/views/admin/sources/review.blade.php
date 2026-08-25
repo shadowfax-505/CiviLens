@@ -16,6 +16,38 @@
         <a class="cl-chip" href="{{ route('admin.sources.index') }}">Back to registry</a>
     </div>
 
+    {{--
+        Drawing uniformly over the whole corpus makes a rare publisher
+        unreachable: one holding 69 of 17,773 unlabelled candidates needs about
+        5,000 judgements before its own 19 turn up. Choosing the group keeps the
+        draw uniform inside it, which is what the bound requires, and is the only
+        way the group-conditional scheme is usable on the publishers it exists
+        for.
+    --}}
+    <section class="mt-6 flex flex-wrap items-center gap-2" aria-label="Which group to judge">
+        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Judging</span>
+
+        <a class="cl-chip @if ($group === null) ring-2 ring-slate-900 dark:ring-white @endif"
+           href="{{ route('admin.sources.review', ['group' => '']) }}">
+            Everything ({{ number_format(array_sum($groups)) }})
+        </a>
+
+        @foreach ($groups as $name => $waiting)
+            <a class="cl-chip @if ($group === $name) ring-2 ring-slate-900 dark:ring-white @endif"
+               href="{{ route('admin.sources.review', ['group' => $name]) }}">
+                {{ $name }} ({{ number_format($waiting) }})
+            </a>
+        @endforeach
+    </section>
+
+    @if ($group !== null)
+        <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">
+            Drawing only from <strong>{{ $group }}</strong>. Values are still picked at random within it, which is what
+            the guarantee requires; the guarantee itself is fitted per publisher and script, so judging one group at a
+            time is how a rare publisher reaches a level of its own.
+        </p>
+    @endif
+
     @if (session('status'))
         <div class="cl-card mt-6 border-l-4 border-emerald-500 p-4" role="status">{{ session('status') }}</div>
     @endif

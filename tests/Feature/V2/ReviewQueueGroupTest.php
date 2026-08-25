@@ -1,0 +1,97 @@
+<?php
+
+use App\Models\ExtractionField;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+/**
+ * @return array{wanted: ExtractionField}
+ */
+function crowdedQueue(): array
+{
+    ExtractionField::factory()->count(30)->create([
+        'publisher_group' => 'dgcivil-bangladesh',
+        'is_correct' => null,
+        'gold_source' => null,
+    ]);
+
+    return ['wanted' => ExtractionField::factory()->create([
+        'publisher_group' => 'cbad-bangladesh',
+        'is_correct' => null,
+        'gold_source' => null,
+    ])];
+}
+
+it('draws only from the chosen calibration group', function (): void {
+    // cbad-bangladesh holds 69 of 17,773 unlabelled candidates, so a draw over
+    // the whole corpus needs about 5,000 judgements to turn up the 19 its own
+    // calibration requires. The group-conditional scheme of ADR-018 exists for
+    // publishers that rare, and the queue was why it could never be used on one.
+    ['wanted' => $wanted] = crowdedQueue();
+
+    $this->actingAs(searchAdminUser())
+        ->get(route('admin.sources.review', ['group' => 'cbad-bangladesh']))
+        ->assertOk()
+        ->assertViewHas('item', fn (?ExtractionField $item): bool => $item?->getKey() === $wanted->getKey());
+});
+
+it('keeps the group across the redirect that follows a judgement', function (): void {
+    // store() returns with back(), so the choice has to survive without the
+    // form carrying it.
+    ['wanted' => $wanted] = crowdedQueue();
+
+    $admin = searchAdminUser();
+
+    $this->actingAs($admin)->get(route('admin.sources.review', ['group' => 'cbad-bangladesh']))->assertOk();
+
+    $this->actingAs($admin)
+        ->get(route('admin.sources.review'))
+        ->assertOk()
+        ->assertViewHas('item', fn (?ExtractionField $item): bool => $item?->getKey() === $wanted->getKey());
+});
+
+it('returns to the whole corpus when the group is cleared', function (): void {
+    crowdedQueue();
+
+    $admin = searchAdminUser();
+
+    $this->actingAs($admin)->get(route('admin.sources.review', ['group' => 'cbad-bangladesh']))->assertOk();
+
+    $this->actingAs($admin)
+        ->get(route('admin.sources.review', ['group' => '']))
+        ->assertOk()
+        ->assertViewHas('group', null);
+});
+
+it('still draws at random inside the group', function (): void {
+    // The one thing narrowing must not become is ordering. Judging the easiest
+    // items of a group first would make its calibration set unrepresentative of
+    // what the system accepts from it, which is the failure the whole-corpus
+    // draw was protecting against.
+    ExtractionField::factory()->count(40)->create([
+        'publisher_group' => 'cbad-bangladesh',
+        'is_correct' => null,
+        'gold_source' => null,
+    ]);
+
+    $admin = searchAdminUser();
+    $seen = [];
+
+    for ($draw = 0; $draw < 12; $draw++) {
+        $response = $this->actingAs($admin)->get(route('admin.sources.review', ['group' => 'cbad-bangladesh']));
+        $seen[] = $response->viewData('item')?->getKey();
+    }
+
+    expect(count(array_unique(array_filter($seen))))->toBeGreaterThan(1);
+});
+
+it('counts what is left to judge in each group', function (): void {
+    crowdedQueue();
+
+    $this->actingAs(searchAdminUser())
+        ->get(route('admin.sources.review'))
+        ->assertOk()
+        ->assertViewHas('groups', fn (array $groups): bool => $groups['cbad-bangladesh'] === 1
+            && $groups['dgcivil-bangladesh'] === 30);
+});
