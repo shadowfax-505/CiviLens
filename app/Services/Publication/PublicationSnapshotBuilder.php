@@ -157,6 +157,16 @@ class PublicationSnapshotBuilder
 
         ExtractionField::query()
             ->where('decision', self::PUBLISHABLE_DECISION)
+            // A reviewer who marked a value wrong outranks every threshold that
+            // exists. `decide-fields` deliberately leaves adjudicated fields
+            // alone — deciding the calibration set from its own calibration
+            // would be circular — so their decision keeps whatever it held when
+            // they were judged, and two values a person had explicitly rejected
+            // were published as certified figures.
+            //
+            // Nothing downstream of a human saying "this is not what the page
+            // says" may publish it.
+            ->where(fn ($query) => $query->whereNull('is_correct')->orWhere('is_correct', true))
             ->with(['page', 'page.run'])
             ->orderBy('id')
             ->chunkById(500, function (Collection $fields) use ($snapshot, $byArtifact, &$count, &$skipped, &$perDocument): void {

@@ -187,3 +187,33 @@ it('says so plainly when robots is honoured', function (): void {
     expect($posture['honours_robots_txt'])->toBeTrue()
         ->and($posture['statement'])->toContain('fetched and enforced per request');
 });
+
+it('never publishes a value a reviewer marked wrong', function (): void {
+    // decide-fields leaves adjudicated fields alone, because deciding the
+    // calibration set from its own calibration would be circular. So their
+    // decision keeps whatever it held when they were judged — and two values a
+    // person had explicitly rejected were live on the public site as certified
+    // figures.
+    ['page' => $page] = publishableDocument();
+
+    certifiedFieldOn($page, 'accepted', [
+        'extracted_value' => 'REJECTED-BY-A-PERSON',
+        'is_correct' => false,
+        'gold_source' => 'reviewer',
+    ]);
+
+    certifiedFieldOn($page, 'accepted', ['extracted_value' => 'UNJUDGED']);
+
+    certifiedFieldOn($page, 'accepted', [
+        'extracted_value' => 'CONFIRMED-BY-A-PERSON',
+        'is_correct' => true,
+        'gold_source' => 'reviewer',
+    ]);
+
+    $snapshot = app(PublicationSnapshotBuilder::class)->build('test');
+    $values = $snapshot->figures()->pluck('extracted_value')->all();
+
+    expect($values)->toContain('UNJUDGED')
+        ->and($values)->toContain('CONFIRMED-BY-A-PERSON')
+        ->and($values)->not->toContain('REJECTED-BY-A-PERSON');
+});
