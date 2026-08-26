@@ -85,6 +85,13 @@
             <span class="font-mono">৩.১ ভূমিকা:</span> is a heading, and it is certified as read.
         </p>
 
+        <p class="max-w-3xl text-sm text-slate-500">
+            These are scanned pages of audit reports, and audit reports name people. If something
+            here is wrong, or should not be published at all,
+            <a class="underline" href="{{ route('public.corrections.create') }}">say so</a> — every
+            request is recorded with what was decided and why, including the ones we refuse.
+        </p>
+
         <p class="text-sm text-slate-500">
             From snapshot <span class="font-mono">{{ $snapshot->label }}</span>.
         </p>

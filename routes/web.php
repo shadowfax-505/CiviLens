@@ -58,6 +58,7 @@ use App\Http\Controllers\Citizen\CitizenReportDashboardController;
 use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPortal\CitizenReportController;
+use App\Http\Controllers\PublicPortal\CorrectionRequestController;
 use App\Http\Controllers\PublicPortal\PublicAgencyController;
 use App\Http\Controllers\PublicPortal\PublicContractorController;
 use App\Http\Controllers\PublicPortal\PublicDistrictLocatorController;
@@ -100,6 +101,10 @@ Route::prefix('public')->name('public.')->group(function (): void {
     // domain tables, so nothing here can be a demonstration row.
     Route::get('/evidence', [PublicEvidenceController::class, 'index'])->name('evidence.index');
     Route::get('/evidence/notices', [PublicEvidenceController::class, 'notices'])->name('evidence.notices');
+    Route::get('/corrections', [CorrectionRequestController::class, 'create'])->name('corrections.create');
+    Route::post('/corrections', [CorrectionRequestController::class, 'store'])
+        ->middleware('throttle:5,60')
+        ->name('corrections.store');
     Route::get('/evidence/statistics', [PublicEvidenceController::class, 'statistics'])->name('evidence.statistics');
     Route::get('/evidence/search', [PublicEvidenceController::class, 'search'])
         ->middleware('throttle:60,1')

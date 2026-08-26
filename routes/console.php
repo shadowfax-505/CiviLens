@@ -3,6 +3,7 @@
 use App\Jobs\ExtractPageTables;
 use App\Jobs\RunSourceEndpointCrawl;
 use App\Jobs\ScorePageFields;
+use App\Models\CorrectionRequest;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
 use App\Models\ExtractionRun;
@@ -706,6 +707,61 @@ Artisan::command('civiclens:build-ca-bundle {hosts?*} {--out=}', function (Certi
 
     return 0;
 })->purpose('Fetch the intermediate certificates publishers omit, so their chains verify');
+
+Artisan::command('civiclens:corrections {--decide=} {--as=} {--because=}', function (): int {
+    $reference = $this->option('decide');
+
+    if (! is_string($reference) || $reference === '') {
+        $pending = CorrectionRequest::query()->where('status', CorrectionRequest::RECEIVED)->orderBy('created_at')->get();
+        $decided = CorrectionRequest::query()->where('status', '!=', CorrectionRequest::RECEIVED)->count();
+
+        $this->info($pending->count().' requests waiting, '.$decided.' decided.');
+
+        foreach ($pending as $request) {
+            $this->line("  {$request->reference}  [{$request->kind}]  ".str($request->about)->limit(60));
+            $this->line('     because: '.str($request->reason)->limit(70));
+        }
+
+        // A queue nobody looks at is the failure mode this route exists to
+        // avoid, so waiting requests are an unhealthy state rather than a note.
+        return $pending->isEmpty() ? 0 : 1;
+    }
+
+    $request = CorrectionRequest::query()->where('reference', $reference)->first();
+
+    if (! $request instanceof CorrectionRequest) {
+        $this->error('No request carries that reference.');
+
+        return 1;
+    }
+
+    $verdict = $this->option('as');
+    $because = $this->option('because');
+
+    if (! in_array($verdict, [CorrectionRequest::UPHELD, CorrectionRequest::REFUSED], true)) {
+        $this->error('Decide it --as=upheld or --as=refused.');
+
+        return 1;
+    }
+
+    // A refusal without a reason is the thing this route exists to prevent
+    // anyone doing quietly.
+    if (! is_string($because) || trim($because) === '') {
+        $this->error('Say --because="..." . A decision without a reason cannot be audited.');
+
+        return 1;
+    }
+
+    $request->forceFill([
+        'status' => $verdict,
+        'decision' => trim($because),
+        'decided_at' => now(),
+    ])->save();
+
+    $this->info("Recorded as {$verdict}.");
+
+    return 0;
+})->purpose('List correction requests, and record what was decided about one');
 
 Artisan::command('civiclens:screen-corpus', function (CorpusScreeningReport $report): int {
     $built = $report->build();
