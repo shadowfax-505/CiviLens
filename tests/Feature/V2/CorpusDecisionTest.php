@@ -119,3 +119,24 @@ it('shows on screen what the certification decided', function (): void {
         // population, not the group the field is in.
         ->assertSee('certified for a wider population, not for this group');
 });
+
+it('never leaves a value a reviewer marked wrong sitting as accepted', function (): void {
+    // Adjudicated fields are skipped when thresholds are applied, because
+    // deciding the calibration set from its own calibration is circular. That
+    // argument is about fitting a threshold, not about honouring a human
+    // rejection — and skipping them left `decision = accepted` on a field
+    // whose reviewer had said it was wrong. Publication guards against it
+    // separately, so the trap is for any report that reads the column and
+    // reasonably believes it.
+    ['page' => $page] = publishableDocument();
+
+    $rejected = certifiedFieldOn($page, 'accepted', [
+        'is_correct' => false,
+        'gold_source' => 'reviewer',
+        'reviewed_at' => now(),
+    ]);
+
+    app(FieldDecisionService::class)->decide(0.05);
+
+    expect($rejected->fresh()->decision)->toBe('deferred');
+});

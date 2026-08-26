@@ -30,6 +30,22 @@ class FieldDecisionService
         $calibrations = $this->calibrator->calibrateAdaptive($alpha);
         $counts = [self::ACCEPTED => 0, self::DEFERRED => 0];
 
+        // A value a reviewer marked wrong is never accepted, whatever decision
+        // it carried before they looked at it.
+        //
+        // Adjudicated fields are otherwise skipped here, and for a good reason:
+        // deciding the calibration set from its own calibration is circular.
+        // But that argument is about fitting a threshold, not about honouring
+        // an explicit human rejection, and skipping them left `decision =
+        // accepted` sitting on a field whose reviewer had said it was wrong.
+        // Publication guards against it separately, so nothing reached the
+        // site — the trap is for any report that reads the decision column and
+        // reasonably believes it.
+        $counts[self::DEFERRED] += ExtractionField::query()
+            ->where('is_correct', false)
+            ->where('decision', self::ACCEPTED)
+            ->update(['decision' => self::DEFERRED, 'decision_basis' => null]);
+
         ExtractionField::query()
             ->when(
                 $targetSplit !== null,
