@@ -4,11 +4,15 @@ namespace App\Services\Extraction;
 
 use App\Data\Extraction\GroupCalibration;
 use App\Models\ExtractionField;
+use App\Services\Statistics\ClopperPearson;
 use Illuminate\Support\Collection;
 
 class CalibrationReport
 {
-    public function __construct(private readonly ConformalCalibrator $calibrator) {}
+    public function __construct(
+        private readonly ConformalCalibrator $calibrator,
+        private readonly ClopperPearson $clopperPearson,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -168,12 +172,23 @@ class CalibrationReport
                 $conditional = $this->rate($groupRows, $calibration?->certifiable() === true ? $calibration->threshold : null);
                 $marginal = $this->rate($groupRows, $pooled);
 
+                $interval = $conditional['false_acceptance_interval'];
+
                 return [
                     'group' => $key,
                     'fields' => $groupRows->count(),
                     'group_conditional' => $conditional,
                     'pooled' => $marginal,
                     'pooled_breaches_alpha' => $marginal['false_acceptance_rate'] > $alpha,
+                    // Whether this split can confirm the bound at all. The
+                    // conformal guarantee is over the draw, not over one test
+                    // set, so a realized rate inside alpha is weak evidence when
+                    // the interval around it reaches well past alpha — 60 labels
+                    // put the upper bound at 11% against a claimed 5%.
+                    //
+                    // Reported so a reader is not invited to read a favourable
+                    // point estimate as a confirmation the sample cannot give.
+                    'sample_can_rule_out_a_breach' => is_array($interval) && $interval['high'] <= $alpha,
                 ];
             });
 
@@ -188,19 +203,32 @@ class CalibrationReport
             'groups' => $perGroup->values()->all(),
             'groups_where_pooled_breaches_alpha' => $perGroup->where('pooled_breaches_alpha', true)
                 ->map(fn (array $row): string => $row['group'])->values()->all(),
+            // Named rather than left to be worked out from the intervals. On
+            // this corpus it is every group, and that is the honest state of the
+            // empirical check: it lacks the power to confirm the guarantee, and
+            // more labels are the only thing that changes it.
+            'groups_the_sample_cannot_clear' => $perGroup->where('sample_can_rule_out_a_breach', false)
+                ->map(fn (array $row): string => $row['group'])->values()->all(),
         ];
     }
 
     /**
      * @param  Collection<int, ExtractionField>  $rows
-     * @return array<string, float|int|null>
+     * @return array{accepted: int, acceptance_rate: float, false_acceptance_rate: float, error_among_accepted: float|null, false_acceptance_interval: array{low: float, high: float}|null, error_among_accepted_interval: array{low: float, high: float}|null}
      */
     private function rate(Collection $rows, ?float $threshold): array
     {
         $total = $rows->count();
 
         if ($threshold === null) {
-            return ['accepted' => 0, 'acceptance_rate' => 0.0, 'false_acceptance_rate' => 0.0, 'error_among_accepted' => null];
+            return [
+                'accepted' => 0,
+                'acceptance_rate' => 0.0,
+                'false_acceptance_rate' => 0.0,
+                'error_among_accepted' => null,
+                'false_acceptance_interval' => null,
+                'error_among_accepted_interval' => null,
+            ];
         }
 
         $accepted = $rows->filter(fn (ExtractionField $f): bool => (float) $f->nonconformity_score <= $threshold);
@@ -211,6 +239,18 @@ class CalibrationReport
             'acceptance_rate' => $total > 0 ? round($accepted->count() / $total, 6) : 0.0,
             'false_acceptance_rate' => $total > 0 ? round($wrong / $total, 6) : 0.0,
             'error_among_accepted' => $accepted->count() > 0 ? round($wrong / $accepted->count(), 6) : null,
+            // The interval, always beside the rate it qualifies. These counts
+            // are small: a handful of errors in a few hundred labels, where the
+            // difference between 1% and 4% is a couple of judgements going the
+            // other way. A rate quoted alone claims a precision the sample
+            // cannot support, and this is the number a reader of the write-up
+            // would ask for first.
+            'false_acceptance_interval' => $total > 0
+                ? $this->clopperPearson->interval($wrong, $total)
+                : null,
+            'error_among_accepted_interval' => $accepted->count() > 0
+                ? $this->clopperPearson->interval($wrong, $accepted->count())
+                : null,
         ];
     }
 }
