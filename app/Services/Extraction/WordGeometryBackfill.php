@@ -6,7 +6,7 @@ use App\Data\Extraction\RecognizedWord;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
 use App\Models\SourceArtifactVersion;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Throwable;
 
 /**
@@ -34,6 +34,9 @@ class WordGeometryBackfill
      */
     private const POINTS_PER_INCH = 72;
 
+    /** Pages held at once; each carries its whole text. */
+    private const PAGES_PER_BATCH = 200;
+
     public function __construct(
         private readonly ArtifactWorkspace $workspace,
         private readonly PageRasterizer $rasterizer,
@@ -51,56 +54,63 @@ class WordGeometryBackfill
         $skipped = 0;
         $differs = 0;
 
-        // Read the whole list before writing any of it. Streaming with a cursor
-        // holds a read transaction open, and on SQLite a write from the same
-        // connection then contends with it: 57 of 65 pages were "skipped" for a
-        // lock rather than for anything about the page, and the same pages
-        // saved fine one at a time.
-        foreach ($this->pages($limit, $candidatesOnly) as $page) {
-            $considered++;
+        // Identifiers first, then the pages in batches. Streaming with a
+        // cursor holds a read transaction open, and on SQLite a write from the
+        // same connection then contends with it: 57 of 65 pages were "skipped"
+        // for a lock rather than for anything about the page. Reading the whole
+        // list instead avoided that and introduced the opposite failure — every
+        // page's text held at once, which exhausted memory elsewhere in this
+        // pipeline twice in one day.
+        //
+        // A list of ids is small, and each batch is a query that finishes
+        // before anything is written. Both properties, neither cost.
+        foreach ($this->pageIds($limit, $candidatesOnly)->chunk(self::PAGES_PER_BATCH) as $batch) {
+            foreach (ExtractionPage::query()->with('run')->findMany($batch->all()) as $page) {
+                $considered++;
 
-            try {
-                $words = $this->read($page);
-            } catch (Throwable) {
-                // A missing artifact is a fact about acquisition, not a reason to
-                // abandon the remaining pages.
-                $skipped++;
+                try {
+                    $words = $this->read($page);
+                } catch (Throwable) {
+                    // A missing artifact is a fact about acquisition, not a reason to
+                    // abandon the remaining pages.
+                    $skipped++;
 
-                continue;
+                    continue;
+                }
+
+                if ($words === null) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                [$recognized, $text, $dpi] = $words;
+
+                if ($recognized === []) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                if (trim($text) !== trim((string) $page->extracted_text)) {
+                    $differs++;
+                }
+
+                try {
+                    $page->forceFill([
+                        'recognized_words' => $recognized,
+                        'recognized_dpi' => $dpi,
+                    ])->save();
+                } catch (Throwable) {
+                    // Losing one page to a write that could not get its turn is not
+                    // a reason to throw away the ninety already recovered.
+                    $skipped++;
+
+                    continue;
+                }
+
+                $filled++;
             }
-
-            if ($words === null) {
-                $skipped++;
-
-                continue;
-            }
-
-            [$recognized, $text, $dpi] = $words;
-
-            if ($recognized === []) {
-                $skipped++;
-
-                continue;
-            }
-
-            if (trim($text) !== trim((string) $page->extracted_text)) {
-                $differs++;
-            }
-
-            try {
-                $page->forceFill([
-                    'recognized_words' => $recognized,
-                    'recognized_dpi' => $dpi,
-                ])->save();
-            } catch (Throwable) {
-                // Losing one page to a write that could not get its turn is not
-                // a reason to throw away the ninety already recovered.
-                $skipped++;
-
-                continue;
-            }
-
-            $filled++;
         }
 
         return ['considered' => $considered, 'filled' => $filled, 'skipped' => $skipped, 'text_differs' => $differs];
@@ -112,9 +122,14 @@ class WordGeometryBackfill
      * with it: 57 of 65 pages were reported skipped for a lock rather than for
      * anything about the page, and every one of them saved when tried alone.
      *
-     * @return Collection<int, ExtractionPage>
+     * Ids rather than pages: the list is what must be materialised, and every
+     * page's text held at once is what exhausted memory elsewhere in this
+     * pipeline. Each batch is then a query that finishes before anything is
+     * written, so neither failure applies.
+     *
+     * @return SupportCollection<int, int>
      */
-    private function pages(int $limit, bool $candidatesOnly): Collection
+    private function pageIds(int $limit, bool $candidatesOnly): SupportCollection
     {
         $query = ExtractionPage::query()
             ->whereNull('recognized_words')
@@ -128,7 +143,7 @@ class WordGeometryBackfill
             $query->whereIn('id', ExtractionField::query()->whereNull('gold_source')->select('extraction_page_id'));
         }
 
-        return $query->orderBy('id')->limit(max(1, $limit))->get();
+        return $query->orderBy('id')->limit(max(1, $limit))->pluck('id');
     }
 
     /**
