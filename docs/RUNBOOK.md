@@ -7,6 +7,24 @@ that drifts is worse than none — an operator trusts it and it is wrong.
 Nothing here needs arguments unless it says so. Anything that changes stored
 data reports first and acts only with `--apply`.
 
+## What has to be installed
+
+Every external tool here is optional at runtime and fails closed, so a missing
+one narrows what the corpus contains rather than breaking anything visibly.
+
+| tool | without it |
+| --- | --- |
+| `pdftoppm`, `pdftotext` (poppler) | nothing is read at all |
+| `tesseract` with `ben+eng` | scanned pages abstain |
+| PaddleOCR sidecar | no page gains a table |
+| `soffice` (LibreOffice) | word-processor documents are acquired and never read |
+
+Set `EXTRACTION_SOFFICE_BINARY` if `soffice` is not on `PATH`. LibreOffice
+renders those documents to PDF so the rest of the pipeline can lay eyes on
+their pages — and because the pagination a reader then sees is ours rather than
+the publisher's, the evidence page says so for exactly those documents. See
+ADR-022.
+
 ## Is it working?
 
 ```bash
@@ -124,3 +142,9 @@ dropped silently while the command reports success. Clear
 
 **Do not run two workers against SQLite.** They contend, and the failures look
 like unrelated bugs. One worker, or move to PostgreSQL.
+
+**The queue is one line, in order.** Table detection queued behind a backlog of
+acquisitions does not start until that backlog clears, and a table count that
+has not moved in half an hour usually means the worker is still doing something
+else rather than that anything is wrong. Check what is at the head of `jobs`
+before concluding table detection is broken.
