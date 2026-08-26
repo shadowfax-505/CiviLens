@@ -210,9 +210,21 @@ ends up unexamined while the queue reads clean. Sample abstained pages and
 classify why
 (blank, poorly scanned, unusual layout); consider a third OCR attempt at higher
 DPI for the near-threshold band; extend word geometry to remaining native pages.
-**Reduce the 1,012 unlocatable values** — split tokens, native pages, values
-inside merged cells. This certifies more than tuning the score would, and
-re-scoring plus recalibration must follow any change to it (ADR-019).
+**Reduce the unlocatable values** — 6,192 of them now, and most are not a
+locator problem at all. Values marked unlocatable were handed to the current
+locator and it found them: 6 of the first 8 sampled, and twenty IMED pages
+re-scored dropped from 54 unlocatable to 39. Those marks were made by a locator
+that had not yet learned currency terminators or cell-aware cropping, and
+nothing re-read them, so they defer by a rule that no longer applies. The
+corpus is owed a re-score; `civiclens:health` now reports how much of it, and
+recalibration follows (ADR-019).
+
+An earlier note here diagnosed IMED's 69.8% as short fragments matching no
+whole word. That was inferred from the shape of the values and is wrong:
+`2.1` and `6111303` do match whole words in the recognised geometry. What IMED
+mostly holds is a chart-of-accounts manual — sequences of classification codes
+and numbered headings — which is a question about whether those belong in the
+candidate pool at all, not about whether they can be found.
 **Gate:** health reports zero backlog; abstention has a breakdown, not just a rate.
 
 ### M4 · Review throughput
