@@ -16,7 +16,6 @@ use App\Services\Intelligence\IntelligenceCandidateQueryService;
 use App\Services\Intelligence\IntelligenceManager;
 use App\Services\Intelligence\RuleManagementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
@@ -218,7 +217,11 @@ it('adds portable indexes for intelligence runs, indicators, and grouped candida
         'citizen_reports',
     ])->flatMap(fn (string $table): array => array_map(
         fn (object $index): string => $table.':'.$index->name,
-        DB::select("pragma index_list('{$table}')"),
+        // Schema::getIndexes rather than a SQLite pragma. The test is named
+        // for portable indexes and was the one thing in the suite that could
+        // not run on another database — which is how it stayed unnoticed until
+        // the whole suite was pointed at PostgreSQL.
+        array_map(fn (array $index): object => (object) $index, Schema::getIndexes($table)),
     ))->all();
 
     expect($indexes)->toContain(

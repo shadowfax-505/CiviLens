@@ -94,12 +94,30 @@ class EvidenceStatisticsService
      */
     private function byPublisher(PublicationSnapshot $snapshot): array
     {
+        // Counted with the query builder rather than in raw SQL. `is_document
+        // = 1` reads fine on SQLite and is a type error on PostgreSQL, where
+        // the column is a real boolean — the kind of difference that surfaces
+        // during a migration rather than in a test suite, and this project is
+        // headed for one.
         $documents = DB::table('publication_documents')
             ->where('publication_snapshot_id', $snapshot->getKey())
-            ->selectRaw('publisher_slug, count(*) as documents, sum(figure_count) as figures, sum(case when is_document = 1 then 1 else 0 end) as real_documents')
             ->groupBy('publisher_slug')
             ->orderByDesc('figures')
-            ->get();
+            ->get([
+                'publisher_slug',
+                DB::raw('count(*) as documents'),
+                DB::raw('sum(figure_count) as figures'),
+            ]);
+
+        $realDocuments = DB::table('publication_documents')
+            ->where('publication_snapshot_id', $snapshot->getKey())
+            ->where('is_document', true)
+            ->groupBy('publisher_slug')
+            // Aliased. An unnamed aggregate comes back as `count(*)` on SQLite
+            // and cannot be plucked by that name on PostgreSQL, which is the
+            // kind of difference a migration finds and a passing test suite
+            // does not.
+            ->pluck(DB::raw('count(*) as aggregate'), 'publisher_slug');
 
         $withheld = ExtractionField::query()
             ->where('decision', 'deferred')
@@ -107,13 +125,13 @@ class EvidenceStatisticsService
             ->groupBy('publisher_group')
             ->pluck('aggregate', 'publisher_group');
 
-        return array_values($documents->map(function (object $row) use ($withheld): array {
+        return array_values($documents->map(function (object $row) use ($withheld, $realDocuments): array {
             $figures = (int) $row->figures;
             $deferred = (int) ($withheld[$row->publisher_slug] ?? 0);
 
             return [
                 'publisher' => (string) $row->publisher_slug,
-                'documents' => (int) $row->real_documents,
+                'documents' => (int) ($realDocuments[$row->publisher_slug] ?? 0),
                 'archived_items' => (int) $row->documents,
                 'figures_published' => $figures,
                 'figures_withheld' => $deferred,
