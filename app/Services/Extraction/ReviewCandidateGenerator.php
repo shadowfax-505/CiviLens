@@ -40,6 +40,15 @@ class ReviewCandidateGenerator
      * eligible, and well below the three-to-seven words seen in cells that were
      * prose rather than table.
      */
+    /**
+     * Pages held in memory at once.
+     *
+     * Each carries its whole extracted text, so this is the only thing standing
+     * between a corpus that has grown five-fold and the 128 MB this command is
+     * given. Loading them all exhausted it at 8,900 pages.
+     */
+    private const PAGES_PER_BATCH = 200;
+
     private const MAX_VALUE_CELL_WORDS = 2;
 
     /**
@@ -236,63 +245,74 @@ class ReviewCandidateGenerator
             // has already declined to stand behind.
             ->where('extraction_path', '!=', SelectiveOcrService::ABSTAINED)
             ->where('character_count', '>', 50)
+            // Identifiers first, then the pages themselves in batches. Loading
+            // every candidate page at once meant holding every page's text in
+            // memory: fine at 1,800 pages and fatal at 8,900, where it exhausted
+            // 128 MB and killed the command outright.
+            //
+            // Sampling stays random. Taking the first N by id instead would
+            // quietly bias a small sample toward the pages acquired earliest,
+            // and the whole reason this draw is random is that a calibration set
+            // must look like what the system actually reads.
             ->inRandomOrder()
             ->limit(max(1, $limit))
-            ->get();
+            ->pluck('id');
 
-        foreach ($candidates as $page) {
-            $pages++;
-            $before = $created;
+        foreach ($candidates->chunk(self::PAGES_PER_BATCH) as $batch) {
+            foreach (ExtractionPage::query()->with('run')->findMany($batch->all()) as $page) {
+                $pages++;
+                $before = $created;
 
-            // A page whose text layer is legacy-font mojibake is unreviewable.
-            // Routing sends such pages to OCR now, but pages extracted before
-            // that fix are still stored, and 88 percent of the first batch of
-            // candidates were drawn from them. A reviewer would have marked
-            // nine in ten incorrect and the bound would have described an
-            // encoding bug rather than how well the system reads.
-            if ($this->plausibility->isImplausible((string) $page->extracted_text)) {
-                $unreadable++;
+                // A page whose text layer is legacy-font mojibake is unreviewable.
+                // Routing sends such pages to OCR now, but pages extracted before
+                // that fix are still stored, and 88 percent of the first batch of
+                // candidates were drawn from them. A reviewer would have marked
+                // nine in ten incorrect and the bound would have described an
+                // encoding bug rather than how well the system reads.
+                if ($this->plausibility->isImplausible((string) $page->extracted_text)) {
+                    $unreadable++;
 
-                continue;
-            }
-
-            foreach ($this->tokens((string) $page->extracted_text) as $token) {
-                if (ExtractionField::query()
-                    ->where('extraction_page_id', $page->getKey())
-                    ->where('evidence_offset_start', $token['start'])
-                    ->exists()) {
                     continue;
                 }
 
-                ExtractionField::query()->create([
-                    'extraction_run_id' => $page->extraction_run_id,
-                    'extraction_page_id' => $page->getKey(),
-                    'field_key' => $token['kind'],
-                    'field_type' => 'string',
-                    'extracted_value' => $token['value'],
-                    'normalized_value' => $token['kind'] === 'amount'
-                        ? $this->normalisedAmount($token['value'])
-                        : Str::of($token['value'])->replace(',', '')->trim()->value(),
-                    'script_class' => $page->script_class ?? 'unknown',
-                    'publisher_group' => $this->publisherGroup($page),
-                    'confidence' => $page->confidence,
-                    // Lower is more conforming, matching the benchmark path so a
-                    // reviewer-labelled field and a benchmark one are comparable.
-                    'nonconformity_score' => $page->confidence === null
-                        ? 1.0
-                        : round(max(0.0, min(1.0, 1.0 - ((float) $page->confidence / 100))), 8),
-                    'decision' => 'pending',
-                    'evidence_page_number' => $page->page_number,
-                    'evidence_offset_start' => $token['start'],
-                    'evidence_offset_end' => $token['start'] + mb_strlen($token['value']),
-                    'gold_source' => null,
-                ]);
+                foreach ($this->tokens((string) $page->extracted_text) as $token) {
+                    if (ExtractionField::query()
+                        ->where('extraction_page_id', $page->getKey())
+                        ->where('evidence_offset_start', $token['start'])
+                        ->exists()) {
+                        continue;
+                    }
 
-                $created++;
-            }
+                    ExtractionField::query()->create([
+                        'extraction_run_id' => $page->extraction_run_id,
+                        'extraction_page_id' => $page->getKey(),
+                        'field_key' => $token['kind'],
+                        'field_type' => 'string',
+                        'extracted_value' => $token['value'],
+                        'normalized_value' => $token['kind'] === 'amount'
+                            ? $this->normalisedAmount($token['value'])
+                            : Str::of($token['value'])->replace(',', '')->trim()->value(),
+                        'script_class' => $page->script_class ?? 'unknown',
+                        'publisher_group' => $this->publisherGroup($page),
+                        'confidence' => $page->confidence,
+                        // Lower is more conforming, matching the benchmark path so a
+                        // reviewer-labelled field and a benchmark one are comparable.
+                        'nonconformity_score' => $page->confidence === null
+                            ? 1.0
+                            : round(max(0.0, min(1.0, 1.0 - ((float) $page->confidence / 100))), 8),
+                        'decision' => 'pending',
+                        'evidence_page_number' => $page->page_number,
+                        'evidence_offset_start' => $token['start'],
+                        'evidence_offset_end' => $token['start'] + mb_strlen($token['value']),
+                        'gold_source' => null,
+                    ]);
 
-            if ($created === $before) {
-                $exhausted++;
+                    $created++;
+                }
+
+                if ($created === $before) {
+                    $exhausted++;
+                }
             }
         }
 
