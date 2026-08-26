@@ -39,5 +39,5 @@ it('bumps the reader version, because a stale score now means something else', f
     // A score is a claim about how a reader behaved. Changing the deferral
     // rules changes what every earlier score means, and health has to be able
     // to say how much of the corpus is owed a re-read.
-    expect(SecondReadScorer::READER_VERSION)->toBe('r3');
+    expect(SecondReadScorer::READER_VERSION)->toBe('r4');
 });

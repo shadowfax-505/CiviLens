@@ -176,9 +176,15 @@ class LimitationsReport
             'evidence' => [
                 'values_deferred_for_a_disputed_sign' => ExtractionField::query()->where('score_basis', 'sign-disagreement')->count(),
                 'values_deferred_for_mixing_two_alphabets' => ExtractionField::query()->where('score_basis', 'mixed-script-numeral')->count(),
+                'values_deferred_for_a_disputed_leading_digit' => ExtractionField::query()->where('score_basis', 'leading-digit-disputed')->count(),
                 'observed_case' => 'Pages write a difference as (A-B) -C, where the last mark is an '
                     .'equals sign. Both readings return a hyphen, agree, and the figure certifies as '
                     .'negative when the arithmetic shows it positive.',
+                'third_observed_case' => 'Readings of ১০০০০ and ৯০০০০ for the same crop — ten '
+                    .'thousand against ninety thousand — differ in one character of five and '
+                    .'certified. So did 39656.49 against 639656.49, a sixteenfold difference. The '
+                    .'disagreement that matters most is the one a metric over characters weighs '
+                    .'least.',
                 'second_observed_case' => 'A numeral read as 1১৪০৭৭.৩৩ was read [১৪০৭৭.৩৩ on the '
                     .'second pass: a table rule line taken for a leading digit by one pass and a '
                     .'bracket by the other. Edit distance called that a one-character difference and '

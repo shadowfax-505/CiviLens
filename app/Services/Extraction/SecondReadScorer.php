@@ -49,8 +49,9 @@ class SecondReadScorer
      *   r2 — currency terminators, cell-aware cropping, sign-disagreement
      *        deferral, shared Bengali numeral canonicalisation.
      *   r3 — a numeral mixing Bengali and Latin digits defers by rule.
+     *   r4 — readings that disagree about the leading digit defer by rule.
      */
-    public const READER_VERSION = 'r3';
+    public const READER_VERSION = 'r4';
 
     /** Room around the value, so a character at the edge is not clipped away. */
     private const PADDING = 8;
@@ -134,6 +135,56 @@ class SecondReadScorer
      * Unicode minus are the same claim written two ways, and normalising them
      * apart would fire on every page that uses the typographic form.
      */
+    /**
+     * Whether the two readings disagree about the most significant digit.
+     *
+     * Two shapes, both of which change the order of magnitude:
+     *
+     *   substituted   ১০০০০ against ৯০০০০      — ten thousand or ninety
+     *   inserted      39656.49 against 639656.49 — a sixteenfold difference
+     *
+     * The differing character must be a digit in at least one reading. A second
+     * read that returns “3500.00 for 3500.00 has picked up a quotation mark off
+     * the page, which is noise about the crop and not a dispute about the
+     * number.
+     */
+    private function leadingDigitDisputed(string $first, string $second): bool
+    {
+        $first = trim($first);
+        $second = trim($this->withoutTerminator($second));
+
+        if ($first === '' || $second === '' || $first === $second) {
+            return false;
+        }
+
+        $lengths = [mb_strlen($first), mb_strlen($second)];
+
+        // Substituted: same length, same tail, different leading character.
+        if ($lengths[0] === $lengths[1] && mb_substr($first, 1) === mb_substr($second, 1)) {
+            return $this->isDigit(mb_substr($first, 0, 1)) || $this->isDigit(mb_substr($second, 0, 1));
+        }
+
+        // Inserted: one reading carries an extra leading character.
+        if (abs($lengths[0] - $lengths[1]) !== 1) {
+            return false;
+        }
+
+        [$longer, $shorter] = $lengths[0] > $lengths[1] ? [$first, $second] : [$second, $first];
+
+        return mb_substr($longer, 1) === $shorter && $this->isDigit(mb_substr($longer, 0, 1));
+    }
+
+    private function isDigit(string $character): bool
+    {
+        return preg_match('/^[0-9\x{09E6}-\x{09EF}]$/u', $character) === 1;
+    }
+
+    /** The second read may carry a currency terminator the value never does. */
+    private function withoutTerminator(string $value): string
+    {
+        return (string) preg_replace('#(/-|/=|:-|/)$#u', '', trim($value));
+    }
+
     /**
      * Whether one numeral is written in two scripts at once.
      *
@@ -243,6 +294,29 @@ class SecondReadScorer
         // Deferred, never corrected. Guessing which script was meant would
         // invent a figure, and this project has already published money once by
         // repairing a value instead of declining it.
+        // The two readings disagree about the most significant digit.
+        //
+        // This is the disagreement that matters most and the one edit distance
+        // weighs least. ১০০০০ against ৯০০০০ is ten thousand against ninety
+        // thousand and scores one character in five; 39656.49 against
+        // 639656.49 is a sixteenfold difference and scores one in nine. Both
+        // certified.
+        //
+        // The magnitude is what a public-finance figure is *for*. A reading
+        // that agrees about every digit except which order of magnitude the
+        // number is has not agreed about anything worth publishing.
+        //
+        // Deferred rather than resolved: which reading is right is exactly what
+        // neither pass can tell us.
+        if ($this->leadingDigitDisputed((string) $field->extracted_value, $text)) {
+            return [
+                'nonconformity_score' => null,
+                'score_basis' => 'leading-digit-disputed',
+                'second_read_value' => mb_substr(trim($text), 0, 255),
+                'second_read_confidence' => round($confidence, 4),
+            ];
+        }
+
         if ($this->mixesScripts((string) $field->extracted_value)) {
             return [
                 'nonconformity_score' => null,
