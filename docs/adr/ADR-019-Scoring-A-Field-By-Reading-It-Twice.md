@@ -251,3 +251,53 @@ The rule catches this case by its shape rather than by understanding it. A rule
 line misread as a digit on a page that is wholly Bengali or wholly Latin
 produces a numeral in one alphabet and still certifies unseen. Nothing here
 finds that.
+
+---
+
+## Addendum, 2026-08-27: readings that disagree about the leading digit defer
+
+Found by asking a narrower question than the last one: not "which values look
+odd" but "where do the two readings differ, and does the difference matter".
+
+164 accepted figures had readings that disagreed about the most significant
+digit, and 24 more where one reading carried a leading digit the other did not.
+
+| first read | second read | difference |
+| --- | --- | --- |
+| `১০০০০` | `৯০০০০` | ten thousand or ninety thousand |
+| `400.00` | `800.00` | double |
+| `39656.49` | `639656.49` | sixteenfold |
+| `৩৩৫৫৪` | `২৩৩৫৫৪` | sevenfold |
+
+Every one scored below its group's threshold. Edit distance calls the first
+pair one character in five, which is a small number, and calls the third one in
+nine.
+
+**The magnitude is what a public-finance figure is for.** A reading that agrees
+about every digit except which order of magnitude the number is has not agreed
+about anything worth publishing.
+
+This is the third rule of this shape, after the sign and the mixed alphabet,
+and the lesson has been the same each time: **a metric over characters cannot
+weigh what a character means.** The nonconformity score is a good ranking of
+how confidently two passes agreed; it is not, and cannot be made into, a
+judgement about which disagreements change the meaning of a number. Those need
+rules, and the rules defer rather than resolve — which reading is right is
+exactly what neither pass can tell us.
+
+The differing character must be a digit in at least one reading. A second read
+returning `“3500.00` for `3500.00` has caught a quotation mark in the crop:
+that is a fact about the crop, not a dispute about the figure, and deferring on
+it would abstain on values nothing is wrong with.
+
+Together with the mixed-alphabet rule this withdrew 238 published figures. The
+bound is untouched, by the argument this ADR already makes for unlocatable
+values.
+
+**What is still not caught.** All three rules work on the shape of a
+disagreement, not on what the number means. Where both passes make the same
+mistake they agree, the score is low, and the value certifies — which is the
+blind spot this ADR opened with and has not closed. A rule line read as a digit
+by both passes on a single-script page produces two identical readings of a
+figure ten times too large, and nothing here finds it. Only a person looking at
+the page does.
