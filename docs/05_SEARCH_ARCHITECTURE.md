@@ -48,7 +48,7 @@ Future providers must implement `SearchProvider`.
 Documented placeholders:
 
 - `FutureScoutProvider`
-- `FutureMeilisearchProvider`
+- `FutureMeilisearchProvider` — **not built.** No Meilisearch or Scout package is installed; search runs on the database provider alone.
 - `FutureOpenSearchProvider`
 
 External providers must preserve authorization, analytics, saved search, history, click tracking, cache, and result DTO behavior.

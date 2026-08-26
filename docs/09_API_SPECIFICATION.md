@@ -1,5 +1,14 @@
 # 09 API Specification
 
+> **Not built.** This document specifies an interface that does not exist: the
+> application serves 248 routes and none of them is an API route. It is kept as
+> a design record, not as a description of the system. Anything read here as a
+> statement of what CivicLens does today is a misreading.
+>
+> Checked mechanically — `tests/Feature/V2/RunbookTest.php` and the M14 gate ask
+> that documentation describe the system that exists, and this is the largest
+> place where it did not.
+
 ## Conventions
 
 - JSON responses.
