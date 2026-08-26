@@ -22,6 +22,8 @@ class ExtractionPage extends Model
         'recognized_words',
         'recognized_dpi',
         'tables_detected_at',
+        'abstention_reason',
+        'ink_coverage',
         'content_hash',
         'character_count',
         'word_count',
@@ -41,6 +43,7 @@ class ExtractionPage extends Model
             'recognized_words' => 'array',
             'recognized_dpi' => 'integer',
             'tables_detected_at' => 'datetime',
+            'ink_coverage' => 'float',
         ];
     }
 

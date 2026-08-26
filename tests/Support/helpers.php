@@ -14,7 +14,11 @@ use Illuminate\Support\Facades\Cache;
 if (! function_exists('searchAdminUser')) {
     function searchAdminUser(): User
     {
-        $role = Role::query()->create(['name' => 'Administrator', 'slug' => config('civiclens.roles.admin')]);
+        // firstOrCreate, so a test needing two reviewers can call this twice.
+        $role = Role::query()->firstOrCreate(
+            ['slug' => config('civiclens.roles.admin')],
+            ['name' => 'Administrator'],
+        );
         $user = User::factory()->create(['is_active' => true, 'email_verified_at' => now()]);
         $user->roles()->attach($role);
 

@@ -95,3 +95,38 @@ it('counts what is left to judge in each group', function (): void {
         ->assertViewHas('groups', fn (array $groups): bool => $groups['cbad-bangladesh'] === 1
             && $groups['dgcivil-bangladesh'] === 30);
 });
+
+it('serves a value somebody else has already judged, for a second opinion', function (): void {
+    // The queue serves unjudged values, so a second reviewer would spend a
+    // whole session never once seeing what the first had seen — and the
+    // double-judged subset would never come into existence.
+    $first = searchAdminUser();
+
+    $judged = ExtractionField::factory()->create([
+        'gold_source' => 'reviewer',
+        'is_correct' => true,
+        'reviewed_by' => $first->id,
+    ]);
+
+    ExtractionField::factory()->count(5)->create(['is_correct' => null, 'gold_source' => null]);
+
+    $this->actingAs(searchAdminUser())
+        ->get(route('admin.sources.review', ['second' => 1]))
+        ->assertOk()
+        ->assertViewHas('item', fn (?ExtractionField $item): bool => $item?->getKey() === $judged->getKey());
+});
+
+it('does not ask a reviewer to judge what they already judged', function (): void {
+    $reviewer = searchAdminUser();
+
+    ExtractionField::factory()->create([
+        'gold_source' => 'reviewer',
+        'is_correct' => true,
+        'reviewed_by' => $reviewer->id,
+    ]);
+
+    $this->actingAs($reviewer)
+        ->get(route('admin.sources.review', ['second' => 1]))
+        ->assertOk()
+        ->assertViewHas('item', null);
+});

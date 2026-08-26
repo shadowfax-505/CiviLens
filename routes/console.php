@@ -11,6 +11,7 @@ use App\Models\ScreeningEntity;
 use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
 use App\Models\SourcePublisher;
+use App\Services\Extraction\AbstentionClassifier;
 use App\Services\Extraction\BenchmarkEvaluationService;
 use App\Services\Extraction\BengaliTextPlausibility;
 use App\Services\Extraction\BornDigitalWordExtractor;
@@ -23,6 +24,7 @@ use App\Services\Extraction\PageRoutingPolicy;
 use App\Services\Extraction\PaperReport;
 use App\Services\Extraction\PipelineHealthReport;
 use App\Services\Extraction\ReviewCandidateGenerator;
+use App\Services\Extraction\ReviewerAgreementReport;
 use App\Services\Extraction\ScoreDiscriminationReport;
 use App\Services\Extraction\SecondReadScorer;
 use App\Services\Extraction\SelectiveOcrService;
@@ -703,6 +705,48 @@ Artisan::command('civiclens:build-ca-bundle {hosts?*} {--out=}', function (Certi
 
     return 0;
 })->purpose('Fetch the intermediate certificates publishers omit, so their chains verify');
+
+Artisan::command('civiclens:reviewer-agreement', function (ReviewerAgreementReport $report): int {
+    $built = $report->build();
+
+    $this->line(json_encode($built, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+    if ($built['double_judged'] === 0) {
+        // Not an error. The measurement needs two people, and saying so is more
+        // use than a zero that reads like a result.
+        $this->comment('Serve second opinions from the review queue with ?second=1 to build the subset.');
+    }
+
+    return 0;
+})->purpose('Measure how often two reviewers judging the same value agree');
+
+Artisan::command('civiclens:classify-abstentions {--limit=2000}', function (AbstentionClassifier $classifier): int {
+    $limit = $this->option('limit');
+    $counts = $classifier->classify(is_numeric($limit) ? (int) $limit : 2000);
+
+    if ($counts === []) {
+        $this->comment('Every abstention already carries a reason.');
+
+        return 0;
+    }
+
+    $this->table(['why the page was abstained on', 'pages'], array_map(
+        fn (string $reason, int $count): array => [$reason, $count],
+        array_keys($counts),
+        array_values($counts),
+    ));
+
+    // The distinction the whole command exists for. An abstention rate quoted
+    // as one number reads as a claim about how much of the corpus defeats the
+    // reader, and a blank separator page abstained on is the opposite of that.
+    $blank = ($counts[AbstentionClassifier::BLANK] ?? 0) + ($counts[AbstentionClassifier::SPARSE] ?? 0);
+
+    if ($blank > 0) {
+        $this->line('  '.$blank.' of these pages had nothing on them to read.');
+    }
+
+    return 0;
+})->purpose('Say why each abstained page was abstained on, from the page itself');
 
 Artisan::command('civiclens:harvest-links {--apply : Record them; without this it only reports} {--limit=5000}', function (ArchivedPageLinkHarvester $harvester): int {
     $limit = $this->option('limit');

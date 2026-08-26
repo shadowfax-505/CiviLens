@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Sources;
 
 use App\Http\Controllers\Controller;
 use App\Models\ExtractionField;
+use App\Models\ExtractionFieldJudgement;
 use App\Models\ExtractionPage;
 use App\Models\ExtractionTableCell;
 use App\Models\SourcePublisher;
@@ -50,14 +51,31 @@ class ReviewQueueController extends Controller
         $group = $request->session()->get('review.group');
         $group = is_string($group) && $group !== '' ? $group : null;
 
+        // A share of the queue is items somebody else has already judged, shown
+        // to a different person so agreement can be measured. Without it the
+        // double-judged subset never comes into existence: the queue serves
+        // unjudged values, so a second reviewer would spend a whole session
+        // never once seeing what the first had seen.
+        //
+        // The item is drawn at random from that pool exactly as any other is.
+        // Choosing which already-judged values to re-show — the hard ones, the
+        // disagreements — would measure agreement on a sample selected for
+        // disagreement.
+        $second = $request->query('second') !== null;
+
         $item = ExtractionField::query()
             ->with(['page', 'tableCell'])
+            ->when($second, fn ($query) => $query
+                ->whereNotNull('gold_source')
+                ->where('reviewed_by', '!=', $request->user()->getKey())
+                ->whereNotIn('id', ExtractionFieldJudgement::query()
+                    ->where('user_id', $request->user()->getKey())
+                    ->select('extraction_field_id')))
             // Uniform at random, never by confidence. Queueing the most
             // confident items first would make the calibration set
             // unrepresentative of what the system accepts, and a bound computed
             // from it would be correct arithmetic about the wrong population.
-            ->whereNull('is_correct')
-            ->whereNull('gold_source')
+            ->when(! $second, fn ($query) => $query->whereNull('is_correct')->whereNull('gold_source'))
             // Narrowing to a group does not weaken that. Exchangeability is
             // required within the group a threshold is fitted on, and
             // calibration is already per publisher and script, so drawing
@@ -75,6 +93,7 @@ class ReviewQueueController extends Controller
             'row' => $this->row($item),
             'group' => $group,
             'groups' => $this->unjudgedByGroup(),
+            'second_opinion' => $second,
             // How many places on the page carry these characters. One means the
             // crop is the value; several means the reviewer is judging the
             // reading, not which of them was meant; none means the page was read
@@ -187,6 +206,32 @@ class ReviewQueueController extends Controller
             'verdict' => ['required', 'in:correct,incorrect,unsure'],
             'note' => ['nullable', 'string', 'max:500'],
         ]);
+
+        // Recorded before the field is touched, and recorded for every reviewer
+        // rather than only the first. The field keeps one verdict because the
+        // calibration needs one; agreement between people needs all of them,
+        // and it is the measurement that says whether the labels the bound
+        // rests on are reproducible at all.
+        ExtractionFieldJudgement::query()->updateOrCreate(
+            [
+                'extraction_field_id' => $field->getKey(),
+                'user_id' => $request->user()->getKey(),
+            ],
+            [
+                'verdict' => $data['verdict'],
+                'note' => $data['note'] ?? null,
+                // Re-extraction can change a value under a judgement, and a
+                // label about characters that are no longer there is worse than
+                // no label.
+                'value_judged' => (string) $field->extracted_value,
+            ],
+        );
+
+        // A field already judged by someone else keeps that judgement. The
+        // second opinion is evidence about the first, not a correction of it.
+        if ($field->gold_source !== null && (int) $field->reviewed_by !== (int) $request->user()->getKey()) {
+            return back()->with('status', 'Recorded as a second opinion.');
+        }
 
         // Unsure records that the item was seen and left undecided. Forcing a
         // verdict would put a guess into the calibration set, and a coerced
