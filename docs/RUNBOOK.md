@@ -75,6 +75,17 @@ php artisan civiclens:prune-candidates [--apply]
 Order matters: candidates are generated from page text and table cells, scored
 by a second read of the page, and only then decided.
 
+`score-fields` visits pages holding an unscored value first, then pages scored
+by an earlier reader, then the rest in id order. Before that it ordered by id
+alone, so a page read today sat behind every page ever read and no limit short
+of the whole corpus reached it.
+
+`civiclens:health` reports which readers produced the scores on record. More
+than one version means a re-score is owed — a score from an older locator
+defers rather than over-accepts, so nothing breaks and nothing complains, and
+the guarantee quietly covers less of the corpus than it appears to.
+Recalibration follows the re-score (ADR-019).
+
 `--sync` scores in the calling process. Scoring shares one queue with the
 crawlers, and a publisher rate-limited to a request a minute holds it for hours.
 

@@ -187,20 +187,55 @@ class PipelineHealthReport
     }
 
     /**
-     * @return array{ok: bool, scored: int, unscored: int, detail: string}
+     * @return array{ok: bool, scored: int, unscored: int, readers: array<array-key, int>, stale: int, detail: string}
      */
     private function scoring(): array
     {
         $unscored = ExtractionField::query()->whereNull('gold_source')->whereNull('score_basis')->count();
         $scored = ExtractionField::query()->whereNotNull('score_basis')->count();
 
+        // Which reader produced each score. A score says two readings of the
+        // same pixels agreed, and what counts as agreement changes when the
+        // locator or the scorer changes — so a score from an older reader is a
+        // statement about a reader that no longer exists.
+        //
+        // This is reported because the only way it was ever caught was by
+        // sampling: 2,611 IMED values sat marked unlocatable by a locator that
+        // had since been taught to find them, and the corpus looked healthy the
+        // whole time. Nothing breaches the bound; the population it applies to
+        // is smaller than it should be, which is where this method goes wrong
+        // without saying so.
+        $readers = ExtractionField::query()
+            ->whereNotNull('score_basis')
+            ->selectRaw('score_reader_version, count(*) as aggregate')
+            ->groupBy('score_reader_version')
+            ->pluck('aggregate', 'score_reader_version')
+            ->mapWithKeys(fn (int|string $count, int|string|null $version): array => [
+                $version === null || $version === '' ? 'before-this-was-recorded' : (string) $version => (int) $count,
+            ])
+            ->all();
+
+        $stale = $scored - ($readers[SecondReadScorer::READER_VERSION] ?? 0);
+
+        $detail = $unscored > 0
+            ? $unscored.' candidates have never been scored, so they defer by rule rather than by threshold.'
+            : 'Every candidate carries a score.';
+
+        if ($stale > 0) {
+            $detail .= ' '.$stale.' of them were scored by an earlier reader and are owed a re-score;'
+                .' recalibration follows it (ADR-019).';
+        }
+
         return [
+            // Not a breakage. A stale score defers rather than over-accepts,
+            // so failing the health check on it would cry wolf on a corpus
+            // that is merely behind.
             'ok' => true,
             'scored' => $scored,
             'unscored' => $unscored,
-            'detail' => $unscored === 0
-                ? 'Every candidate carries a score.'
-                : $unscored.' candidates have never been scored, so they defer by rule rather than by threshold.',
+            'readers' => $readers,
+            'stale' => $stale,
+            'detail' => $detail,
         ];
     }
 

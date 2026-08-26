@@ -560,12 +560,34 @@ Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Sc
 
     $pages = $unscored;
 
+    // Then pages carrying a score from an earlier reader. A score says two
+    // readings of the same pixels agreed, and what counts as agreement changed
+    // when the locator learned currency terminators and cell-aware cropping —
+    // so those scores describe a reader that no longer exists. They defer
+    // rather than over-accept, which is why nothing broke and why the corpus
+    // sat that way unnoticed.
+    if ($pages->count() < $limit) {
+        $stale = (clone $query)
+            ->whereNotIn('id', $pages->modelKeys())
+            ->whereIn('id', ExtractionField::query()
+                ->whereNotNull('score_basis')
+                ->where(fn ($field) => $field
+                    ->whereNull('score_reader_version')
+                    ->orWhere('score_reader_version', '!=', SecondReadScorer::READER_VERSION))
+                ->select('extraction_page_id'))
+            ->orderBy('id')
+            ->limit(max(1, $limit - $pages->count()))
+            ->get();
+
+        $pages = $pages->concat($stale);
+    }
+
     // Then the rest, in id order as before, so a full re-score after an
     // extraction change still walks the corpus the way it always did.
     if ($pages->count() < $limit) {
         $pages = $pages->concat(
             (clone $query)
-                ->whereNotIn('id', $unscored->modelKeys())
+                ->whereNotIn('id', $pages->modelKeys())
                 ->orderBy('id')
                 ->limit(max(1, $limit - $pages->count()))
                 ->get()

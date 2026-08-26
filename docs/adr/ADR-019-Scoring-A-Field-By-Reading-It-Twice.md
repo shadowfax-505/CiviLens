@@ -180,3 +180,41 @@ systematically mis-cropped population simply abstains and the guarantee stays
 true over a quietly narrower set. AUC over the adjudicated fields is unchanged
 at 0.8818 across both fixes. **What moved was coverage, and coverage is where
 this method can go wrong without saying so.**
+
+---
+
+## Addendum, 2026-08-26: a score records which reader made it
+
+A score is a claim that two readings of the same pixels agreed. What counts as
+agreement is not fixed — it changed when the locator learned that documents
+write a sum as `৩,৯৮,৭৪৮/-`, when cropping became cell-aware, and when a
+disagreement about a sign began deferring by rule. Every score taken before a
+change describes a reader that no longer exists.
+
+Nothing in the schema could say so. A corpus half-scored by an old reader and
+half by a new one looked exactly like a corpus scored once, and the way this was
+actually found was by sampling: values marked `unlocatable` were handed to the
+current locator, which found them. 2,611 IMED candidates and 2,540 of cbad's sat
+deferred by a rule that no longer applied. On twenty pages re-scored as a check,
+unlocatable fell from 54 to 39.
+
+This is the failure mode this project keeps meeting, in a new place. The bound
+was never breached — a stale score defers rather than over-accepts — and the
+population the guarantee covered was quietly smaller than the corpus. Health
+looked perfect throughout.
+
+`extraction_fields.score_reader_version` now records `SecondReadScorer::READER_VERSION`
+with every score. `civiclens:health` reports every version present and how many
+scores are owed a re-read, and `civiclens:score-fields` visits unscored pages
+first, then pages scored by an earlier reader, then the rest.
+
+**Bump `READER_VERSION` whenever a change alters what a score means** — the
+locator's matching rules, the crop, the nonconformity formula, the deferral
+rules. Recalibration follows a re-score, as this ADR already requires: the
+scores the thresholds were fitted to must be the scores the thresholds are
+applied to.
+
+The version is bumped by hand and that is a real weakness — nothing forces it.
+Deriving it from the source files was rejected because a comment would then
+invalidate the corpus, and in a codebase where the reasoning lives in comments
+that would make the signal useless within a week.

@@ -29,6 +29,28 @@ use Throwable;
  */
 class SecondReadScorer
 {
+    /**
+     * Which reader produced a score. **Bump this whenever a change alters what
+     * a score means** — the locator's matching rules, the crop, the
+     * nonconformity formula, the deferral rules.
+     *
+     * A score is a claim that two readings of the same pixels agreed, and it
+     * stays on the row long after the reader that made it is gone. Without a
+     * version there is nothing to compare, so a corpus half-scored by an old
+     * reader and half by a new one looks exactly like a corpus scored once —
+     * and the way this was actually found was by sampling values marked
+     * unlocatable and noticing the locator could now find them.
+     *
+     * `civiclens:health` reports every version present. More than one means a
+     * re-score is owed, and ADR-019 requires recalibration after it.
+     *
+     * History:
+     *   r1 — the reader before this column existed; recorded as null.
+     *   r2 — currency terminators, cell-aware cropping, sign-disagreement
+     *        deferral, shared Bengali numeral canonicalisation.
+     */
+    public const READER_VERSION = 'r2';
+
     /** Room around the value, so a character at the edge is not clipped away. */
     private const PADDING = 8;
 
@@ -90,7 +112,7 @@ class SecondReadScorer
         foreach ($fields as $field) {
             $result = $this->score($field, $page, $raster instanceof GdImage ? $raster : null);
 
-            $field->forceFill($result)->save();
+            $field->forceFill($result + ['score_reader_version' => self::READER_VERSION])->save();
 
             $result['score_basis'] === 'unlocatable' ? $unlocatable++ : $scored++;
         }
