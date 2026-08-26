@@ -545,7 +545,32 @@ Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Sc
         $query->whereIn('id', ExtractionField::query()->whereNotNull('is_correct')->select('extraction_page_id'));
     }
 
-    $pages = $query->orderBy('id')->limit(max(1, $limit))->get();
+    // Pages holding a value nothing has scored yet come first.
+    //
+    // Ordering by id alone meant a page read today sat at the end of 9,000,
+    // and no limit short of the whole corpus ever reached it: the newest work
+    // was the least reachable, which is backwards. Twenty-five values read out
+    // of newly converted documents stayed unscored through a thousand-page run
+    // that rescored a thousand pages already carrying scores.
+    $unscored = (clone $query)
+        ->whereIn('id', ExtractionField::query()->whereNull('score_basis')->select('extraction_page_id'))
+        ->orderBy('id')
+        ->limit(max(1, $limit))
+        ->get();
+
+    $pages = $unscored;
+
+    // Then the rest, in id order as before, so a full re-score after an
+    // extraction change still walks the corpus the way it always did.
+    if ($pages->count() < $limit) {
+        $pages = $pages->concat(
+            (clone $query)
+                ->whereNotIn('id', $unscored->modelKeys())
+                ->orderBy('id')
+                ->limit(max(1, $limit - $pages->count()))
+                ->get()
+        );
+    }
 
     // Scoring shares one queue with the crawlers, and a crawler rate-limited to
     // a request a minute holds it for hours. Re-scoring after an extraction
