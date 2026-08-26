@@ -10,6 +10,7 @@ use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
 use App\Models\SourcePublisher;
 use App\Models\TenderObservation;
+use App\Services\Screening\CorpusScreeningReport;
 use Illuminate\Support\Collection;
 
 /**
@@ -36,6 +37,9 @@ class PaperReport
         private readonly ScoreDiscriminationReport $discrimination,
         private readonly CalibrationReport $calibration,
         private readonly AmountGrouping $grouping,
+        private readonly ReviewerAgreementReport $agreement,
+        private readonly CorpusScreeningReport $screening,
+        private readonly PipelineHealthReport $health,
     ) {}
 
     /**
@@ -53,6 +57,47 @@ class PaperReport
             'calibration' => $this->calibration->build($alpha),
             'score' => $this->score(),
             'failure_modes' => $this->failureModes(),
+            // Everything a write-up would otherwise transcribe by hand. A
+            // number typed into a paper is a number that stops being true
+            // quietly, and this project has spent a week finding claims that
+            // were exactly that.
+            'abstention' => $this->abstention(),
+            'reviewers' => $this->agreement->build(),
+            'screening' => $this->screening->build(),
+            'table_detection' => $this->health->tableDetection(),
+        ];
+    }
+
+    /**
+     * Why pages were abstained on, which is not one thing.
+     *
+     * A single abstention rate reads as a claim about how much of the corpus
+     * defeats the reader. Roughly half of it is blank separator pages, where
+     * abstaining is the system working.
+     *
+     * @return array<string, mixed>
+     */
+    private function abstention(): array
+    {
+        $byReason = ExtractionPage::query()
+            ->whereNotNull('abstention_reason')
+            ->selectRaw('abstention_reason, count(*) as aggregate')
+            ->groupBy('abstention_reason')
+            ->pluck('aggregate', 'abstention_reason')
+            ->map(fn (int|string $value): int => (int) $value)
+            ->all();
+
+        $nothingToRead = ($byReason[AbstentionClassifier::BLANK] ?? 0)
+            + ($byReason[AbstentionClassifier::SPARSE] ?? 0);
+
+        return [
+            'pages_abstained' => ExtractionPage::query()->where('extraction_path', SelectiveOcrService::ABSTAINED)->count(),
+            'by_reason' => $byReason,
+            'pages_with_nothing_to_read' => $nothingToRead,
+            'unclassified' => ExtractionPage::query()
+                ->where('extraction_path', SelectiveOcrService::ABSTAINED)
+                ->whereNull('abstention_reason')
+                ->count(),
         ];
     }
 

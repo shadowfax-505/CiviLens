@@ -21,6 +21,7 @@ use App\Services\Extraction\CorpusLegibilityProbe;
 use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Extraction\FieldDecisionService;
 use App\Services\Extraction\KeyValueExtractor;
+use App\Services\Extraction\LimitationsReport;
 use App\Services\Extraction\PageRoutingPolicy;
 use App\Services\Extraction\PaperReport;
 use App\Services\Extraction\PipelineHealthReport;
@@ -322,6 +323,17 @@ Artisan::command('civiclens:health', function (PipelineHealthReport $health): in
 
     return $report['healthy'] === true ? 0 : 1;
 })->purpose('Check that every part of the pipeline can still do its job');
+
+Artisan::command('civiclens:limitations {--alpha=0.05}', function (LimitationsReport $report): int {
+    $alpha = $this->option('alpha');
+
+    $this->line(json_encode(
+        $report->build(is_numeric($alpha) ? (float) $alpha : 0.05),
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR,
+    ));
+
+    return 0;
+})->purpose('State what this method cannot do, with the numbers that say so');
 
 Artisan::command('civiclens:paper-report {--alpha=0.05} {--save}', function (PaperReport $report): int {
     $alpha = $this->option('alpha');
