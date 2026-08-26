@@ -28,6 +28,7 @@ use App\Services\Extraction\SecondReadScorer;
 use App\Services\Extraction\SelectiveOcrService;
 use App\Services\Extraction\TableStructureDetector;
 use App\Services\Extraction\WordGeometryBackfill;
+use App\Services\Ingestion\ArchivedPageLinkHarvester;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
 use App\Services\Ingestion\CertificateChainRepair;
 use App\Services\Ingestion\SourceCandidateVerifier;
@@ -702,6 +703,28 @@ Artisan::command('civiclens:build-ca-bundle {hosts?*} {--out=}', function (Certi
 
     return 0;
 })->purpose('Fetch the intermediate certificates publishers omit, so their chains verify');
+
+Artisan::command('civiclens:harvest-links {--apply : Record them; without this it only reports} {--limit=5000}', function (ArchivedPageLinkHarvester $harvester): int {
+    $limit = $this->option('limit');
+
+    $result = $harvester->harvest(
+        apply: (bool) $this->option('apply'),
+        limit: is_numeric($limit) ? (int) $limit : 5000,
+    );
+
+    $this->table(
+        ['pages read', 'links found', 'new and allowed', 'refused by the allowlist', 'already known'],
+        [[$result['scanned'], $result['proposed'], $result['recorded'], $result['refused'], $result['already_known']]],
+    );
+
+    if (! $this->option('apply')) {
+        $this->comment('Nothing recorded. Re-run with --apply.');
+    } else {
+        $this->info('Recorded as discovered resources. Acquisition fetches them, with every guard it always applies.');
+    }
+
+    return 0;
+})->purpose('Find documents linked from pages already in the archive');
 
 Artisan::command('civiclens:sources-report {--json}', function (SourceYieldReport $report): int {
     $built = $report->build();
