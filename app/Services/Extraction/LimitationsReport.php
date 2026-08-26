@@ -3,6 +3,7 @@
 namespace App\Services\Extraction;
 
 use App\Models\ExtractionField;
+use App\Models\ExtractionPage;
 use App\Services\Statistics\ClopperPearson;
 
 /**
@@ -15,6 +16,18 @@ use App\Services\Statistics\ClopperPearson;
  */
 class LimitationsReport
 {
+    /**
+     * Characters a Latin codepage produces when it is handed Bengali glyphs.
+     * None of them is common in genuine English or in Unicode Bengali.
+     */
+    private const LEGACY_FONT_RESIDUE = '/[\x{00AA}\x{00BA}\x{0161}\x{00BF}\x{2021}\x{00D6}\x{201D}\x{00A8}\x{00AE}\x{00F5}\x{00B3}]/u';
+
+    /** Below this, a stray symbol or two says nothing about the page. */
+    private const MINIMUM_PAGE_LENGTH = 200;
+
+    /** One in sixty characters. A page of English does not reach it. */
+    private const RESIDUE_DENSITY = 60;
+
     public function __construct(
         private readonly CalibrationReport $calibration,
         private readonly ScoreDiscriminationReport $discrimination,
@@ -32,6 +45,7 @@ class LimitationsReport
             $this->sampleCannotConfirm($alpha),
             $this->thresholdExcludesNothing($alpha),
             $this->correlatedSecondRead(),
+            $this->scriptClassIsNotLanguage(),
             $this->unlocatable(),
             $this->agreementNeverMeasured(),
         ]));
@@ -55,9 +69,10 @@ class LimitationsReport
             'evidence' => ['certified_by_publisher' => $byGroup],
             'why_it_matters' => 'Group-conditional calibration exists so a low-resource subset cannot '
                 .'hide behind a healthy average, and that argument is worth little while every group '
-                .'belongs to the same publisher. The three groups are one publisher\'s Bengali, '
-                .'English and mixed pages, which is a much narrower claim than "Bangladesh public '
-                .'sources".',
+                .'belongs to the same publisher. The three groups are one publisher\'s pages divided '
+                .'by script, which is a much narrower claim than "Bangladesh public sources" — and '
+                .'narrower still than the group names suggest; see the limitation on what "en" '
+                .'actually contains.',
         ];
     }
 
@@ -166,6 +181,84 @@ class LimitationsReport
                 .'disagree about a sign the value is now deferred by rule; where they agree wrongly, '
                 .'only a person looking at the page finds it, and one did.',
         ];
+    }
+
+    /**
+     * @return array{limitation: string, evidence: array<string, mixed>, why_it_matters: string}|null
+     */
+    private function scriptClassIsNotLanguage(): ?array
+    {
+        $residue = $this->legacyFontPageIds();
+
+        if ($residue === []) {
+            return null;
+        }
+
+        $byScript = [];
+
+        foreach (['bn', 'en', 'mixed'] as $script) {
+            $accepted = ExtractionField::query()->where('decision', 'accepted')->where('script_class', $script);
+            $labelled = ExtractionField::query()->whereNotNull('is_correct')->where('script_class', $script);
+
+            $byScript[$script] = [
+                'accepted' => (clone $accepted)->count(),
+                'accepted_on_legacy_font_pages' => (clone $accepted)->whereIn('extraction_page_id', $residue)->count(),
+                'labels' => (clone $labelled)->count(),
+                'labels_on_legacy_font_pages' => (clone $labelled)->whereIn('extraction_page_id', $residue)->count(),
+            ];
+        }
+
+        return [
+            'limitation' => 'The script classes are named after languages and one of them is not a language.',
+            'evidence' => [
+                'pages_with_heavy_legacy_font_residue' => count($residue),
+                'by_script_class' => $byScript,
+            ],
+            'why_it_matters' => 'Bengali set in a pre-Unicode font stores its characters as Latin '
+                .'bytes, so the classifier reads such a page as English. Where every accepted value '
+                .'and every label in a group sits on those pages, the group is homogeneous and its '
+                .'guarantee is sound — the name is simply wrong, and a reader who sees a certified '
+                .'rate for "en" will believe this corpus contains certified English documents when '
+                .'it may contain none. Where the shares differ between the labels and the values '
+                .'they calibrate, the group mixes two populations that fail differently, and '
+                .'exchangeability — the assumption the whole bound rests on — is the thing at risk '
+                .'rather than the arithmetic.',
+        ];
+    }
+
+    /**
+     * Pages whose text carries the residue of a pre-Unicode Bengali font.
+     *
+     * Measured from the stored text rather than trusted from a flag, because
+     * the router that was meant to catch these reports nothing to reroute:
+     * their text layer is dense and clean-looking, and only its alphabet is
+     * wrong.
+     *
+     * @return list<int>
+     */
+    private function legacyFontPageIds(): array
+    {
+        $ids = [];
+
+        ExtractionPage::query()
+            ->select(['id', 'extracted_text'])
+            ->whereNotNull('extracted_text')
+            ->chunkById(2000, function ($pages) use (&$ids): void {
+                foreach ($pages as $page) {
+                    $text = (string) $page->extracted_text;
+                    $length = mb_strlen($text);
+
+                    if ($length < self::MINIMUM_PAGE_LENGTH) {
+                        continue;
+                    }
+
+                    if (preg_match_all(self::LEGACY_FONT_RESIDUE, $text) > $length / self::RESIDUE_DENSITY) {
+                        $ids[] = (int) $page->id;
+                    }
+                }
+            });
+
+        return $ids;
     }
 
     /**

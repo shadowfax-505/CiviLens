@@ -77,3 +77,39 @@ it('counts values deferred because the two readings disputed the sign', function
 
     expect($row['evidence']['values_deferred_for_a_disputed_sign'])->toBe(2);
 });
+
+it('says nothing about script names when no page carries legacy-font residue', function (): void {
+    // The report withdraws a limitation the corpus does not have, or every
+    // limitation becomes furniture a reader learns to skip.
+    ['page' => $page] = publishableDocument();
+    $page->forceFill(['extracted_text' => str_repeat('An ordinary English sentence. ', 20)])->save();
+    certifiedFieldOn($page, 'accepted', ['script_class' => 'en']);
+
+    expect(limitationsNow())
+        ->not->toContain('The script classes are named after languages and one of them is not a language.');
+});
+
+it('reports that a script class named for a language holds none of it', function (): void {
+    // Bengali set in a pre-Unicode font stores its characters as Latin bytes,
+    // so the classifier reads the page as English. The router finds nothing to
+    // reroute — the text layer is dense and only its alphabet is wrong — so
+    // this is only visible by measuring the residue.
+    ['page' => $page] = publishableDocument();
+    $page->forceFill([
+        'extracted_text' => str_repeat('ciivóª gš¿Yvjq wkí gš¿Yvjq AvBb I wePvi wefvM ', 12),
+    ])->save();
+    certifiedFieldOn($page, 'accepted', ['script_class' => 'en', 'is_correct' => true]);
+
+    $report = collect(app(LimitationsReport::class)->build())
+        ->firstWhere('limitation', 'The script classes are named after languages and one of them is not a language.');
+
+    expect($report)->not->toBeNull()
+        ->and($report['evidence']['pages_with_heavy_legacy_font_residue'])->toBe(1)
+        // Where every accepted value and every label sit on the same
+        // population, the bound is sound and only the name is wrong. Saying
+        // which of the two it is, is the whole point of reporting the split.
+        ->and($report['evidence']['by_script_class']['en']['accepted'])->toBe(1)
+        ->and($report['evidence']['by_script_class']['en']['accepted_on_legacy_font_pages'])->toBe(1)
+        ->and($report['evidence']['by_script_class']['en']['labels_on_legacy_font_pages'])->toBe(1)
+        ->and($report['evidence']['by_script_class']['bn']['accepted_on_legacy_font_pages'])->toBe(0);
+});
