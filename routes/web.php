@@ -100,6 +100,7 @@ Route::prefix('public')->name('public.')->group(function (): void {
     // domain tables, so nothing here can be a demonstration row.
     Route::get('/evidence', [PublicEvidenceController::class, 'index'])->name('evidence.index');
     Route::get('/evidence/notices', [PublicEvidenceController::class, 'notices'])->name('evidence.notices');
+    Route::get('/evidence/statistics', [PublicEvidenceController::class, 'statistics'])->name('evidence.statistics');
     Route::get('/evidence/search', [PublicEvidenceController::class, 'search'])
         ->middleware('throttle:60,1')
         ->name('evidence.search');
