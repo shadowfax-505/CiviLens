@@ -27,18 +27,20 @@ use Illuminate\Support\Facades\DB;
 class SourceYieldReport
 {
     /**
-     * Formats acquired but unreadable.
+     * Documents acquired that nothing has read.
      *
-     * The pipeline reads a document by rendering its pages and looking at them,
-     * which a Word file has no equivalent of. Supporting them would mean either
-     * converting to PDF — a dependency this machine does not have — or a
-     * text-only path with no page to mark a value on, which would break the one
-     * thing every published figure promises.
+     * Measured from whether a completed extraction run exists, not from a list
+     * of formats assumed unreadable. The list said Word documents could not be
+     * read; once LibreOffice rendered them (ADR-022) it went on saying so, and
+     * the report told an operator that thirteen readable documents were beyond
+     * the pipeline. A hardcoded incapacity is a claim that quietly stops being
+     * true the moment someone fixes it.
+     *
+     * "Not read" covers both a format nothing handles and a document simply
+     * not processed yet. The report does not pretend to tell them apart,
+     * because from the corpus's point of view they are the same: no page, no
+     * figure, no evidence.
      */
-    private const UNREADABLE_MEDIA_TYPES = [
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ];
 
     /**
      * @return array{generated_at: string, endpoints: list<array<string, mixed>>, unexplained: list<array<string, mixed>>}
@@ -61,12 +63,16 @@ class SourceYieldReport
                 ->whereNotIn('media_type', ['text/html', 'application/json', 'text/plain'])
                 ->count();
 
-            // Acquired, and no extractor can read it. 13 Word documents from
-            // IMED sit here: counting them as documents overstates what this
-            // corpus can actually show, since a document nothing reads yields
-            // no page, no figure and no evidence.
+            // Counting these as documents overstates what the corpus can show:
+            // a document nothing has read yields no page, no figure and no
+            // evidence, whatever the reason.
             $unreadable = (clone $artifacts)
-                ->whereIn('media_type', self::UNREADABLE_MEDIA_TYPES)
+                // Documents only. A web page archived as evidence of what a
+                // listing said is not a document waiting to be read, and
+                // counting it as one reported five unread documents against an
+                // endpoint that had published one.
+                ->whereNotIn('media_type', ['text/html', 'application/json', 'text/plain'])
+                ->whereDoesntHave('extractionRuns', fn ($run) => $run->where('status', 'completed'))
                 ->count();
 
             // A listing that answers with rows rather than files yields
@@ -91,7 +97,7 @@ class SourceYieldReport
                 'resources_discovered' => (clone $resources)->count(),
                 'artifacts_archived' => (clone $artifacts)->count(),
                 'documents' => $documents,
-                'documents_no_extractor_can_read' => $unreadable,
+                'documents_not_yet_read' => $unreadable,
                 'observations' => $observations,
                 'failures' => $failures,
                 // The sentence a reader needs when the count is zero. Silence
@@ -172,7 +178,7 @@ class SourceYieldReport
     {
         if ($documents > 0) {
             return $unreadable > 0
-                ? $documents.' documents, of which '.$unreadable.' are in a format nothing here can read.'
+                ? $documents.' documents, of which '.$unreadable.' have not been read.'
                 : $documents.' documents.';
         }
 
