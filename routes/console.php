@@ -41,6 +41,7 @@ use App\Services\Intelligence\CivicIntegrityEngineService;
 use App\Services\Intelligence\NoticeRevisionDetector;
 use App\Services\Normalisation\OcdsTenderNormaliser;
 use App\Services\Publication\PublicationSnapshotBuilder;
+use App\Services\Screening\CorpusScreeningReport;
 use App\Services\Screening\EntityScreener;
 use App\Services\Screening\ScreeningEntityLoader;
 use Illuminate\Foundation\Inspiring;
@@ -705,6 +706,14 @@ Artisan::command('civiclens:build-ca-bundle {hosts?*} {--out=}', function (Certi
 
     return 0;
 })->purpose('Fetch the intermediate certificates publishers omit, so their chains verify');
+
+Artisan::command('civiclens:screen-corpus', function (CorpusScreeningReport $report): int {
+    $built = $report->build();
+
+    $this->line(json_encode($built, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Check every organisation named in the corpus against the screening lists');
 
 Artisan::command('civiclens:reviewer-agreement', function (ReviewerAgreementReport $report): int {
     $built = $report->build();

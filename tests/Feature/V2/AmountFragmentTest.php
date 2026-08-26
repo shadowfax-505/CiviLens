@@ -159,3 +159,56 @@ it('reads the answer to a sum written after it', function (): void {
         ->toContain('২৪,৭০,৮৯৫')
         ->not->toContain('-২৪,৭০,৮৯৫');
 });
+
+it('reads a firm name introduced as Messrs', function (): void {
+    // মেসার্স and M/S mean "the firm of", so what follows is a name rather than
+    // a description of one. This is what gives the screener Bangladeshi names
+    // to compare its 1,401 debarment entities against.
+    ExtractionPage::factory()->create([
+        'extracted_text' => 'অনিয়মিতভাবে M/S SKYNET SEA FOODS কে নগদ সহায়তা প্রদান করা হয়েছে বলে প্রতিবেদনে উল্লেখ',
+        'extraction_path' => 'ocr_primary',
+        'character_count' => 200,
+        'script_class' => 'bn',
+        'confidence' => 84.0,
+    ]);
+
+    app(ReviewCandidateGenerator::class)->generate(5);
+
+    expect(ExtractionField::query()->where('field_key', 'organisation')->pluck('extracted_value')->all())
+        ->toContain('M/S SKYNET SEA FOODS');
+});
+
+it('ends a firm name at the particle that follows it', function (): void {
+    // এর and কে mark the noun before them, so what comes after is the sentence
+    // resuming rather than more of the name.
+    ExtractionPage::factory()->create([
+        'extracted_text' => 'প্রতিষ্ঠান মেসার্স সিমার্ক এর নিকট হইতে আদায়যোগ্য অর্থ এখনো আদায় করা হয়নি বলে জানা যায়',
+        'extraction_path' => 'ocr_primary',
+        'character_count' => 200,
+        'script_class' => 'bn',
+        'confidence' => 84.0,
+    ]);
+
+    app(ReviewCandidateGenerator::class)->generate(5);
+
+    expect(ExtractionField::query()->where('field_key', 'organisation')->pluck('extracted_value')->all())
+        ->toContain('মেসার্স সিমার্ক');
+});
+
+it('does not call a description of a bank the name of one', function (): void {
+    // Anchoring on ব্যাংক or কোম্পানি was tried across the whole corpus and
+    // returned "various commercial banks" and "and corporation". A regex does
+    // not find names in Bengali prose, and a reviewer asked to judge those is
+    // being asked the wrong question.
+    ExtractionPage::factory()->create([
+        'extracted_text' => 'বিভিন্ন বাণিজ্যিক ব্যাংক হইতে ঋণ গ্রহণ করা হইয়াছে এবং কর্পোরেশন কর্তৃক তাহা পরিশোধ করা হয় নাই',
+        'extraction_path' => 'ocr_primary',
+        'character_count' => 200,
+        'script_class' => 'bn',
+        'confidence' => 84.0,
+    ]);
+
+    app(ReviewCandidateGenerator::class)->generate(5);
+
+    expect(ExtractionField::query()->where('field_key', 'organisation')->count())->toBe(0);
+});

@@ -99,6 +99,23 @@ class ReviewCandidateGenerator
         // introduces the result; reading it as negative reverses the figure.
         'amount' => '/(?<![\w.,])(?:\((?:[-\x{2212}]\x{0020}?)?(?:[\d\x{09E6}-\x{09EF}]{1,3}(?:[,][\d\x{09E6}-\x{09EF}]{2,3})+(?:\.[\d\x{09E6}-\x{09EF}]{1,2})?|[\d\x{09E6}-\x{09EF}]+\.[\d\x{09E6}-\x{09EF}]{1,2}|[\d\x{09E6}-\x{09EF}]{5,})\)|(?<![\d\x{09E6}-\x{09EF}\)])[-\x{2212}]?(?:[\d\x{09E6}-\x{09EF}]{1,3}(?:[,][\d\x{09E6}-\x{09EF}]{2,3})+(?:\.[\d\x{09E6}-\x{09EF}]{1,2})?|[\d\x{09E6}-\x{09EF}]+\.[\d\x{09E6}-\x{09EF}]{1,2}|[\d\x{09E6}-\x{09EF}]{5,}))(?![\w])(?!\.[\d\x{09E6}-\x{09EF}])/u',
         'reference' => '/\b[\d\x{09E6}-\x{09EF}]{2,}(?:\.[\d\x{09E6}-\x{09EF}]{2,}){2,}\b/u',
+        // Organisations, which is what gives the screener Bangladeshi names to
+        // screen at all — it holds 1,401 debarment entities and, until now,
+        // nothing from this corpus to compare them against.
+        //
+        // Only the Messrs form. `মেসার্স` and `M/S` mean "the firm of", so what
+        // follows is a firm name and not a description of one. Anchoring on
+        // `ব্যাংক` or `কোম্পানি` instead was tried over the whole corpus and
+        // produced "বিভিন্ন বাণিজ্যিক ব্যাংক" — "various commercial banks" —
+        // and "এবং কর্পোরেশন"; a regex does not find names in Bengali prose,
+        // and asking a reviewer to judge those wastes the scarcest thing this
+        // project has. This form yields 43 distinct names across the corpus,
+        // among them M/S SKYNET SEA FOODS and M/S Argon Denims Ltd., which are
+        // the contractors screening is for.
+        //
+        // The span ends at a particle. `এর` and `কে` mark the noun before them,
+        // so what follows is the sentence resuming rather than more of the name.
+        'organisation' => '/(?:মেসার্স|মেসাস|M\/S\.?|M\/s\.?)\s+(?:(?!(?:এর|কে|হতে|থেকে|এবং|নং|নামে|নামীয়|at|DT|কর্তৃক|প্রকৃত|বরাবর)\s)[\x{0980}-\x{09FF}A-Za-z][\x{0980}-\x{09FF}A-Za-z0-9.\x{0027}&-]*\s+){0,3}(?!(?:এর|কে|হতে|থেকে|এবং|নং|at|DT)\s)[\x{0980}-\x{09FF}A-Za-z][\x{0980}-\x{09FF}A-Za-z0-9.\x{0027}&-]*/u',
     ];
 
     /**
@@ -298,7 +315,7 @@ class ReviewCandidateGenerator
         // Dates first, then references, then amounts. A date claimed as a
         // reference is a mislabelled item a reviewer then has to argue with,
         // and an amount would otherwise swallow half of either.
-        foreach (['date', 'reference', 'amount'] as $kind) {
+        foreach (['date', 'reference', 'organisation', 'amount'] as $kind) {
             if (preg_match_all(self::PATTERNS[$kind], $text, $matches, PREG_OFFSET_CAPTURE) === false) {
                 continue;
             }
