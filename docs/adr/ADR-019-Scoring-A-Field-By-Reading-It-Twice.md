@@ -218,3 +218,36 @@ The version is bumped by hand and that is a real weakness — nothing forces it.
 Deriving it from the source files was rejected because a comment would then
 invalidate the corpus, and in a codebase where the reasoning lives in comments
 that would make the signal useless within a week.
+
+---
+
+## Addendum, 2026-08-27: a numeral written in two alphabets defers by rule
+
+58 published figures were numbers spelled half in Bengali digits and half in
+Latin ones. A document does not do that, so every one of them was a reading
+artefact — and they were not harmless:
+
+| certified | second read | what it was |
+| --- | --- | --- |
+| `1১৪০৭৭.৩৩` | `[১৪০৭৭.৩৩` | a table rule line, read as a leading digit by one pass and a bracket by the other. The figure certified at ten times the value on the page. |
+| `8৫১৭.৪` | `৪৫১৭.৪` | the passes disagree about the first digit: Latin 8 against Bengali ৪, which is 4. |
+| `৫8,8৪8` | `¢8,888/-` | neither reading is a number. |
+
+The score could not see it. Edit distance calls `1১৪০৭৭.৩৩` against
+`[১৪০৭৭.৩৩` a one-character difference in nine, which is a small number, and
+the character in question is the most significant digit. This is the same
+lesson as the sign: **a metric over characters cannot weigh what a character
+means**, and the fix in both cases is a rule rather than a better score.
+
+Deferred, never corrected. Which script was meant is a guess, and guessing here
+would invent a figure — this project has already published money once by
+repairing a value instead of declining it.
+
+267 values now defer under `mixed-script-numeral`. The bound is untouched, by
+the argument this ADR already makes for unlocatable values: a field that is
+never accepted cannot contribute to P(accepted AND wrong).
+
+The rule catches this case by its shape rather than by understanding it. A rule
+line misread as a digit on a page that is wholly Bengali or wholly Latin
+produces a numeral in one alphabet and still certifies unseen. Nothing here
+finds that.

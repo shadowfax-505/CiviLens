@@ -48,8 +48,9 @@ class SecondReadScorer
      *   r1 — the reader before this column existed; recorded as null.
      *   r2 — currency terminators, cell-aware cropping, sign-disagreement
      *        deferral, shared Bengali numeral canonicalisation.
+     *   r3 — a numeral mixing Bengali and Latin digits defers by rule.
      */
-    public const READER_VERSION = 'r2';
+    public const READER_VERSION = 'r3';
 
     /** Room around the value, so a character at the edge is not clipped away. */
     private const PADDING = 8;
@@ -133,6 +134,19 @@ class SecondReadScorer
      * Unicode minus are the same claim written two ways, and normalising them
      * apart would fire on every page that uses the typographic form.
      */
+    /**
+     * Whether one numeral is written in two scripts at once.
+     *
+     * Only digits count. A value may legitimately carry Latin punctuation, a
+     * currency mark or a unit beside Bengali digits; what no document does is
+     * spell a single number half in one alphabet and half in the other.
+     */
+    private function mixesScripts(string $value): bool
+    {
+        return preg_match('/[\x{09E6}-\x{09EF}]/u', $value) === 1
+            && preg_match('/[0-9]/', $value) === 1;
+    }
+
     private function signsDisagree(string $first, string $second): bool
     {
         return $this->negative($first) !== $this->negative($second);
@@ -209,6 +223,35 @@ class SecondReadScorer
         // The bound is untouched, by the same argument as an unlocatable value
         // (ADR-019): a field that is never accepted cannot contribute to
         // P(accepted AND wrong).
+        // One numeral, two alphabets. A document writes a number in a script;
+        // it does not write ৫8,8৪8 or 1১৪০৭৭.৩৩. Every one of these is a
+        // reading artefact, and the ones that certified were not harmless:
+        //
+        //   1১৪০৭৭.৩৩  second read [১৪০৭৭.৩৩  — a table rule line taken for a
+        //                                       leading digit by one pass and a
+        //                                       bracket by the other. The
+        //                                       certified figure is ten times
+        //                                       the one on the page.
+        //   8৫১৭.৪     second read ৪৫১৭.৪     — the passes disagree about the
+        //                                       first digit: Latin 8 against
+        //                                       Bengali ৪, which is 4.
+        //
+        // Both scored below their group's threshold and were published. Edit
+        // distance cannot see this: the strings differ in one character, and
+        // that character is the most significant digit.
+        //
+        // Deferred, never corrected. Guessing which script was meant would
+        // invent a figure, and this project has already published money once by
+        // repairing a value instead of declining it.
+        if ($this->mixesScripts((string) $field->extracted_value)) {
+            return [
+                'nonconformity_score' => null,
+                'score_basis' => 'mixed-script-numeral',
+                'second_read_value' => mb_substr(trim($text), 0, 255),
+                'second_read_confidence' => round($confidence, 4),
+            ];
+        }
+
         if ($this->signsDisagree((string) $field->extracted_value, $text)) {
             return [
                 'nonconformity_score' => null,

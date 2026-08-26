@@ -175,14 +175,24 @@ class LimitationsReport
             'limitation' => 'The second read can agree with the first about something they are both wrong about.',
             'evidence' => [
                 'values_deferred_for_a_disputed_sign' => ExtractionField::query()->where('score_basis', 'sign-disagreement')->count(),
+                'values_deferred_for_mixing_two_alphabets' => ExtractionField::query()->where('score_basis', 'mixed-script-numeral')->count(),
                 'observed_case' => 'Pages write a difference as (A-B) -C, where the last mark is an '
                     .'equals sign. Both readings return a hyphen, agree, and the figure certifies as '
                     .'negative when the arithmetic shows it positive.',
+                'second_observed_case' => 'A numeral read as 1১৪০৭৭.৩৩ was read [১৪০৭৭.৩৩ on the '
+                    .'second pass: a table rule line taken for a leading digit by one pass and a '
+                    .'bracket by the other. Edit distance called that a one-character difference and '
+                    .'the figure certified at ten times the value on the page. 58 such values were '
+                    .'published before a numeral mixing two alphabets began deferring by rule.',
             ],
             'why_it_matters' => 'It is the same engine family reading the same glyph, so a '
                 .'systematic misreading is reproduced rather than caught. Where the two readings do '
                 .'disagree about a sign the value is now deferred by rule; where they agree wrongly, '
-                .'only a person looking at the page finds it, and one did.',
+                .'only a person looking at the page finds it, and one did. The mixed-alphabet rule '
+                .'catches a related case cheaply, because a document writes a number in one script '
+                .'and two alphabets in one numeral can only be a reading artefact — but it catches '
+                .'it by its shape, not by understanding it, and a rule line misread as a digit in a '
+                .'page that is wholly Bengali or wholly Latin still certifies unseen.',
         ];
     }
 
