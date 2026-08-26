@@ -172,6 +172,23 @@ php artisan queue:work --queue=tables,ingestion --max-time=50400 --tries=1 --tim
 Move already-queued jobs by updating their `queue` column — never by deleting
 and re-dispatching them, for the unique-lock reason above.
 
+**Not every page is worth the same two minutes.** Detection runs about two
+minutes a page, so the whole corpus is days of continuous work, and roughly
+two thirds of it confirms a page has no table. What a table buys is a value
+that knows its row and column: cell-derived values certify at 88% against 77%
+and never fail to locate. So a page holding a value that could not be located
+gains something immediately, a page holding candidates gains something later,
+and a page holding neither gains nothing until it does.
+
+Split the queue by that, and let the worker prefer in order:
+
+```bash
+php artisan queue:work --queue=tables,tables-candidates,tables-later,ingestion --max-time=50400 --tries=1 --timeout=900
+```
+
+The page id is in the job payload (`pageId";i:<n>`), which is what makes the
+split possible without re-dispatching anything.
+
 **`retry_after` must exceed the longest job.** It is 90 seconds by default and
 table detection runs about ninety seconds a page with a tail past ten minutes,
 so the queue would hand a still-running job to another worker and the same page
