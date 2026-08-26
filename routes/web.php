@@ -63,6 +63,7 @@ use App\Http\Controllers\PublicPortal\PublicContractorController;
 use App\Http\Controllers\PublicPortal\PublicDistrictLocatorController;
 use App\Http\Controllers\PublicPortal\PublicDocumentController;
 use App\Http\Controllers\PublicPortal\PublicEvidenceController;
+use App\Http\Controllers\PublicPortal\PublicEvidenceImageController;
 use App\Http\Controllers\PublicPortal\PublicHomeController;
 use App\Http\Controllers\PublicPortal\PublicProcurementController;
 use App\Http\Controllers\PublicPortal\PublicProjectController;
@@ -100,6 +101,12 @@ Route::prefix('public')->name('public.')->group(function (): void {
     Route::get('/evidence', [PublicEvidenceController::class, 'index'])->name('evidence.index');
     Route::get('/evidence/notices', [PublicEvidenceController::class, 'notices'])->name('evidence.notices');
     Route::get('/evidence/{document}', [PublicEvidenceController::class, 'show'])->name('evidence.show');
+    // The scanned page a published figure was read from, with the figure
+    // marked. Throttled because rasterising a PDF page is the most expensive
+    // thing here, and cached so it happens once per page rather than per view.
+    Route::get('/evidence/figure/{figure}/page', PublicEvidenceImageController::class)
+        ->middleware('throttle:60,1')
+        ->name('evidence.figure.page');
     Route::get('/search', PublicSearchController::class)->middleware('throttle:60,1')->name('search');
     Route::get('/reports/{uuid}', [CitizenReportController::class, 'show'])->whereUuid('uuid')->name('reports.show');
 });

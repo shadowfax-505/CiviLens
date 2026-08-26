@@ -64,10 +64,19 @@ class ReviewPageImageController extends Controller
 
         try {
             $materialized = $workspace->materialize($artifact);
+            $page = $field->page;
+
             $image = $rasterizer->rasterize(
                 $materialized,
                 max(1, (int) $field->evidence_page_number),
-                (int) config('civiclens.extraction.review_page_dpi', 150),
+                // The DPI the boxes were measured at, taken from the page rather
+                // than from configuration. A page read by the enhanced pass is
+                // recognised at 300 while this rendered at 150, so its boxes landed
+                // off the raster and the crop came back a single pixel wide — the
+                // reviewer being shown a blank sliver of a page they were asked to
+                // judge. 24 pages are read that way and four had already been
+                // adjudicated from that screen.
+                $page->recognized_dpi ?? (int) config('civiclens.extraction.review_page_dpi', 150),
             );
 
             $png = file_get_contents($image);

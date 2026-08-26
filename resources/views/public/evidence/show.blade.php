@@ -35,10 +35,24 @@
                     </thead>
                     <tbody>
                         @foreach ($figures as $figure)
-                            <tr class="border-t border-slate-100 dark:border-slate-800">
-                                <td class="px-4 py-2">{{ $figure->page_number }}</td>
+                            <tr class="border-t border-slate-100 dark:border-slate-800 align-top">
+                                <td class="px-4 py-2">
+                                    {{ $figure->page_number }}
+                                    {{-- What makes the number checkable by someone who does not
+                                         trust it: a page number is a reference, the page with the
+                                         characters ringed is evidence. --}}
+                                    <a class="mt-1 block text-xs underline"
+                                       href="{{ route('public.evidence.figure.page', $figure) }}"
+                                       target="_blank" rel="noopener">see it on the page</a>
+                                </td>
                                 <td class="px-4 py-2">{{ $figure->field_kind }}</td>
-                                <td class="px-4 py-2 font-mono">{{ $figure->extracted_value }}</td>
+                                <td class="px-4 py-2">
+                                    <span class="font-mono">{{ $figure->extracted_value }}</span>
+                                    <img class="mt-2 max-w-xs rounded border border-slate-200 dark:border-slate-700"
+                                         loading="lazy"
+                                         src="{{ route('public.evidence.figure.page', [$figure, 'crop' => 1]) }}"
+                                         alt="The characters this value was read from, cropped from page {{ $figure->page_number }}">
+                                </td>
                                 <td class="px-4 py-2 font-mono text-slate-500">{{ $figure->normalized_value }}</td>
                                 <td class="px-4 py-2">
                                     &alpha; = {{ $figure->certified_alpha }}
@@ -56,6 +70,12 @@
                 </table>
             </div>
         @endif
+
+        <p class="max-w-3xl text-sm text-slate-500">
+            Every figure below is shown as it appears on the scanned page it was read from. If a
+            crop looks wrong, it is wrong, and that is the point of showing it: nothing here asks to
+            be taken on trust.
+        </p>
 
         <p class="max-w-3xl text-sm text-slate-500">
             The guarantee is about the reading, not the meaning. A value certified as an amount is a
