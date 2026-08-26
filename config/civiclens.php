@@ -68,6 +68,12 @@ return [
         'ocr' => [
             'tesseract_binary' => env('EXTRACTION_TESSERACT_BINARY', 'tesseract'),
             'pdftoppm_binary' => env('EXTRACTION_PDFTOPPM_BINARY', 'pdftoppm'),
+
+            // LibreOffice, used to render a Word document into the PDF the rest
+            // of this pipeline knows how to read. Optional: without it those
+            // documents stay unread and the sources report says so, which is
+            // the state the project ran in until now.
+            'soffice_binary' => env('EXTRACTION_SOFFICE_BINARY', 'soffice'),
             'languages' => env('EXTRACTION_OCR_LANGUAGES', 'ben+eng'),
             'primary_dpi' => (int) env('EXTRACTION_OCR_PRIMARY_DPI', 150),
             'enhanced_dpi' => (int) env('EXTRACTION_OCR_ENHANCED_DPI', 300),

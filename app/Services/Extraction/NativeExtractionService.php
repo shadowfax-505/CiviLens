@@ -42,7 +42,7 @@ class NativeExtractionService
 
         try {
             $temporaryPath = $this->workspace->materialize($artifact);
-            $result = $this->registry->for($artifact->media_type)->extract($temporaryPath);
+            $result = $this->registry->for($this->workspace->effectiveMediaType($artifact))->extract($temporaryPath);
 
             return $this->record($run, $result);
         } catch (Throwable $exception) {

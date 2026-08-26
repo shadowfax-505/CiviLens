@@ -10,6 +10,7 @@ use App\Services\Extraction\PageRasterizer;
 use App\Services\Extraction\PageTableAssembler;
 use App\Services\Extraction\TableStructureDetector;
 use App\Services\Extraction\TesseractOcrEngine;
+use App\Services\Extraction\WordDocumentConverter;
 use App\Services\Extraction\WordGeometryBackfill;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -36,7 +37,7 @@ function fakeRasterizer(): PageRasterizer
 
 function fakeWorkspace(): ArtifactWorkspace
 {
-    return new class extends ArtifactWorkspace
+    return new class(new WordDocumentConverter) extends ArtifactWorkspace
     {
         public function materialize(SourceArtifactVersion $artifact): string
         {

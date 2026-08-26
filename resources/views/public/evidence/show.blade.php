@@ -77,6 +77,20 @@
             be taken on trust.
         </p>
 
+        {{-- For a PDF the page image is the publisher's own file rendered, so "go and look"
+             means looking at what they published. This document had no pages until we laid it
+             out, and a reader who is not told that is being shown our typesetting as if it were
+             theirs. --}}
+        @if ($document->pageImagesAreConverted())
+            <p class="max-w-3xl rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+                <strong>The page images for this document are our rendering, not the publisher's.</strong>
+                It was published as a word-processor file, which has no fixed pages until software
+                lays it out. The words and figures are the publisher's; the line breaks, pagination
+                and spacing you see are produced by our conversion and may differ from what the
+                publisher saw. The original file is linked above and is what should be cited.
+            </p>
+        @endif
+
         <p class="max-w-3xl text-sm text-slate-500">
             The guarantee is about the reading, not the meaning. A value certified as an amount is a
             number the system is confident it read off the page correctly; whether that number is a

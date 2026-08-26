@@ -8,12 +8,20 @@ use Illuminate\Support\Facades\Storage;
 
 class ArtifactWorkspace
 {
+    public function __construct(private readonly WordDocumentConverter $wordDocuments) {}
+
     /**
      * Copy a stored artifact to a short-lived private file and return its path.
      *
      * Artifacts live on a private disk that may not be local, so every consumer
      * works against a copy rather than assuming a filesystem path. The caller owns
      * the file and must pass it back to discard().
+     *
+     * A Word document is rendered to PDF here rather than at each consumer.
+     * Every consumer asks this method for a path and then rasterises it, so
+     * converting once at the door is what lets those documents be read at all
+     * — but see WordDocumentConverter: the page image a reader is then shown
+     * is our rendering of the publisher's file, not the publisher's own.
      */
     public function materialize(SourceArtifactVersion $artifact): string
     {
@@ -74,7 +82,31 @@ class ArtifactWorkspace
             throw new ExtractionFailed('Unable to prepare the artifact for extraction.');
         }
 
+        if ($this->wordDocuments->handles($artifact->media_type)) {
+            try {
+                $converted = $this->wordDocuments->pdfFor($artifact, $temporaryPath);
+            } finally {
+                @unlink($temporaryPath);
+            }
+
+            return $converted;
+        }
+
         return $temporaryPath;
+    }
+
+    /**
+     * The media type of what materialize() actually hands back.
+     *
+     * Callers that dispatch on type must ask this rather than reading
+     * `media_type` off the record, or a converted document is looked up under
+     * the format it arrived in and refused by a pipeline that could now read it.
+     */
+    public function effectiveMediaType(SourceArtifactVersion $artifact): string
+    {
+        return $this->wordDocuments->handles($artifact->media_type)
+            ? 'application/pdf'
+            : $artifact->media_type;
     }
 
     public function discard(?string $path): void
