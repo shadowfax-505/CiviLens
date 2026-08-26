@@ -27,6 +27,20 @@ use Illuminate\Support\Facades\DB;
 class SourceYieldReport
 {
     /**
+     * Formats acquired but unreadable.
+     *
+     * The pipeline reads a document by rendering its pages and looking at them,
+     * which a Word file has no equivalent of. Supporting them would mean either
+     * converting to PDF — a dependency this machine does not have — or a
+     * text-only path with no page to mark a value on, which would break the one
+     * thing every published figure promises.
+     */
+    private const UNREADABLE_MEDIA_TYPES = [
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+
+    /**
      * @return array{generated_at: string, endpoints: list<array<string, mixed>>, unexplained: list<array<string, mixed>>}
      */
     public function build(): array
@@ -45,6 +59,14 @@ class SourceYieldReport
 
             $documents = (clone $artifacts)
                 ->whereNotIn('media_type', ['text/html', 'application/json', 'text/plain'])
+                ->count();
+
+            // Acquired, and no extractor can read it. 13 Word documents from
+            // IMED sit here: counting them as documents overstates what this
+            // corpus can actually show, since a document nothing reads yields
+            // no page, no figure and no evidence.
+            $unreadable = (clone $artifacts)
+                ->whereIn('media_type', self::UNREADABLE_MEDIA_TYPES)
                 ->count();
 
             // A listing that answers with rows rather than files yields
@@ -69,12 +91,13 @@ class SourceYieldReport
                 'resources_discovered' => (clone $resources)->count(),
                 'artifacts_archived' => (clone $artifacts)->count(),
                 'documents' => $documents,
+                'documents_no_extractor_can_read' => $unreadable,
                 'observations' => $observations,
                 'failures' => $failures,
                 // The sentence a reader needs when the count is zero. Silence
                 // where a source produced nothing is how an unnoticed breakage
                 // passes for a governance decision.
-                'verdict' => $this->verdict($documents, (clone $artifacts)->count(), $observations, $failures, $endpoint),
+                'verdict' => $this->verdict($documents, (clone $artifacts)->count(), $observations, $failures, $endpoint, $unreadable),
             ];
         }
 
@@ -145,10 +168,12 @@ class SourceYieldReport
     /**
      * @param  array<string, int>  $failures
      */
-    private function verdict(int $documents, int $artifacts, int $observations, array $failures, SourceEndpoint $endpoint): string
+    private function verdict(int $documents, int $artifacts, int $observations, array $failures, SourceEndpoint $endpoint, int $unreadable = 0): string
     {
         if ($documents > 0) {
-            return $documents.' documents.';
+            return $unreadable > 0
+                ? $documents.' documents, of which '.$unreadable.' are in a format nothing here can read.'
+                : $documents.' documents.';
         }
 
         if ($observations > 0) {

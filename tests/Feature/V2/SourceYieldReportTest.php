@@ -99,3 +99,30 @@ it('names what the publisher actually said when nothing was archived', function 
         ->and($row['verdict'])->toContain('answered HTTP 404 1 times')
         ->and(app(SourceYieldReport::class)->build()['unexplained'])->toBeEmpty();
 });
+
+it('says when a document was acquired that nothing can read', function (): void {
+    // 13 Word documents from IMED sit here. Counting them as documents
+    // overstates what this corpus can show: a document nothing reads yields no
+    // page, no figure and no evidence, and the pipeline reads a document by
+    // rendering its pages and looking at them.
+    $endpoint = SourceEndpoint::factory()->create(['last_crawled_at' => now()]);
+    $resource = DiscoveredResource::factory()->create(['source_endpoint_id' => $endpoint->id]);
+
+    SourceArtifactVersion::factory()->create([
+        'discovered_resource_id' => $resource->id,
+        'version_number' => 1,
+        'media_type' => 'application/pdf',
+    ]);
+
+    SourceArtifactVersion::factory()->create([
+        'discovered_resource_id' => $resource->id,
+        'version_number' => 2,
+        'media_type' => 'application/msword',
+    ]);
+
+    $row = app(SourceYieldReport::class)->build()['endpoints'][0];
+
+    expect($row['documents'])->toBe(2)
+        ->and($row['documents_no_extractor_can_read'])->toBe(1)
+        ->and($row['verdict'])->toContain('1 are in a format nothing here can read');
+});
