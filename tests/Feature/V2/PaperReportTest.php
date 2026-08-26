@@ -1,7 +1,10 @@
 <?php
 
+use App\Models\DiscoveredResource;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
+use App\Models\SourceArtifactVersion;
+use App\Models\SourceEndpoint;
 use App\Services\Extraction\PaperReport;
 use App\Services\Extraction\SelectiveOcrService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -89,4 +92,57 @@ it('counts the values it cannot certify at all', function (): void {
     ]);
 
     expect(app(PaperReport::class)->build()['failure_modes']['values_not_locatable'])->toBe(1);
+});
+
+it('breaks the corpus down into parts that add up to it', function (): void {
+    // The breakdown was built from resources filtered by status, and a
+    // resource is re-queued when the crawl revisits it — so only 293 of the
+    // 393 resources holding an artifact still read `acquired`, and the table
+    // silently dropped the rest: 133 archived items against a corpus of 492.
+    // A per-publisher table that sums to less than the total it breaks down is
+    // worse than either number alone, because a reader checks it and concludes
+    // the smaller one is real.
+    $endpoint = SourceEndpoint::factory()->create();
+
+    foreach (['acquired', 'paused', 'queued'] as $index => $status) {
+        $resource = DiscoveredResource::factory()->create([
+            'source_endpoint_id' => $endpoint->id,
+            'status' => $status,
+        ]);
+
+        SourceArtifactVersion::factory()->create([
+            'discovered_resource_id' => $resource->id,
+            'media_type' => 'application/pdf',
+            'sha256' => str_repeat((string) $index, 64),
+        ]);
+    }
+
+    $corpus = app(PaperReport::class)->build()['corpus'];
+
+    expect(array_sum($corpus['documents_by_publisher']))->toBe($corpus['documents_acquired'])
+        ->and($corpus['documents_acquired'])->toBe(3);
+});
+
+it('counts a file held at two addresses once, and says how many there were', function (): void {
+    $endpoint = SourceEndpoint::factory()->create();
+
+    foreach (['https://a.test/x.pdf', 'https://b.test/x.pdf'] as $url) {
+        $resource = DiscoveredResource::factory()->create([
+            'source_endpoint_id' => $endpoint->id,
+            'canonical_url' => $url,
+            'status' => 'acquired',
+        ]);
+
+        SourceArtifactVersion::factory()->create([
+            'discovered_resource_id' => $resource->id,
+            'media_type' => 'application/pdf',
+            'sha256' => str_repeat('f', 64),
+        ]);
+    }
+
+    $corpus = app(PaperReport::class)->build()['corpus'];
+
+    expect($corpus['documents_acquired'])->toBe(1)
+        ->and($corpus['duplication']['artifacts_stored'])->toBe(2)
+        ->and($corpus['duplication']['second_copies_of_a_file_already_held'])->toBe(1);
 });

@@ -129,6 +129,7 @@ class PaperReport
             // list understated the posture by naming two sources out of
             // thirteen.
             'crawling_posture' => $this->crawlingPosture(),
+            'duplication' => $this->duplication(),
             'documents_by_publisher' => $this->documentsByPublisher(),
             'archived_by_publisher' => $this->documentsByPublisher(documentsOnly: false),
         ];
@@ -145,19 +146,35 @@ class PaperReport
     {
         $counts = [];
 
-        $resources = DiscoveredResource::query()
-            ->where('status', 'acquired')
-            ->with(['endpoint.publisher', 'artifactVersions'])
-            ->get()
-            ->filter(fn (DiscoveredResource $resource): bool => $this->isDocument($resource) === $documentsOnly);
+        // Walked from the artifacts, not from resources filtered by status.
+        //
+        // A resource is re-queued when the crawl revisits it, so only 293 of
+        // the 393 resources holding an artifact still read `acquired`, and a
+        // breakdown built from that filter dropped a quarter of the corpus
+        // without saying so — 133 archived items against a corpus of 492. A
+        // per-publisher table that sums to less than the total it breaks down
+        // is worse than either number alone, because a reader checks it and
+        // concludes the smaller one is real.
+        SourceArtifactVersion::query()
+            ->canonical()
+            ->with('discoveredResource.endpoint.publisher')
+            ->chunkById(500, function ($artifacts) use (&$counts, $documentsOnly): void {
+                foreach ($artifacts as $artifact) {
+                    $isDocument = in_array((string) $artifact->media_type, self::DOCUMENT_MEDIA_TYPES, true);
 
-        foreach ($resources as $resource) {
-            $endpoint = $resource->endpoint;
-            $publisher = $endpoint instanceof SourceEndpoint ? $endpoint->publisher : null;
-            $slug = $publisher instanceof SourcePublisher ? $publisher->slug : 'unattributed';
+                    if ($isDocument !== $documentsOnly) {
+                        continue;
+                    }
 
-            $counts[$slug] = ($counts[$slug] ?? 0) + 1;
-        }
+                    $endpoint = $artifact->discoveredResource?->endpoint;
+                    $publisher = $endpoint instanceof SourceEndpoint ? $endpoint->publisher : null;
+                    $slug = $publisher instanceof SourcePublisher ? $publisher->slug : 'unattributed';
+
+                    $counts[$slug] = ($counts[$slug] ?? 0) + 1;
+                }
+            });
+
+        arsort($counts);
 
         return $counts;
     }
@@ -203,25 +220,39 @@ class PaperReport
     }
 
     /**
-     * A document is something the publisher published as one. HTML is the site
-     * around it and JSON is an archived record feed; both belong in the corpus
-     * and neither is a document.
+     * Distinct files, not stored rows.
+     *
+     * The same document is published at more than one address and discovery
+     * follows both, so 75 of 673 stored artifacts hold a file already held. The
+     * public snapshot lists each once; a paper that counted the rows instead
+     * would state a corpus 13% larger than the one the site serves, and the
+     * two numbers would be quoted against each other.
      */
-    private function isDocument(DiscoveredResource $resource): bool
-    {
-        $version = $resource->artifactVersions->first();
-
-        return $version instanceof SourceArtifactVersion
-            && in_array((string) $version->media_type, self::DOCUMENT_MEDIA_TYPES, true);
-    }
-
     private function artifactsOfKind(bool $documents): int
     {
-        $query = SourceArtifactVersion::query();
+        $query = SourceArtifactVersion::query()->canonical();
 
         return $documents
             ? $query->whereIn('media_type', self::DOCUMENT_MEDIA_TYPES)->count()
             : $query->whereNotIn('media_type', self::DOCUMENT_MEDIA_TYPES)->count();
+    }
+
+    /**
+     * What was stored, against what it amounts to.
+     *
+     * Reported beside the corpus rather than folded into it: the deduplication
+     * is a decision about counting, and a reader who cannot see it cannot check
+     * it.
+     *
+     * @return array<string, int>
+     */
+    private function duplication(): array
+    {
+        return [
+            'artifacts_stored' => SourceArtifactVersion::query()->count(),
+            'distinct_files' => SourceArtifactVersion::query()->canonical()->count(),
+            'second_copies_of_a_file_already_held' => SourceArtifactVersion::query()->duplicate()->count(),
+        ];
     }
 
     /**
