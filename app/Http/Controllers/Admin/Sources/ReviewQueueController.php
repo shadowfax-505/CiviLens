@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\ExtractionField;
 use App\Models\ExtractionFieldJudgement;
 use App\Models\ExtractionPage;
+use App\Models\ExtractionRun;
 use App\Models\ExtractionTableCell;
+use App\Models\SourceArtifactVersion;
 use App\Models\SourcePublisher;
 use App\Services\Extraction\AmountGrouping;
 use App\Services\Extraction\ValueLocator;
@@ -65,6 +67,17 @@ class ReviewQueueController extends Controller
 
         $item = ExtractionField::query()
             ->with(['page', 'tableCell'])
+            // One copy of each file. The same document reached the archive from
+            // two addresses often enough that 75 of 673 artifacts are a second
+            // copy of one already held, and a judgement made on a duplicate
+            // enters calibration as though it were an independent document.
+            // Uniform-at-random is not enough on its own: the draw has to be
+            // from distinct documents, or the same page can be sampled twice
+            // and the bound is arithmetic about a population that does not
+            // exist.
+            ->whereIn('extraction_run_id', ExtractionRun::query()
+                ->whereIn('source_artifact_version_id', SourceArtifactVersion::query()->canonical()->select('id'))
+                ->select('id'))
             ->when($second, fn ($query) => $query
                 ->whereNotNull('gold_source')
                 ->where('reviewed_by', '!=', $request->user()->getKey())

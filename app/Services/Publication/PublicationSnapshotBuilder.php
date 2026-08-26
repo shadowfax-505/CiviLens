@@ -107,6 +107,11 @@ class PublicationSnapshotBuilder
         $documents = new Collection;
 
         SourceArtifactVersion::query()
+            // One row per distinct file. The same document reached the archive
+            // from two addresses often enough that 75 of 673 artifacts are a
+            // second copy, and a corpus that lists a document twice overstates
+            // itself in the one number a reader is most likely to quote.
+            ->canonical()
             ->whereHas('extractionRuns')
             ->where('is_quarantined', false)
             ->with(['discoveredResource.endpoint.publisher', 'extractionRuns'])

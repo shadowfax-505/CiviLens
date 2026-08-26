@@ -229,6 +229,13 @@ class ReviewCandidateGenerator
             // says "HOME | LINK | CONTACT US", and a reviewer asked to adjudicate
             // that is being asked to certify website furniture.
             ->whereHas('run.artifactVersion', fn ($query) => $query->whereNotIn('media_type', self::NON_DOCUMENT_MEDIA_TYPES))
+            // One copy of each file. A duplicated document duplicates its
+            // candidates, and a calibration set drawn from a pool where the
+            // same document appears twice is no longer a sample of distinct
+            // documents — which is the assumption the bound rests on.
+            ->whereIn('extraction_run_id', ExtractionRun::query()
+                ->whereIn('source_artifact_version_id', SourceArtifactVersion::query()->canonical()->select('id'))
+                ->select('id'))
             // Reference lists are inputs, not corpus. The debarment CSV is
             // archived as a document and read as one, and it produced 901 review
             // candidates asking whether a World Bank record number was read

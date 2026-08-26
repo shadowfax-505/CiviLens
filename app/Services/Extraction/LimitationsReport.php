@@ -4,6 +4,8 @@ namespace App\Services\Extraction;
 
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
+use App\Models\ExtractionRun;
+use App\Models\SourceArtifactVersion;
 use App\Services\Statistics\ClopperPearson;
 
 /**
@@ -46,6 +48,7 @@ class LimitationsReport
             $this->thresholdExcludesNothing($alpha),
             $this->correlatedSecondRead(),
             $this->scriptClassIsNotLanguage(),
+            $this->sameFileHeldTwice(),
             $this->unlocatable(),
             $this->agreementNeverMeasured(),
         ]));
@@ -223,6 +226,44 @@ class LimitationsReport
                 .'they calibrate, the group mixes two populations that fail differently, and '
                 .'exchangeability — the assumption the whole bound rests on — is the thing at risk '
                 .'rather than the arithmetic.',
+        ];
+    }
+
+    /**
+     * @return array{limitation: string, evidence: array<string, mixed>, why_it_matters: string}|null
+     */
+    private function sameFileHeldTwice(): ?array
+    {
+        $duplicates = SourceArtifactVersion::query()->duplicate()->count();
+
+        if ($duplicates === 0) {
+            return null;
+        }
+
+        $runs = ExtractionRun::query()
+            ->whereIn('source_artifact_version_id', SourceArtifactVersion::query()->duplicate()->select('id'))
+            ->select('id');
+
+        $onDuplicates = ExtractionField::query()->whereIn('extraction_run_id', $runs);
+
+        return [
+            'limitation' => 'The archive holds some files twice, and the corpus is smaller than the artifact count.',
+            'evidence' => [
+                'artifacts' => SourceArtifactVersion::query()->count(),
+                'distinct_files' => SourceArtifactVersion::query()->canonical()->count(),
+                'second_copies' => $duplicates,
+                'candidates_on_second_copies' => (clone $onDuplicates)->count(),
+                'labelled_on_second_copies' => (clone $onDuplicates)->whereNotNull('is_correct')->count(),
+                'accepted_on_second_copies' => (clone $onDuplicates)->where('decision', 'accepted')->count(),
+            ],
+            'why_it_matters' => 'The same document is published at more than one address and discovery '
+                .'follows both, so the checksums match and both URLs are real provenance. The risk is '
+                .'not storage but counting: a duplicated file duplicates its candidates, and a '
+                .'calibration set drawn uniformly from that pool is not a sample of distinct '
+                .'documents, which is what the bound assumes. Duplicates are now kept out of the '
+                .'review queue, out of candidate generation and out of the published document list; '
+                .'what remains is that candidates generated before that still exist, and the count '
+                .'above says how many.',
         ];
     }
 
