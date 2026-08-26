@@ -39,7 +39,36 @@ class ArtifactWorkspace
 
         chmod($temporaryPath, 0600);
 
-        if (file_put_contents($temporaryPath, $disk->get($artifact->storage_path), LOCK_EX) === false) {
+        // Streamed rather than read whole. `$disk->get()` returns the entire
+        // file as a string, so materialising a 46 MB report cost 46 MB of the
+        // 128 MB this process is given — and scoring the corpus died at page
+        // 2,500 of 2,979 doing exactly that, after the byte limit was raised to
+        // let documents that size in.
+        //
+        // The consumers all want a path on disk. None of them wants the bytes.
+        $source = $disk->readStream($artifact->storage_path);
+
+        if (! is_resource($source)) {
+            @unlink($temporaryPath);
+
+            throw new ExtractionFailed('Unable to prepare the artifact for extraction.');
+        }
+
+        $destination = fopen($temporaryPath, 'wb');
+
+        if ($destination === false) {
+            fclose($source);
+            @unlink($temporaryPath);
+
+            throw new ExtractionFailed('Unable to prepare the artifact for extraction.');
+        }
+
+        $copied = stream_copy_to_stream($source, $destination);
+
+        fclose($source);
+        fclose($destination);
+
+        if ($copied === false) {
             @unlink($temporaryPath);
 
             throw new ExtractionFailed('Unable to prepare the artifact for extraction.');
