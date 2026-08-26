@@ -4,6 +4,7 @@ namespace App\Http\Controllers\PublicPortal;
 
 use App\Http\Controllers\Controller;
 use App\Models\PublicationDocument;
+use App\Services\PublicPortal\EvidenceSearchService;
 use App\Services\PublicPortal\PublicEvidenceService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -44,6 +45,13 @@ class PublicEvidenceController extends Controller
             'document' => $document,
             'figures' => $evidence->figuresFor($document),
         ]);
+    }
+
+    public function search(Request $request, EvidenceSearchService $search): View
+    {
+        return view('public.evidence.search', $search->search(
+            (string) $request->query('q', ''),
+        ));
     }
 
     public function notices(Request $request, PublicEvidenceService $evidence): View

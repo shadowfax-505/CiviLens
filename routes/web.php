@@ -100,6 +100,9 @@ Route::prefix('public')->name('public.')->group(function (): void {
     // domain tables, so nothing here can be a demonstration row.
     Route::get('/evidence', [PublicEvidenceController::class, 'index'])->name('evidence.index');
     Route::get('/evidence/notices', [PublicEvidenceController::class, 'notices'])->name('evidence.notices');
+    Route::get('/evidence/search', [PublicEvidenceController::class, 'search'])
+        ->middleware('throttle:60,1')
+        ->name('evidence.search');
     Route::get('/evidence/{document}', [PublicEvidenceController::class, 'show'])->name('evidence.show');
     // The scanned page a published figure was read from, with the figure
     // marked. Throttled because rasterising a PDF page is the most expensive

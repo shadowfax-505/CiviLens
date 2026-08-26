@@ -5,6 +5,7 @@ namespace App\Services\Extraction;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
 use App\Models\SourceArtifactVersion;
+use App\Support\BengaliNumerals;
 use GdImage;
 use Throwable;
 
@@ -43,6 +44,7 @@ class SecondReadScorer
         private readonly PageRasterizer $rasterizer,
         private readonly TesseractOcrEngine $engine,
         private readonly AmountGrouping $grouping,
+        private readonly BengaliNumerals $numerals,
     ) {}
 
     /**
@@ -255,13 +257,9 @@ class SecondReadScorer
      */
     private function canonical(string $text): string
     {
-        $text = str_replace(
-            ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'],
-            ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
-            $text,
-        );
-
-        return (string) preg_replace('/[^0-9.,()\-]/u', '', $text);
+        // One definition, shared with search. Two copies of a rule about which
+        // characters two readings must share is two chances for them to drift.
+        return $this->numerals->canonical($text);
     }
 
     /**
