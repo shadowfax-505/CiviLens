@@ -147,4 +147,22 @@ like unrelated bugs. One worker, or move to PostgreSQL.
 acquisitions does not start until that backlog clears, and a table count that
 has not moved in half an hour usually means the worker is still doing something
 else rather than that anything is wrong. Check what is at the head of `jobs`
-before concluding table detection is broken.
+before concluding table detection is broken. One slow scanned document can hold
+the line for a quarter of an hour on its own.
+
+To run table detection ahead of the crawl, give those jobs their own queue name
+and let the worker prefer it:
+
+```bash
+php artisan civiclens:extract-tables --all
+php artisan queue:work --queue=tables,ingestion --max-time=50400 --tries=1 --timeout=900
+```
+
+Move already-queued jobs by updating their `queue` column — never by deleting
+and re-dispatching them, for the unique-lock reason above.
+
+**`retry_after` must exceed the longest job.** It is 90 seconds by default and
+table detection runs about ninety seconds a page with a tail past ten minutes,
+so the queue would hand a still-running job to another worker and the same page
+would be read twice. `DB_QUEUE_RETRY_AFTER` is set to 1200 against the worker's
+`--timeout=900`.
