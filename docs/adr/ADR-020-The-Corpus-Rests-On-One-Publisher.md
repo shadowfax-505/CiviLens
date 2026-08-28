@@ -61,3 +61,41 @@ than "Bangladesh public sources", and a write-up that blurs the two would be ove
 
 **Corpus growth within the existing publisher is exhausted**, so more labels — not more crawling —
 are what tighten the bound from here.
+
+---
+
+## Addendum, 2026-08-28: the corpus is no longer one publisher's, and the certification still is
+
+This ADR called a second document source "the highest-value thing a person can
+add". Several arrived, and the bottleneck moved rather than lifted.
+
+The decisive fix was not authorisation but discovery: acquisition read an
+endpoint's listing and stopped, so documents linked from pages *already in the
+archive* were never fetched. `civiclens:harvest-links` reads those pages and
+follows what they point at, and among what it found was the CAG storage path
+this ADR records as having no index — reached from another publisher's pages,
+which is exactly the index it was missing. The endpoint that stayed "registered,
+active and empty" was right to stay.
+
+The corpus now holds documents from several publishers. **Every certified value
+still comes from one**, because a group with no labels certifies nothing, and
+labels are reviewer hours. So the sentence in this ADR's consequences is still
+true and its reason has changed completely: breadth claims are about scripts
+rather than publishers not because the documents are missing, but because the
+judgements are.
+
+Two things this ADR could not have anticipated, both of which narrow what a
+"publisher" count means:
+
+- **A file found at two addresses is one document.** Discovery follows both, so
+  a share of stored artifacts hold a file already held. Counted once now, from
+  the checksum, in the corpus totals and in the published snapshot.
+- **The script groups are not what their names say.** Every accepted value in
+  the group named English sits on a page of Bengali set in a pre-Unicode font,
+  stored as Latin bytes. The bound over that group is sound — its labels come
+  from the same pages — but this ADR's closing sentence, "one publisher's
+  Bengali, English and mixed pages", describes three groups of which at most two
+  are what they are called.
+
+Superseded in scope, not in judgement: the discipline this ADR set — every
+artifact states what it holds nothing of — is what made both of those findable.
