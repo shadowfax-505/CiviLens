@@ -89,8 +89,12 @@ exceptions to it:
   software lays it out, so it is rendered to PDF before anything reads it, and the page image a
   reader is shown is that rendering rather than the publisher's own. Flagged on the evidence page for
   those documents. See ADR-022.
-- **Abstention.** Roughly a quarter of pages are attempted and declined by the recognizer. They are
-  counted, not quietly dropped: a corpus reported without them overstates how much text exists.
+- **Abstention.** Some pages are attempted and declined by the recognizer, and the share is reported
+  by `civiclens:paper-report` under `abstained_share` rather than written here — this line read
+  "roughly a quarter" while the measured figure was half that, having been true of a corpus a fifth
+  of the current size. They are counted, not quietly dropped: a corpus reported without them
+  overstates how much text exists. `civiclens:classify-abstentions` says why each page was declined,
+  because a rate without a reason invites the reader to assume the worst or the best.
 - **Selection.** Documents are whatever a publisher chose to put on a public page. Nothing here is a
   sample of procurement or audit activity; it is a sample of publication.
 
