@@ -189,6 +189,33 @@ php artisan queue:work --queue=tables,tables-candidates,tables-later,ingestion -
 The page id is in the job payload (`pageId";i:<n>`), which is what makes the
 split possible without re-dispatching anything.
 
+**Where the two minutes actually go**, measured on this machine with the worker
+paused, because three plausible ways to speed it up turned out to be worth
+nothing and one of them would have lost data:
+
+| step | cost |
+| --- | --- |
+| copying the artifact out of storage | 0.08s |
+| `pdftoppm` for one page at 150 DPI | 0.31s |
+| python import + building the pipeline | 7.3s |
+| **inference** | **10–91s, averaging ~58s** |
+
+So caching the materialised PDF across pages saves nothing, and batching many
+pages into one python process — which does avoid reloading the models — saves
+about 11%. The cost is the model, and it is paid per page.
+
+A cheap pre-filter to skip pages with no table was tested against the 896
+already-examined pages, where it is known which hold one. Word left-edges
+snapped to a 12px grid, skipping pages with fewer than N aligned columns: at its
+loosest setting it skips 35 pages, and **19 of those hold a table**. The signal
+is not there. Do not add a skip heuristic without checking it against the
+examined pages first — a false negative loses a table silently, and cell-derived
+values are the ones that certify best.
+
+**The one lever that works is not competing.** Inference is CPU-bound; running
+the test suite alongside it roughly doubles the wall time per page. A page timed
+at 237s with the worker running measured 65s with it paused.
+
 **`retry_after` must exceed the longest job.** It is 90 seconds by default and
 table detection runs about ninety seconds a page with a tail past ten minutes,
 so the queue would hand a still-running job to another worker and the same page
