@@ -5,15 +5,34 @@ permission, and what the corpus is not.
 
 ## Sources
 
-| publisher | what it publishes | what CivicLens holds |
-| --- | --- | --- |
-| Civil Audit Directorate (`dgcivil-bangladesh`) | audit reports as PDFs, indexed on one archive page | the documents behind every link on that page |
-| BPPA e-GP (`bppa-egp`) | tender rows in a listing servlet | structured observations only — the detail servlet answers POST, so there is no file behind a row |
-| Comptroller and Auditor General (`cag-bangladesh`) | audit documents in a storage path | nothing: the category pages return placeholder text and the storage path has no index |
+Which publishers are registered, what each yielded, and why any of them yielded
+nothing:
 
-The e-GP distinction matters. Those rows are a second publisher's **data** and not a second
-publisher's **documents**, so they support reporting on what was published while contributing nothing
-to the extraction guarantee.
+```bash
+php artisan civiclens:sources-report
+```
+
+Generated rather than transcribed, and it exits non-zero when a source yielded
+nothing and recorded no reason — a zero beside a stated reason is a governance
+decision, a zero beside silence is a breakage. A table of publishers written
+into this file was wrong within a fortnight: it named three sources and said the
+Comptroller and Auditor General's storage path held nothing, which stopped being
+true once link harvesting reached it from another publisher's pages.
+
+Three distinctions the report does not make for you:
+
+- **Data is not documents.** A listing servlet that answers with tender rows
+  yields structured observations and no file. Those support reporting on what
+  was published while contributing nothing to the extraction guarantee, and
+  counting them together overstates the corpus that guarantee applies to.
+- **Archived pages are not documents.** Discovery follows every link a listing
+  carries, so the archive holds each publisher's own menus and sector pages
+  beside its reports. They are kept — they are the evidence of what a listing
+  said on a date — and counted apart.
+- **A file found twice is one document.** The same document is published at more
+  than one address and discovery follows both. Counted once, from the checksum;
+  see the method card for why that matters to the bound rather than only to the
+  tally.
 
 ## Permission and governance
 
@@ -56,10 +75,20 @@ exceptions to it:
 
 ## Composition and its biases
 
-- **Scripts.** Bengali dominates, with English and mixed pages behind it. Group-conditional
+- **Scripts.** Bengali dominates, with pages classed English and mixed behind it. Group-conditional
   calibration exists because a pooled threshold would let the majority script hide the others.
+  **The class named English may contain no English.** See the next entry: a page of legacy-font
+  Bengali is stored as Latin bytes and classified accordingly, and where every accepted value and
+  every label in that group sits on such pages, the group is coherent and only its name is wrong.
 - **Legacy fonts.** Many documents store Bengali numerals as the Latin bytes that render them, so a
   page reading ১০০.০০ arrives as `100.00`. Reviewers are told to judge digits rather than script.
+  The router that reroutes unreadable pages finds nothing to reroute here: the text layer is dense
+  and confident, and only its alphabet is wrong. Measured from the residue those fonts leave, and
+  reported by `civiclens:limitations`.
+- **Word-processor documents.** A few sources publish `.doc`/`.docx`. Such a file has no pages until
+  software lays it out, so it is rendered to PDF before anything reads it, and the page image a
+  reader is shown is that rendering rather than the publisher's own. Flagged on the evidence page for
+  those documents. See ADR-022.
 - **Abstention.** Roughly a quarter of pages are attempted and declined by the recognizer. They are
   counted, not quietly dropped: a corpus reported without them overstates how much text exists.
 - **Selection.** Documents are whatever a publisher chose to put on a public page. Nothing here is a

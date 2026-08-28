@@ -27,6 +27,10 @@ not that it was filed under the wrong heading, not that it sits in the wrong col
 
 ## Construction
 
+- **Corpus.** One row per distinct file. The same document is published at more than one address and
+  discovery follows both, so a share of stored artifacts hold a file already held. A duplicated
+  document duplicates its candidates, and a calibration set drawn from that pool would not be a
+  sample of distinct documents — which is what exchangeability requires. Counted from the checksum.
 - **Unit.** A numeric token — amount, date, reference number. Audit reports carry no labelled fields:
   sixty pages were sampled and not one held three label-value pairs. A token is decomposable, so a
   bound over tokens stays valid where a bound over page-level character accuracy would not.
@@ -39,10 +43,35 @@ not that it was filed under the wrong heading, not that it sits in the wrong col
 - **Score.** Each value is re-read from its own marked region and scored by whether the two readings
   agree. The score it replaced was page-level OCR confidence, identical for every field on a page.
   See ADR-019.
+- **Rules the score cannot express.** A metric over characters ranks how confidently two readings
+  agreed; it cannot weigh what a character *means*. Three disagreements are therefore deferred by
+  rule rather than scored, because each changes the meaning of the number while differing in one
+  character: the two readings disagree about a **sign**; the value is a numeral spelled in **two
+  alphabets**, which a document does not do; the two readings disagree about the **leading digit**,
+  and so about which order of magnitude the number is. Each was found in published figures. Deferred,
+  never corrected — which reading is right is exactly what neither pass can tell us.
 - **Labels.** Reviewer adjudication is the only admissible label (ADR-016). "Can't tell" is recorded
   and excluded rather than coerced into a verdict.
 - **Sampling.** Uniform at random, never by confidence. Queueing the most confident items first would
   make the calibration set unrepresentative of what the system accepts.
+
+## Why a value carries no score
+
+Every reason recorded against a field, as it appears in the data:
+
+| basis | meaning |
+| --- | --- |
+| `second-read` | the two readings were compared and scored |
+| `unlocatable` | the characters could not be found again on the page |
+| `unreadable` | the crop could not be recognised at all |
+| `sign-disagreement` | the readings disagree about a sign |
+| `mixed-script-numeral` | one numeral spelled in two alphabets |
+| `leading-digit-disputed` | the readings disagree about the leading digit |
+
+Everything but the first is a deferral, and every deferral shrinks the set the
+guarantee covers. A test fails if a basis exists in the code and not in this
+table, because adding one silently would narrow the claim without narrowing the
+claim's description.
 
 ## What is not certified
 
@@ -53,17 +82,34 @@ not that it was filed under the wrong heading, not that it sits in the wrong col
   cannot contribute to the bound — but it is also never covered by it. The share is reported.
 - **Pages the recognizer abstained on.** Attempted and declined; no text is stored and nothing from
   them is certified.
+- **Values the two readings dispute in a way that changes the number.** See the deferral rules
+  above. Like an unlocatable value, such a field is never accepted, so it cannot contribute to the
+  bound — and is equally not covered by it. The counts are reported.
 - **Anything about a publisher's conduct.** The system reports counts. An amendment is routine; a
   screen that implied otherwise would be making an accusation out of a count.
 
 ## Known limits
 
 - **A second read is a second opinion**, not ground truth — the same engine family can misread the
-  same glyph identically twice and agree with itself.
-- **Document extraction rests on one publisher.** Of the registered sources, one publishes an
-  indexable document archive; one publishes records rather than files; one has no index to discover
-  from. Any group-conditional claim is about that single publisher until a second document source is
-  authorised.
+  same glyph identically twice and agree with itself. The three deferral rules above catch
+  disagreements by their shape, not by understanding them; where both passes make the same mistake
+  they agree, the score is low, and the value certifies. A rule line read as a digit by both passes
+  on a single-script page is exactly that. Only a person looking at the page finds it, and that is
+  how each of these was found.
+- **Every certified value comes from one publisher.** The corpus now holds documents from several,
+  but labels exist for only one, and a group with no labels certifies nothing. Any
+  group-conditional claim is about that single publisher until a second one is adjudicated — which
+  is a matter of reviewer hours, not of code.
+- **A script class is named for a language and one of them is not one.** Bengali set in a
+  pre-Unicode font stores its characters as Latin bytes, so the classifier reads such a page as
+  English. Where every accepted value and every label in a group sit on those pages the group is
+  homogeneous and its bound is sound — the name is simply wrong, and a reader who sees a certified
+  rate for English will believe this corpus contains certified English documents. Where the shares
+  differ between the labels and the values they calibrate, the group blends two populations that
+  fail differently, and exchangeability is what is at risk rather than the arithmetic.
+- **For word-processor documents the page image is our rendering.** Such a file has no pages until
+  software lays it out. The words and figures are the publisher's; the pagination and spacing are
+  produced by our conversion, and the evidence page says so for those documents. See ADR-022.
 - **Errors are rare in absolute terms**, so the realized-risk estimate is coarse and the reported
   interval should be read accordingly.
 - **The corpus was crawled without consulting `robots.txt`**, on a recorded operator decision taken

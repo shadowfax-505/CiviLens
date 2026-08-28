@@ -53,6 +53,24 @@ class SecondReadScorer
      */
     public const READER_VERSION = 'r4';
 
+    /**
+     * Every reason a value can carry instead of, or alongside, a score.
+     *
+     * Listed so a test can require each one to be written down in the method
+     * card. A deferral is part of what the guarantee covers: the bound holds
+     * over what is accepted, and every rule here shrinks that set. Adding one
+     * silently would narrow the claim without narrowing the claim's
+     * description, which is the failure this project keeps finding in itself.
+     */
+    public const SCORE_BASES = [
+        'second-read',
+        'unlocatable',
+        'unreadable',
+        'sign-disagreement',
+        'mixed-script-numeral',
+        'leading-digit-disputed',
+    ];
+
     /** Room around the value, so a character at the edge is not clipped away. */
     private const PADDING = 8;
 
