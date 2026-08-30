@@ -291,7 +291,7 @@ class ReviewQueueController extends Controller
     }
 
     /**
-     * @return array{adjudicated: int, remaining: int, groups: array<string, int>, minimum: int, levels: list<array{key: string, size: int, alpha: float, at_target: bool}>, ceiling: float}
+     * @return array{adjudicated: int, remaining: int, groups: array<string, int>, minimum: int, levels: list<array{key: string, size: int, alpha: float, at_target: bool, waiting: int, to_target: int, best_possible_alpha: float}>, ceiling: float}
      */
     private function progress(): array
     {
@@ -302,6 +302,39 @@ class ReviewQueueController extends Controller
             // Grouped in PHP rather than by a raw aggregate, so the key is built
             // the same way the calibrator builds it and the two cannot drift.
             ->countBy(fn (ExtractionField $field): string => $field->publisher_group.'|'.$field->script_class)
+            ->all();
+
+        // Groups holding candidates and no labels at all.
+        //
+        // Without these the table listed only groups that already certify
+        // something, and titled itself "what each group can certify as it
+        // stands" — so the groups certifying nothing, which are exactly the
+        // ones where nineteen judgements unlock thousands of values, were the
+        // ones a reviewer could not see. A summary that omits every zero
+        // describes the work already done rather than the work available.
+        // An aggregate over rows, so the base builder rather than the model:
+        // a count is not an ExtractionField and pretending otherwise invents a
+        // property on the model that does not exist.
+        $unlabelled = ExtractionField::query()
+            ->whereNull('gold_source')
+            ->whereNull('is_correct')
+            ->toBase()
+            ->selectRaw('publisher_group, script_class, count(*) as aggregate')
+            ->groupBy('publisher_group', 'script_class')
+            ->get();
+
+        foreach ($unlabelled as $row) {
+            $key = (string) $row->publisher_group.'|'.(string) $row->script_class;
+
+            if (! array_key_exists($key, $groups)) {
+                $groups[$key] = 0;
+            }
+        }
+
+        $waiting = $unlabelled
+            ->mapWithKeys(fn (object $row): array => [
+                (string) $row->publisher_group.'|'.(string) $row->script_class => (int) $row->aggregate,
+            ])
             ->all();
 
         $alpha = (float) config('civiclens.extraction.default_alpha', 0.05);
@@ -320,6 +353,18 @@ class ReviewQueueController extends Controller
                 'size' => (int) $size,
                 'alpha' => round(max($alpha, $attainable), 3),
                 'at_target' => $attainable <= $alpha,
+                'waiting' => $waiting[$key] ?? 0,
+                // How many more labels this group needs to reach the target
+                // level. The finish line, rather than the size of the pile:
+                // a chip reading "3,353 waiting" tells a reviewer the work is
+                // endless when they are sixteen judgements from certifying it.
+                'to_target' => max(0, (int) ceil(1 / $alpha) - 1 - (int) $size),
+                // And the level it could reach if every value it holds were
+                // judged. One group holds sixteen candidates against a target
+                // that needs nineteen, so "19 more" is a finish line that does
+                // not exist — the honest number is the level the group can
+                // actually support, which is looser and not nothing.
+                'best_possible_alpha' => round(max($alpha, 1.0 / ((int) $size + ($waiting[$key] ?? 0) + 1)), 3),
             ];
         }
 

@@ -74,12 +74,19 @@
              to alpha >= 1/(n+1): nine labels certify at 0.10, four at 0.20. --}}
         <section class="cl-card mt-4 p-4" aria-label="What each group can currently certify">
             <p class="text-sm font-semibold">What each group can certify as it stands</p>
+            <p class="mt-1 text-xs text-slate-500">
+                Groups with no labels are listed too. They certify nothing, which is the reason to
+                judge them: a group needs only nineteen values to reach &alpha; = 0.05, and reaching
+                it is what lets every other value in that group be decided by a threshold rather
+                than deferred by rule.
+            </p>
             <div class="mt-2 overflow-x-auto">
                 <table class="w-full min-w-[28rem] text-left text-sm">
                     <thead>
                         <tr class="text-xs uppercase tracking-wide text-slate-500">
                             <th class="py-1 pr-4">Group</th>
                             <th class="py-1 pr-4">Labels</th>
+                            <th class="py-1 pr-4">To reach &alpha; = 0.05</th>
                             <th class="py-1 pr-4">Tightest &alpha;</th>
                         </tr>
                     </thead>
@@ -88,11 +95,38 @@
                             <tr class="border-t border-slate-100 dark:border-slate-800">
                                 <td class="py-1 pr-4 font-mono text-xs">{{ $level['key'] }}</td>
                                 <td class="py-1 pr-4">{{ $level['size'] }}</td>
+                                {{-- The finish line, not the size of the pile. A group showing
+                                     3,353 waiting reads as endless work when it is sixteen
+                                     judgements from certifying anything at all. --}}
                                 <td class="py-1 pr-4">
-                                    {{ number_format($level['alpha'], 3) }}
-                                    @unless ($level['at_target'])
-                                        <span class="text-xs text-slate-500">&mdash; looser than the target</span>
-                                    @endunless
+                                    @if ($level['to_target'] === 0)
+                                        <span class="text-emerald-700 dark:text-emerald-400">reached</span>
+                                    @elseif ($level['waiting'] === 0)
+                                        <span class="text-slate-500">nothing left to judge</span>
+                                    @elseif ($level['to_target'] > $level['waiting'])
+                                        {{-- A finish line that does not exist is worse than none.
+                                             This group holds fewer candidates than the target needs,
+                                             so judging every one of them still lands at a looser
+                                             level — which is a real level, not nothing. --}}
+                                        <span class="text-amber-700 dark:text-amber-400">out of reach</span>
+                                        <span class="text-xs text-slate-500">
+                                            &mdash; only {{ number_format($level['waiting']) }} exist; judging all of them
+                                            reaches &alpha; = {{ number_format($level['best_possible_alpha'], 3) }}
+                                        </span>
+                                    @else
+                                        <strong>{{ $level['to_target'] }}</strong> more
+                                        <span class="text-xs text-slate-500">of {{ number_format($level['waiting']) }} waiting</span>
+                                    @endif
+                                </td>
+                                <td class="py-1 pr-4">
+                                    @if ($level['size'] === 0)
+                                        <span class="text-slate-500">nothing yet</span>
+                                    @else
+                                        {{ number_format($level['alpha'], 3) }}
+                                        @unless ($level['at_target'])
+                                            <span class="text-xs text-slate-500">&mdash; looser than the target</span>
+                                        @endunless
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach
