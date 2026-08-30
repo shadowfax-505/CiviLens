@@ -107,3 +107,131 @@ it('does not offer a finish line a group cannot reach', function (): void {
 
     $this->get(route('admin.sources.review'))->assertSee('out of reach');
 });
+
+it('draws only from the chosen calibration group, script included', function (): void {
+    // Filtering by publisher alone was why nineteen labels per group was slow
+    // work. A threshold is fitted per publisher x script, so judging
+    // "cbad-bangladesh" drew across its bn, en and mixed pools at once — and
+    // cbad|mixed holds 40 candidates against 5,986, so the group needing 19
+    // labels would almost never be shown.
+    ['page' => $page] = publishableDocument();
+
+    $wanted = certifiedFieldOn($page, 'deferred', [
+        'publisher_group' => 'cbad-bangladesh',
+        'script_class' => 'mixed',
+        'gold_source' => null,
+        'is_correct' => null,
+    ]);
+
+    foreach (['bn', 'en'] as $script) {
+        foreach (range(1, 15) as $ignored) {
+            certifiedFieldOn($page, 'deferred', [
+                'publisher_group' => 'cbad-bangladesh',
+                'script_class' => $script,
+                'gold_source' => null,
+                'is_correct' => null,
+            ]);
+        }
+    }
+
+    $this->actingAs(searchAdminUser());
+
+    // Thirty draws against one wanted item in thirty-one: under the old
+    // publisher-only filter this would almost certainly serve something else.
+    for ($attempt = 0; $attempt < 30; $attempt++) {
+        $item = $this->get(route('admin.sources.review', ['group' => 'cbad-bangladesh|mixed']))
+            ->assertOk()
+            ->viewData('item');
+
+        expect($item?->id)->toBe($wanted->id);
+    }
+});
+
+it('still honours a publisher-only group left in an old session', function (): void {
+    // A session predating the per-script filter should keep working rather than
+    // silently serving the whole corpus.
+    ['page' => $page] = publishableDocument();
+
+    $wanted = certifiedFieldOn($page, 'deferred', [
+        'publisher_group' => 'imed-bangladesh',
+        'script_class' => 'bn',
+        'gold_source' => null,
+        'is_correct' => null,
+    ]);
+
+    certifiedFieldOn($page, 'deferred', [
+        'publisher_group' => 'dgcivil-bangladesh',
+        'script_class' => 'bn',
+        'gold_source' => null,
+        'is_correct' => null,
+    ]);
+
+    $this->actingAs(searchAdminUser());
+
+    $item = $this->get(route('admin.sources.review', ['group' => 'imed-bangladesh']))
+        ->assertOk()
+        ->viewData('item');
+
+    expect($item?->id)->toBe($wanted->id);
+});
+
+it('offers the group that can be finished soonest first', function (): void {
+    // A reviewer opening this screen should see the group they can complete
+    // soonest, not the one that happens to be largest. Sixteen candidates that
+    // finish a group beat five thousand that finish nothing.
+    ['page' => $page] = publishableDocument();
+
+    foreach (range(1, 40) as $ignored) {
+        certifiedFieldOn($page, 'deferred', [
+            'publisher_group' => 'cbad-bangladesh',
+            'script_class' => 'en',
+            'gold_source' => null,
+            'is_correct' => null,
+        ]);
+    }
+
+    foreach (range(1, 5) as $ignored) {
+        certifiedFieldOn($page, 'deferred', [
+            'publisher_group' => 'parliament-bangladesh',
+            'script_class' => 'bn',
+            'gold_source' => null,
+            'is_correct' => null,
+        ]);
+    }
+
+    $this->actingAs(searchAdminUser());
+
+    $groups = collect($this->get(route('admin.sources.review'))->viewData('groups'));
+
+    // parliament|bn can be exhausted in five; cbad|en needs nineteen.
+    expect($groups->first()['key'])->toBe('parliament-bangladesh|bn')
+        ->and($groups->first()['remaining_effort'])->toBe(5);
+});
+
+it('sinks a group that has already reached the target', function (): void {
+    ['page' => $page] = publishableDocument();
+
+    foreach (range(1, 25) as $ignored) {
+        certifiedFieldOn($page, 'accepted', [
+            'publisher_group' => 'dgcivil-bangladesh',
+            'script_class' => 'bn',
+            'gold_source' => 'reviewer',
+            'is_correct' => true,
+            'calibration_split' => 'calibration',
+        ]);
+    }
+
+    certifiedFieldOn($page, 'deferred', [
+        'publisher_group' => 'cbad-bangladesh',
+        'script_class' => 'bn',
+        'gold_source' => null,
+        'is_correct' => null,
+    ]);
+
+    $this->actingAs(searchAdminUser());
+
+    $groups = collect($this->get(route('admin.sources.review'))->viewData('groups'));
+
+    expect($groups->first()['key'])->toBe('cbad-bangladesh|bn')
+        ->and($groups->last()['key'])->toBe('dgcivil-bangladesh|bn');
+});

@@ -86,14 +86,25 @@ it('still draws at random inside the group', function (): void {
     expect(count(array_unique(array_filter($seen))))->toBeGreaterThan(1);
 });
 
-it('counts what is left to judge in each group', function (): void {
+it('counts what is left to judge in each group, per script', function (): void {
+    // Keyed by publisher AND script now, because that is the unit a threshold
+    // is fitted on. Keyed by publisher alone, the chips offered a selection the
+    // calibration could not use: judging "cbad-bangladesh" drew across its bn,
+    // en and mixed pools at once, and the group needing nineteen labels was
+    // whichever of the three the draw happened to miss.
     crowdedQueue();
 
-    $this->actingAs(searchAdminUser())
-        ->get(route('admin.sources.review'))
-        ->assertOk()
-        ->assertViewHas('groups', fn (array $groups): bool => $groups['cbad-bangladesh'] === 1
-            && $groups['dgcivil-bangladesh'] === 30);
+    $groups = collect(
+        $this->actingAs(searchAdminUser())
+            ->get(route('admin.sources.review'))
+            ->assertOk()
+            ->viewData('groups')
+    )->keyBy('key');
+
+    $script = ExtractionField::query()->where('publisher_group', 'cbad-bangladesh')->value('script_class');
+
+    expect($groups->get('cbad-bangladesh|'.$script)['waiting'])->toBe(1)
+        ->and($groups->sum('waiting'))->toBe(31);
 });
 
 it('serves a value somebody else has already judged, for a second opinion', function (): void {

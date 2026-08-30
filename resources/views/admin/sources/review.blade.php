@@ -29,22 +29,66 @@
 
         <a class="cl-chip @if ($group === null) ring-2 ring-slate-900 dark:ring-white @endif"
            href="{{ route('admin.sources.review', ['group' => '']) }}">
-            Everything ({{ number_format(array_sum($groups)) }})
+            Everything ({{ number_format(collect($groups)->sum('waiting')) }})
         </a>
 
-        @foreach ($groups as $name => $waiting)
-            <a class="cl-chip @if ($group === $name) ring-2 ring-slate-900 dark:ring-white @endif"
-               href="{{ route('admin.sources.review', ['group' => $name]) }}">
-                {{ $name }} ({{ number_format($waiting) }})
+        {{-- Ordered by what finishing each one costs, so the group a reviewer can
+             complete soonest is the first one they see. A chip reading the size of
+             the pile put the largest group first, which is the opposite. --}}
+        @foreach ($groups as $level)
+            @php($done = $level['remaining_effort'] === 0)
+            <a class="cl-chip @if ($group === $level['key']) ring-2 ring-slate-900 dark:ring-white @endif @if ($done) opacity-50 @endif"
+               href="{{ route('admin.sources.review', ['group' => $level['key']]) }}">
+                {{ $level['key'] }}
+                @if ($level['waiting'] === 0)
+                    <span class="opacity-60">· nothing left</span>
+                @elseif ($level['to_target'] === 0)
+                    <span class="opacity-60">· done</span>
+                @elseif ($level['to_target'] > $level['waiting'])
+                    <span class="font-semibold">· all {{ number_format($level['waiting']) }}</span>
+                @else
+                    <span class="font-semibold">· {{ $level['to_target'] }} more</span>
+                @endif
             </a>
         @endforeach
     </section>
 
     @if ($group !== null)
+        @php($current = collect($groups)->firstWhere('key', $group))
         <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">
             Drawing only from <strong>{{ $group }}</strong>. Values are still picked at random within it, which is what
             the guarantee requires; the guarantee itself is fitted per publisher and script, so judging one group at a
             time is how a rare publisher reaches a level of its own.
+            @if ($current)
+                @if ($current['to_target'] === 0)
+                    <strong>This group has reached &alpha; = 0.05.</strong> Further labels tighten the estimate rather
+                    than the level.
+                @elseif ($current['to_target'] > $current['waiting'])
+                    It holds {{ number_format($current['waiting']) }} candidates against the
+                    {{ $current['to_target'] }} the target needs, so judging every one of them reaches
+                    &alpha; = {{ number_format($current['best_possible_alpha'], 3) }} &mdash; a real level, and not nothing.
+                @else
+                    <strong>{{ $current['to_target'] }} more</strong> reaches &alpha; = 0.05 for this group.
+                @endif
+            @endif
+        </p>
+    @endif
+
+    {{-- The whole point of the group chips: without a specific group the draw is
+         uniform over the corpus, and a group holding 40 of 24,000 candidates is
+         unreachable in practice rather than in principle. --}}
+    @php($next = collect($groups)->first(fn ($level) => $level['remaining_effort'] > 0))
+    @if ($next && $group !== $next['key'])
+        <p class="mt-3 text-sm">
+            <a class="cl-button-primary inline-block" href="{{ route('admin.sources.review', ['group' => $next['key']]) }}">
+                Judge {{ $next['key'] }} next &mdash;
+                @if ($next['to_target'] > $next['waiting'])
+                    all {{ number_format($next['waiting']) }} of them
+                @else
+                    {{ $next['to_target'] }} to go
+                @endif
+            </a>
+            <span class="ml-2 text-slate-500">the group closest to a level of its own</span>
         </p>
     @endif
 

@@ -189,6 +189,29 @@ tail of ten to sixteen minutes — so it records that it ran and never repeats a
 page. Use `--again` only after a page has been re-read and its word geometry
 has changed underneath the old grid.
 
+## Judging (the only step a machine cannot do)
+
+`/admin/sources/review`. Labels are the bottleneck in this project and nothing
+else moves it: a group with no labels certifies nothing, however many documents
+it holds.
+
+The chips are per **calibration group** — publisher AND script — because that is
+the unit a threshold is fitted on, and they are ordered by what finishing each
+one costs. Work top to bottom. A group needs 19 labels to reach α = 0.05
+(`ceil(1/α) − 1`), and a group holding fewer candidates than that says so and
+names the level it can actually reach.
+
+Filtering by publisher alone was why this was slow: judging `cbad-bangladesh`
+drew across its bn, en and mixed pools at once, and `cbad|mixed` holds 40
+candidates out of 5,986 — so the group needing 19 labels was whichever the draw
+happened to miss. Narrowing to the exact group is as valid as drawing from the
+corpus and discarding everything else; it just stops discarding 99 draws in 100.
+Choosing which items *inside* a group to show would break exchangeability, and
+nothing does.
+
+Then `civiclens:decide-fields` and publish. Judging alone changes nothing that
+is served.
+
 ## Certifying
 
 ```bash

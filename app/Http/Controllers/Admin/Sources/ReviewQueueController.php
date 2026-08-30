@@ -53,6 +53,8 @@ class ReviewQueueController extends Controller
         $group = $request->session()->get('review.group');
         $group = is_string($group) && $group !== '' ? $group : null;
 
+        [$publisher, $script] = $group === null ? [null, null] : $this->splitGroup($group);
+
         // A share of the queue is items somebody else has already judged, shown
         // to a different person so agreement can be measured. Without it the
         // double-judged subset never comes into existence: the queue serves
@@ -96,16 +98,38 @@ class ReviewQueueController extends Controller
             // corpus and discarding everything else — it merely stops wasting
             // 257 draws in 258. Choosing which items *inside* the group to show
             // would still break it, and nothing here does.
-            ->when($group !== null, fn ($query) => $query->where('publisher_group', $group))
+            // Narrowed to the calibration group, which is publisher AND script.
+            //
+            // Filtering by publisher alone was the reason nineteen labels per
+            // group was slow work. A threshold is fitted per publisher x script,
+            // so judging "cbad-bangladesh" draws across its bn, en and mixed
+            // pools at once — and cbad|mixed holds 40 candidates out of 5,986,
+            // so the group that needs 19 labels would almost never be shown.
+            //
+            // Exchangeability is required within the group a threshold is
+            // fitted on, and this is exactly that group, so drawing uniformly
+            // inside it is precisely as valid as drawing from the corpus and
+            // discarding everything else. It merely stops discarding 99 draws
+            // in 100. Choosing which items *inside* the group to show would
+            // break it, and nothing here does.
+            ->when($publisher !== null, fn ($query) => $query->where('publisher_group', $publisher))
+            // A publisher-only value can still be in a session from before this
+            // was per-script, and it should keep working.
+            ->when($script !== null, fn ($query) => $query->where('script_class', $script))
             ->inRandomOrder()
             ->first();
 
+        // Computed once and shared: the chips and the progress table are the
+        // same list, and two queries building the same group keys is how they
+        // drift apart.
+        $progress = $this->progress();
+
         return view('admin.sources.review', [
             'item' => $item,
-            'progress' => $this->progress(),
+            'progress' => $progress,
             'row' => $this->row($item),
             'group' => $group,
-            'groups' => $this->unjudgedByGroup(),
+            'groups' => $progress['levels'],
             'second_opinion' => $second,
             // How many places on the page carry these characters. One means the
             // crop is the value; several means the reviewer is judging the
@@ -126,25 +150,6 @@ class ReviewQueueController extends Controller
                 && $item->field_key === 'amount'
                 && ! $this->grouping->groupsCorrectly((string) $item->extracted_value),
         ]);
-    }
-
-    /**
-     * Groups that still have something to judge, and how many.
-     *
-     * @return array<string, int>
-     */
-    private function unjudgedByGroup(): array
-    {
-        return ExtractionField::query()
-            ->whereNull('is_correct')
-            ->whereNull('gold_source')
-            ->whereNotNull('publisher_group')
-            ->selectRaw('publisher_group, count(*) as aggregate')
-            ->groupBy('publisher_group')
-            ->orderBy('publisher_group')
-            ->pluck('aggregate', 'publisher_group')
-            ->map(fn (int|string $value): int => (int) $value)
-            ->all();
     }
 
     /**
@@ -278,6 +283,22 @@ class ReviewQueueController extends Controller
     }
 
     /**
+     * A group key as publisher and script.
+     *
+     * @return array{0: string, 1: string|null}
+     */
+    private function splitGroup(string $group): array
+    {
+        if (! str_contains($group, '|')) {
+            return [$group, null];
+        }
+
+        [$publisher, $script] = explode('|', $group, 2);
+
+        return [$publisher, $script === '' ? null : $script];
+    }
+
+    /**
      * Split assigned at adjudication, not before.
      *
      * Deciding the split when the candidate is generated would let the order
@@ -291,7 +312,7 @@ class ReviewQueueController extends Controller
     }
 
     /**
-     * @return array{adjudicated: int, remaining: int, groups: array<string, int>, minimum: int, levels: list<array{key: string, size: int, alpha: float, at_target: bool, waiting: int, to_target: int, best_possible_alpha: float}>, ceiling: float}
+     * @return array{adjudicated: int, remaining: int, groups: array<string, int>, minimum: int, levels: list<array{key: string, size: int, alpha: float, at_target: bool, waiting: int, to_target: int, best_possible_alpha: float, remaining_effort: int}>, ceiling: float}
      */
     private function progress(): array
     {
@@ -365,10 +386,27 @@ class ReviewQueueController extends Controller
                 // not exist — the honest number is the level the group can
                 // actually support, which is looser and not nothing.
                 'best_possible_alpha' => round(max($alpha, 1.0 / ((int) $size + ($waiting[$key] ?? 0) + 1)), 3),
+                // What finishing this group actually costs: the labels it still
+                // needs, or every candidate it has if it holds fewer than that.
+                // Sorting on this puts the cheapest completions first, which is
+                // the difference between a reviewer finishing four groups in an
+                // hour and finishing none.
+                'remaining_effort' => min(
+                    max(0, (int) ceil(1 / $alpha) - 1 - (int) $size),
+                    $waiting[$key] ?? 0,
+                ),
             ];
         }
 
-        usort($levels, fn (array $a, array $b): int => $b['size'] <=> $a['size']);
+        // Cheapest unfinished group first; finished and empty groups last.
+        // A reviewer opening this screen should see the group they can complete
+        // soonest at the top, not the one that happens to be largest.
+        usort($levels, function (array $a, array $b): int {
+            $spent = fn (array $level): bool => $level['remaining_effort'] === 0;
+
+            return [$spent($a), $a['remaining_effort'], -$a['size']]
+                <=> [$spent($b), $b['remaining_effort'], -$b['size']];
+        });
 
         return [
             'adjudicated' => ExtractionField::query()->where('gold_source', 'reviewer')->count(),
