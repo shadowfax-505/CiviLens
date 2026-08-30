@@ -7,6 +7,7 @@ use App\Data\Ingestion\CrawlCursor;
 use App\Data\Ingestion\DiscoveryBatch;
 use App\Models\SourceEndpoint;
 use App\Services\Ingestion\DiscoveryDocumentParser;
+use App\Services\Ingestion\DiscoveryPacing;
 use App\Services\Ingestion\SafeHttpTransport;
 use Throwable;
 
@@ -35,12 +36,23 @@ use Throwable;
  * - **That the run finishes.** `pages_per_run` bounds a single crawl so a
  *   publisher rate-limited to a request a minute is not held for hours, and the
  *   cursor carries the offset so the next run continues rather than restarting.
+ *
+ * **Discovery throttles itself here, because nothing else throttles it.** The
+ * `source-fetch` limiter in AppServiceProvider is registered against
+ * FetchDiscoveredResourceArtifact — the *fetch* stage. A connector that issues
+ * one request per crawl never noticed; this one issues `pages_per_run` of them
+ * in a loop, and on its first run it put fifty requests to the court's host
+ * inside a minute against a stated limit of one. The host kept answering, which
+ * was luck: bgpress stopped answering at four a minute and now refuses 443
+ * outright. An endpoint's rate limit has to mean something in the stage that
+ * makes the requests.
  */
 class PaginatedHtmlListingConnector implements SourceConnector
 {
     public function __construct(
         private readonly SafeHttpTransport $transport,
         private readonly DiscoveryDocumentParser $parser,
+        private readonly DiscoveryPacing $clock,
     ) {}
 
     public function discover(SourceEndpoint $endpoint, CrawlCursor $cursor): DiscoveryBatch
@@ -66,7 +78,14 @@ class PaginatedHtmlListingConnector implements SourceConnector
         $seen = [];
         $fetched = 0;
 
+        // Seconds between page fetches, from the endpoint's own stated limit.
+        $interval = (int) ceil(60 / max(1, (int) $endpoint->rate_limit_per_minute));
+
         while ($fetched < $pagesPerRun) {
+            if ($fetched > 0) {
+                $this->clock->wait($interval);
+            }
+
             $url = $this->pageUrl($endpoint->base_url, $offsetParameter, $position);
 
             try {

@@ -151,6 +151,15 @@ hours, and deleting its rows leaves the locks behind: every re-dispatch is then
 dropped silently while the command reports success. Clear
 `cache_locks` alongside the jobs, or wait it out.
 
+**An endpoint's rate limit does not cover discovery.** The `source-fetch`
+limiter in `AppServiceProvider` is registered against
+`FetchDiscoveredResourceArtifact` — the fetch stage. Any connector that issues
+more than one request per crawl must pace itself, and
+`PaginatedHtmlListingConnector` does. `PaginatedApiFeedConnector` does not: it
+walks `pages_per_run` pages of the World Bank API unthrottled, which that host
+tolerates and a ministry host would not. Check the pacing before pointing it at
+a government site.
+
 **Do not run two workers against SQLite.** They contend, and the failures look
 like unrelated bugs. One worker, or move to PostgreSQL.
 
