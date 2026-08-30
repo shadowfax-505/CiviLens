@@ -153,6 +153,64 @@ class BangladeshSourceCatalogue
                 ],
             ],
             [
+                'slug' => 'supremecourt-bangladesh',
+                'name' => 'Supreme Court of Bangladesh',
+                'class' => 'government',
+                'homepage' => 'https://www.supremecourt.gov.bd/',
+                'authority' => 'Supreme Court of Bangladesh',
+                'authorisation' => 'I authorise CivicLens to fetch published High Court Division judgments, orders and the Supreme Court Online Bulletin from supremecourt.gov.bd rate-limited.',
+                'endpoints' => [
+                    [
+                        // Judgments and orders of the High Court Division.
+                        // div_id=2 is the High Court Division; div_id=1 is the
+                        // Appellate Division, whose judgments bind it.
+                        //
+                        // The page carries a POST form and an AJAX search, and
+                        // reading only that would put this source in the same
+                        // box as e-GP's detail servlet — reachable by POST
+                        // alone. It is not: the listing's own pagination
+                        // handler builds `&start=` as a plain URL, and a GET at
+                        // start=0 returns fifty judgment PDFs. Verified before
+                        // registering, which is the only reason this endpoint
+                        // is not recorded as unreachable.
+                        'name' => 'High Court Division judgments and orders',
+                        'connector_type' => 'paginated_html_listing',
+                        'base_url' => 'https://www.supremecourt.gov.bd/web/?page=judgments.php&menu=00&div_id=2',
+                        'allowed_hosts' => ['www.supremecourt.gov.bd', 'supremecourt.gov.bd'],
+                        'allowed_path_prefixes' => ['/web', '/resources'],
+                        'access_decision' => 'operator-authorised-public-judgments',
+                        // The court's own host, and a judgment is the most
+                        // consequential document this corpus holds. One a
+                        // minute: bgpress stopped answering at four and now
+                        // refuses 443 outright, and a rate that gets a crawler
+                        // blocked is not a rate.
+                        'rate_limit_per_minute' => 1,
+                        'connector_options' => [
+                            'offset_parameter' => 'start',
+                            'page_size' => 50,
+                            // Fifty pages a run at a request a minute is under
+                            // an hour of the court's time, and the cursor
+                            // carries the offset so the next run continues.
+                            'pages_per_run' => 50,
+                        ],
+                    ],
+                    [
+                        // The Supreme Court Online Bulletin: reported decisions
+                        // with a citation, keywords and a short holding. The
+                        // most structured court material of the four, and the
+                        // reason it matters here is that the holding is stated
+                        // by the court rather than inferred by us.
+                        'name' => 'Supreme Court Online Bulletin',
+                        'connector_type' => 'static_html',
+                        'base_url' => 'https://www.supremecourt.gov.bd/web/?page=bulletin.php&menu=10',
+                        'allowed_hosts' => ['www.supremecourt.gov.bd', 'supremecourt.gov.bd'],
+                        'allowed_path_prefixes' => ['/web', '/resources'],
+                        'access_decision' => 'operator-authorised-public-judgments',
+                        'rate_limit_per_minute' => 1,
+                    ],
+                ],
+            ],
+            [
                 'slug' => 'worldbank-bangladesh',
                 'name' => 'World Bank project and lending records for Bangladesh',
                 'class' => 'multilateral',

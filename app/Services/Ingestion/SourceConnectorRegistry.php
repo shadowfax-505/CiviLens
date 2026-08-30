@@ -9,6 +9,7 @@ use App\Services\Ingestion\Connectors\BrowserSourceConnector;
 use App\Services\Ingestion\Connectors\DirectDownloadSourceConnector;
 use App\Services\Ingestion\Connectors\EgpTenderListingConnector;
 use App\Services\Ingestion\Connectors\PaginatedApiFeedConnector;
+use App\Services\Ingestion\Connectors\PaginatedHtmlListingConnector;
 use App\Services\Ingestion\Connectors\SitemapSourceConnector;
 use App\Services\Ingestion\Connectors\StaticHtmlSourceConnector;
 
@@ -22,6 +23,7 @@ class SourceConnectorRegistry
         private readonly BrowserSourceConnector $browser,
         private readonly EgpTenderListingConnector $egpTenderListing,
         private readonly PaginatedApiFeedConnector $paginatedApiFeed,
+        private readonly PaginatedHtmlListingConnector $paginatedHtmlListing,
     ) {}
 
     public function for(string $type): SourceConnector
@@ -29,6 +31,10 @@ class SourceConnectorRegistry
         return match ($type) {
             'api', 'feed' => $this->apiFeed,
             'paginated_api' => $this->paginatedApiFeed,
+            // An HTML index that pages by an offset. static_html would fetch
+            // the first fifty of several thousand judgments and report itself
+            // complete, which is the quietest way a corpus stays small.
+            'paginated_html_listing' => $this->paginatedHtmlListing,
             'sitemap' => $this->sitemap,
             'direct_download' => $this->directDownload,
             'static_html' => $this->staticHtml,
