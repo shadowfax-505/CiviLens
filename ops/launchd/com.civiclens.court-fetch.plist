@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    Fetches discovered court documents in one paced process.
+
+    Deliberately not the queue. `FetchDiscoveredResourceArtifact` carries a
+    RateLimited middleware that *releases* a job rather than sleeping on it, so
+    thousands of queued fetches against a per-minute limit do not wait — they
+    cycle, writing themselves back to the jobs table every thirty seconds and
+    spending their attempts without ever fetching. `civiclens:fetch-pending`
+    makes one request per interval and no queue writes at all.
+
+    Exits when nothing is pending, and KeepAlive brings it back to check again.
+    ThrottleInterval is what stops that becoming a busy loop once the corpus is
+    complete.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.civiclens.court-fetch</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/php</string>
+        <string>artisan</string>
+        <string>civiclens:fetch-pending</string>
+        <string>--endpoint=14</string>
+        <string>--endpoint=15</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/muttakinrahman/Documents/New OpenCode Project/CivicLense/.worktrees/v2-ingestion</string>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!--
+        Five minutes between runs. The command exits immediately when there is
+        nothing pending, so without this launchd would restart it continuously
+        against a finished corpus.
+    -->
+    <key>ThrottleInterval</key>
+    <integer>300</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/muttakinrahman/Documents/New OpenCode Project/CivicLense/.worktrees/v2-ingestion/storage/logs/launchd-court-fetch.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/muttakinrahman/Documents/New OpenCode Project/CivicLense/.worktrees/v2-ingestion/storage/logs/launchd-court-fetch.log</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>LowPriorityIO</key>
+    <true/>
+</dict>
+</plist>

@@ -46,10 +46,34 @@ non-zero when a source yielded nothing and recorded no failure, because a zero
 next to a stated reason is a governance decision and a zero next to silence is
 a breakage.
 
+## Keeping a long run alive
+
+A worker started with `nohup ... &` from a terminal is still a child of that
+shell's process group and dies with the session. Table detection lost about two
+days that way, twice. A run measured in days cannot be owned by a terminal
+window, so it belongs to launchd:
+
+```bash
+cp ops/launchd/com.civiclens.*.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.civiclens.queue-worker.plist
+launchctl load ~/Library/LaunchAgents/com.civiclens.court-fetch.plist
+```
+
+```bash
+launchctl list | grep civiclens          # is it running
+tail -f storage/logs/launchd-queue-worker.log
+launchctl unload ~/Library/LaunchAgents/com.civiclens.queue-worker.plist
+```
+
+User agents, so no password. Kill any hand-started worker before loading the
+first one — two against SQLite contend. The plists carry the reasoning for the
+queue order, the hourly recycle and the throttle intervals.
+
 ## Acquiring
 
 ```bash
 php artisan civiclens:sources-dispatch [--endpoint=13] [--force]
+php artisan civiclens:fetch-pending [--endpoint=14] [--limit=100] [--rate=6]
 php artisan civiclens:harvest-links [--apply]      # documents linked from pages already archived
 php artisan civiclens:verify-sources <url>          # before registering anything new
 php artisan civiclens:register-bangladesh-sources
@@ -85,6 +109,19 @@ than one version means a re-score is owed — a score from an older locator
 defers rather than over-accepts, so nothing breaks and nothing complains, and
 the guarantee quietly covers less of the corpus than it appears to.
 Recalibration follows the re-score (ADR-019).
+
+`fetch-pending` fetches discovered documents in one paced process instead of
+through the queue, and for thousands of documents from one host it is the only
+workable path. `FetchDiscoveredResourceArtifact` carries a RateLimited
+middleware that *releases* a job rather than sleeping on it, so 2,625 queued
+fetches against a per-minute limit do not wait — every thirty seconds the whole
+queue becomes available, each job is pulled, refused and written back, and a job
+can spend its two hundred attempts churning without ever being fetched. On
+SQLite that write storm also starves whatever else the worker was doing.
+
+`--rate` defaults to the endpoint's own `rate_limit_per_minute`. Prefer changing
+the endpoint's stated limit over passing an override, so the recorded posture
+and the actual behaviour are the same thing.
 
 `--sync` scores in the calling process. Scoring shares one queue with the
 crawlers, and a publisher rate-limited to a request a minute holds it for hours.

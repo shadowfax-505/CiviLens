@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    Keeps one queue worker alive across terminal sessions.
+
+    Written because the run keeps dying with the session that started it: a
+    worker launched with `nohup ... &` from a shell is still a child of that
+    shell's process group, and table detection lost roughly two days that way
+    twice. A run measured in days cannot be owned by a terminal window.
+
+    ONE worker. Two against SQLite contend, and the failures look like
+    unrelated bugs — see the runbook.
+
+    Queue order matters and is deliberate: the tranches were split so pages
+    holding a value that could not be located are examined first. `court` sits
+    last because judgment fetching is paced by its own agent, not by this queue.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.civiclens.queue-worker</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/php</string>
+        <string>artisan</string>
+        <string>queue:work</string>
+        <string>--queue=tables,tables-candidates,tables-later,ingestion</string>
+        <!--
+            Recycled hourly rather than run for ever. A long-lived PHP worker
+            accumulates memory, and this pipeline has already met three
+            exhaustion bugs at 128 MB; KeepAlive restarts it immediately.
+        -->
+        <string>--max-time=3600</string>
+        <!--
+            The job's own $tries wins over this, which is why a timed-out table
+            job leaves no row in failed_jobs. Recorded in the runbook.
+        -->
+        <string>--tries=1</string>
+        <string>--timeout=900</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/muttakinrahman/Documents/New OpenCode Project/CivicLense/.worktrees/v2-ingestion</string>
+
+    <!-- Restart when it exits, including after --max-time. -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!--
+        A crash loop should not become a fork bomb. launchd throttles respawns
+        to this many seconds apart.
+    -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/muttakinrahman/Documents/New OpenCode Project/CivicLense/.worktrees/v2-ingestion/storage/logs/launchd-queue-worker.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/muttakinrahman/Documents/New OpenCode Project/CivicLense/.worktrees/v2-ingestion/storage/logs/launchd-queue-worker.log</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <!--
+        Nice it. Table detection is CPU-bound and measurably doubles in wall
+        time when it competes; this keeps it out of the way of interactive work
+        rather than fighting it.
+    -->
+    <key>LowPriorityIO</key>
+    <true/>
+</dict>
+</plist>

@@ -179,12 +179,16 @@ class BangladeshSourceCatalogue
                         'allowed_hosts' => ['www.supremecourt.gov.bd', 'supremecourt.gov.bd'],
                         'allowed_path_prefixes' => ['/web', '/resources'],
                         'access_decision' => 'operator-authorised-public-judgments',
-                        // The court's own host, and a judgment is the most
-                        // consequential document this corpus holds. One a
-                        // minute: bgpress stopped answering at four and now
-                        // refuses 443 outright, and a rate that gets a crawler
-                        // blocked is not a rate.
-                        'rate_limit_per_minute' => 1,
+                        // One request every ten seconds, from evidence rather
+                        // than caution alone. Registered at one a minute on the
+                        // bgpress lesson — that host stopped answering at four
+                        // and now refuses 443 outright — and then the discovery
+                        // walk accidentally put fifty requests to this host
+                        // inside a minute, which it served without complaint and
+                        // still answers. Six a minute is well inside what it
+                        // tolerates and puts 2,600 judgments inside a working
+                        // day rather than two.
+                        'rate_limit_per_minute' => 6,
                         'connector_options' => [
                             'offset_parameter' => 'start',
                             'page_size' => 50,

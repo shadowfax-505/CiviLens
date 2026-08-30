@@ -4,12 +4,14 @@ use App\Jobs\ExtractPageTables;
 use App\Jobs\RunSourceEndpointCrawl;
 use App\Jobs\ScorePageFields;
 use App\Models\CorrectionRequest;
+use App\Models\DiscoveredResource;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
 use App\Models\ExtractionRun;
 use App\Models\PublicationFigure;
 use App\Models\ScreeningEntity;
 use App\Models\SourceArtifactVersion;
+use App\Models\SourceCrawlRun;
 use App\Models\SourceEndpoint;
 use App\Models\SourcePublisher;
 use App\Services\Extraction\AbstentionClassifier;
@@ -35,6 +37,8 @@ use App\Services\Extraction\WordGeometryBackfill;
 use App\Services\Ingestion\ArchivedPageLinkHarvester;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
 use App\Services\Ingestion\CertificateChainRepair;
+use App\Services\Ingestion\DiscoveryPacing;
+use App\Services\Ingestion\SourceAcquisitionService;
 use App\Services\Ingestion\SourceCandidateVerifier;
 use App\Services\Ingestion\SourceRegistryProvisioner;
 use App\Services\Ingestion\SourceYieldReport;
@@ -932,6 +936,86 @@ Artisan::command('civiclens:sources-report {--json}', function (SourceYieldRepor
 
     return 0;
 })->purpose('Report what every registered endpoint produced, and why it produced nothing');
+
+Artisan::command('civiclens:fetch-pending {--endpoint=* : Only these endpoint ids} {--limit=0 : Stop after this many, 0 for all} {--rate= : Requests per minute, defaults to the endpoint\'s own limit}', function (SourceAcquisitionService $acquisition, DiscoveryPacing $clock): int {
+    // Paced in one process rather than queued.
+    //
+    // The queued path is right for a handful of documents and wrong for
+    // thousands from one host. `FetchDiscoveredResourceArtifact` carries a
+    // RateLimited middleware that *releases* a job rather than sleeping on it,
+    // so 2,625 queued fetches against a limit of one a minute do not wait —
+    // they cycle. Every thirty seconds the whole queue becomes available, each
+    // job is pulled, refused by the limiter and written back, and a job can
+    // spend its two hundred attempts churning without ever being fetched. On
+    // SQLite that write storm also starves whatever else the worker was doing.
+    //
+    // A single paced loop makes exactly one request per interval and no queue
+    // writes at all.
+    $only = array_map('intval', (array) $this->option('endpoint'));
+    $limit = (int) $this->option('limit');
+    $rateOption = $this->option('rate');
+
+    $endpoints = SourceEndpoint::query()
+        ->when($only !== [], fn ($query) => $query->whereIn('id', $only))
+        ->whereNull('paused_at')
+        ->get();
+
+    $fetched = 0;
+    $failed = 0;
+
+    foreach ($endpoints as $endpoint) {
+        $run = SourceCrawlRun::query()
+            ->where('source_endpoint_id', $endpoint->getKey())
+            ->latest('id')
+            ->first();
+
+        if (! $run instanceof SourceCrawlRun) {
+            $this->warn('No crawl run for endpoint '.$endpoint->getKey().'; discover before fetching.');
+
+            continue;
+        }
+
+        $perMinute = is_numeric($rateOption) ? max(1, (int) $rateOption) : max(1, (int) $endpoint->rate_limit_per_minute);
+        $interval = (int) ceil(60 / $perMinute);
+
+        $pending = DiscoveredResource::query()
+            ->where('source_endpoint_id', $endpoint->getKey())
+            ->where('resource_type', 'document')
+            ->where('status', '!=', 'acquired')
+            ->orderBy('id')
+            ->when($limit > 0, fn ($query) => $query->limit($limit - $fetched))
+            ->get();
+
+        foreach ($pending as $resource) {
+            if ($limit > 0 && $fetched >= $limit) {
+                break 2;
+            }
+
+            if ($fetched > 0) {
+                $clock->wait($interval);
+            }
+
+            try {
+                $acquisition->acquire($resource, $run);
+                $fetched++;
+            } catch (Throwable $exception) {
+                // One dead link is not a broken source. Recorded on the
+                // resource by the service; counted here so a run that fetched
+                // nothing is distinguishable from one that fetched nothing
+                // because there was nothing to fetch.
+                $failed++;
+            }
+
+            if (($fetched + $failed) % 25 === 0) {
+                $this->line(' '.$fetched.' fetched, '.$failed.' failed');
+            }
+        }
+    }
+
+    $this->line(json_encode(['fetched' => $fetched, 'failed' => $failed], JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Fetch discovered documents in one paced process instead of through the queue');
 
 Artisan::command('civiclens:verify-sources {url?} {--hosts=} {--prefix=/}', function (SourceCandidateVerifier $verifier, BangladeshSourceCatalogue $catalogue): int {
     $single = $this->argument('url');
