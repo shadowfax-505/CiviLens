@@ -25,6 +25,23 @@ their pages — and because the pagination a reader then sees is ours rather tha
 the publisher's, the evidence page says so for exactly those documents. See
 ADR-022.
 
+## Looking at the site
+
+```bash
+npm run build
+php artisan serve --port=8123
+```
+
+`public/build` is gitignored, so a fresh checkout has no compiled CSS and an old
+one has whatever was built last. Stale assets do not fail loudly — they render a
+page that is subtly wrong. The statistics page showed its share-withheld figure
+as pale yellow on cream, a contrast ratio near 1.1:1 against a WCAG minimum of
+3:1, because the built CSS predated the markup by sixteen days and the dark
+background variant had never been compiled. It reads as a markup bug and is not
+one. **Rebuild before judging how anything looks.**
+
+The public pages are under `/public/evidence`, not `/evidence`.
+
 ## Is it working?
 
 ```bash
