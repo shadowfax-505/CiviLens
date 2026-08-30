@@ -241,7 +241,15 @@ class LimitationsReport
                 .'it may contain none. Where the shares differ between the labels and the values '
                 .'they calibrate, the group mixes two populations that fail differently, and '
                 .'exchangeability — the assumption the whole bound rests on — is the thing at risk '
-                .'rather than the arithmetic.',
+                .'rather than the arithmetic.'
+                .' A second consequence, live from the moment court judgments entered the corpus: '
+                .'ADR-018 lets a group with too few labels borrow a threshold fitted on every '
+                .'publisher writing its script. A judgment is genuinely English, and the pool it '
+                .'would borrow from is legacy-font Bengali, so the borrow would fit a threshold on '
+                .'one population and apply it to another. The basis is recorded and the evidence '
+                .'page says the level was borrowed, which is necessary and not sufficient — the '
+                .'claim it borrows is weaker than ADR-018 assumes, because that ADR takes a script '
+                .'pool to be one population and this one is two.',
         ];
     }
 
