@@ -78,11 +78,45 @@ it('is idempotent so re-running does not duplicate a publisher', function (): vo
         ->and(SourceEndpoint::query()->count())->toBe(1);
 });
 
-it('re-pauses an endpoint when its decision is provisioned again', function (): void {
+it('re-pauses a running endpoint when its authorisation changes', function (): void {
+    // The safety property: a changed access decision is a decision nobody has
+    // reviewed while it runs, so the crawl stops until someone looks.
     provisionFixture();
     SourceEndpoint::query()->sole()->forceFill(['paused_at' => null])->save();
 
-    provisionFixture();
+    app(SourceRegistryProvisioner::class)->provision(
+        'demo',
+        'Demo Publisher',
+        'government',
+        'https://data.example/',
+        'Demo Authority',
+        'I authorise CivicLens to fetch public notices from data.example at a rate-limited pace.',
+        [[
+            'name' => 'Public listing',
+            'connector_type' => 'static_html',
+            'base_url' => 'https://data.example/listing',
+            'allowed_hosts' => ['data.example'],
+            // Widened: a new path is a new permission.
+            'allowed_path_prefixes' => ['/listing', '/archive'],
+            'access_decision' => 'operator-authorised-public-notices',
+            'rate_limit_per_minute' => 6,
+        ]],
+    );
 
     expect(SourceEndpoint::query()->sole()->paused_at)->not->toBeNull();
+});
+
+it('leaves a running endpoint running when nothing it authorised changed', function (): void {
+    // Re-running provisioning is how any catalogue change reaches the database,
+    // including one about a different publisher entirely. Pausing on that turns
+    // a catalogue edit into an outage: adding one publisher paused two live
+    // court endpoints mid-crawl, and the paced fetcher — which skips paused
+    // endpoints — would have gone quiet without saying why.
+    provisionFixture();
+    SourceEndpoint::query()->sole()->forceFill(['paused_at' => null, 'health_status' => 'healthy'])->save();
+
+    provisionFixture();
+
+    expect(SourceEndpoint::query()->sole()->paused_at)->toBeNull()
+        ->and(SourceEndpoint::query()->sole()->health_status)->toBe('healthy');
 });

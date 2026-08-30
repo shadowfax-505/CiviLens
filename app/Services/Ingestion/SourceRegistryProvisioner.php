@@ -63,6 +63,25 @@ class SourceRegistryProvisioner
         $created = [];
 
         foreach ($endpoints as $endpoint) {
+            // Whether this endpoint needs pausing, which is not the same
+            // question as whether it is new.
+            //
+            // Re-pausing on every run is a real safety property — a changed
+            // access decision should stop the crawl until someone looks — and
+            // re-pausing when nothing changed turns a catalogue edit into an
+            // outage. Adding a new publisher re-paused two live court endpoints
+            // mid-crawl, and the paced fetcher would then have skipped them
+            // silently on its next restart.
+            //
+            // So: pause a new endpoint, and pause an existing one whose
+            // governance changed. Leave a running endpoint alone otherwise.
+            $existing = SourceEndpoint::query()
+                ->where('source_publisher_id', $publisher->getKey())
+                ->where('base_url', $endpoint['base_url'])
+                ->first();
+
+            $pause = ! $existing instanceof SourceEndpoint || $this->governanceChanged($existing, $endpoint);
+
             $record = SourceEndpoint::query()->updateOrCreate(
                 [
                     'source_publisher_id' => $publisher->getKey(),
@@ -84,11 +103,13 @@ class SourceRegistryProvisioner
                     'rate_limit_per_minute' => $endpoint['rate_limit_per_minute'] ?? 6,
                     'timeout_seconds' => $endpoint['timeout_seconds'] ?? 30,
                     'max_content_bytes' => $endpoint['max_content_bytes'] ?? 20971520,
-                    // Paused on creation. A provisioned endpoint is a recorded
-                    // decision, not a running crawl, and resuming it is a
-                    // separate act an operator performs knowingly.
-                    'paused_at' => now(),
-                    'health_status' => 'pending',
+                    // Paused on creation, and only on creation. A provisioned
+                    // endpoint is a recorded decision, not a running crawl, and
+                    // resuming it is a separate act an operator performs
+                    // knowingly — but pausing one that is already running turns
+                    // a catalogue edit into an outage, which is what it did to
+                    // two court endpoints mid-crawl.
+                    ...($pause ? ['paused_at' => now(), 'health_status' => 'pending'] : []),
                 ],
             );
 
@@ -103,5 +124,37 @@ class SourceRegistryProvisioner
             'ingestion_enabled' => (bool) config('civiclens.ingestion.enabled', false),
             'note' => 'Endpoints are created paused. Nothing is fetched until they are resumed and civiclens.ingestion.enabled is true.',
         ];
+    }
+
+    /**
+     * Whether anything an operator authorised has changed.
+     *
+     * Deliberately not "did any field change". A renamed endpoint or a revised
+     * rate limit is housekeeping; the host allowlist, the path scope, the
+     * access decision and the two overrides are the permissions themselves, and
+     * a change to one of those is a new decision that has not been reviewed
+     * while running.
+     *
+     * @param  array<string, mixed>  $definition
+     */
+    private function governanceChanged(SourceEndpoint $existing, array $definition): bool
+    {
+        $normalise = static fn (mixed $value): mixed => is_array($value)
+            ? array_values(array_map('strval', $value))
+            : $value;
+
+        foreach (['allowed_hosts', 'allowed_path_prefixes'] as $key) {
+            if ($normalise($existing->{$key}) !== $normalise($definition[$key] ?? [])) {
+                return true;
+            }
+        }
+
+        foreach (['access_decision', 'robots_override_reason', 'plaintext_override_reason'] as $key) {
+            if ((string) ($existing->{$key} ?? '') !== (string) ($definition[$key] ?? '')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
