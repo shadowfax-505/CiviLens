@@ -38,6 +38,18 @@ Three distinctions the report does not make for you:
 
 Each endpoint carries a recorded access decision and an authorisation string naming the authority that
 granted it, provisioned through `civiclens:register-bangladesh-sources` rather than assumed in code.
+**One source is fetched over plaintext.** `bdlaws.minlaw.gov.bd`, the
+government's legal database holding the Constitution and every Act, answers over
+HTTP and offers no HTTPS listener at all — not a broken certificate chain that
+`civiclens:build-ca-bundle` repairs, no TLS at all. Fetched anyway, by a recorded
+per-endpoint exception, because the statutes every judgment cites are otherwise
+unreachable. The cost is real: bytes fetched over HTTP can be altered in transit,
+so their checksum attests to what we received rather than to what the ministry
+served. Statute text is corroborable against the printed gazette and nothing
+certified rests on those bytes alone, which is why the trade is acceptable here
+and would not be for an audit report carrying figures nothing else states.
+`civiclens:limitations` names the endpoint and quotes the reason.
+
 Fetching is allowlisted by host and path prefix, DNS-pinned, rate-limited per publisher, and
 fail-closed: an endpoint that is not registered with a decision cannot be crawled.
 

@@ -77,6 +77,8 @@ class SourceRegistryProvisioner
                     'access_decision' => $endpoint['access_decision'],
                     'robots_override_reason' => $endpoint['robots_override_reason'] ?? null,
                     'robots_override_recorded_at' => isset($endpoint['robots_override_reason']) ? $reviewedAt : null,
+                    'plaintext_override_reason' => $endpoint['plaintext_override_reason'] ?? null,
+                    'plaintext_override_recorded_at' => isset($endpoint['plaintext_override_reason']) ? $reviewedAt : null,
                     'access_reviewed_at' => $reviewedAt,
                     'crawl_interval_minutes' => $endpoint['crawl_interval_minutes'] ?? 1440,
                     'rate_limit_per_minute' => $endpoint['rate_limit_per_minute'] ?? 6,

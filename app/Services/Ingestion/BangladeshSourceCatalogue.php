@@ -215,6 +215,35 @@ class BangladeshSourceCatalogue
                 ],
             ],
             [
+                'slug' => 'minlaw-bangladesh',
+                'name' => 'Ministry of Law, Justice and Parliamentary Affairs (Bangladesh Laws)',
+                'class' => 'government',
+                'homepage' => 'http://bdlaws.minlaw.gov.bd/',
+                'authority' => 'Legislative and Parliamentary Affairs Division, Ministry of Law, Justice and Parliamentary Affairs',
+                'authorisation' => 'I authorise CivicLens to fetch the published text of the Constitution, Acts and Ordinances from bdlaws.minlaw.gov.bd rate-limited.',
+                'endpoints' => [
+                    [
+                        // Statute text, so a citation in a judgment resolves to
+                        // the provision it names rather than staying a string.
+                        //
+                        // Plaintext by recorded exception. This host answers 200
+                        // over HTTP and refuses HTTPS entirely — not a
+                        // misconfigured chain that build-ca-bundle repairs, no
+                        // TLS listener at all. Without the exception the
+                        // statutes cited by every judgment in the corpus are
+                        // unreachable.
+                        'name' => 'Constitution, Acts and Ordinances',
+                        'connector_type' => 'static_html',
+                        'base_url' => 'http://bdlaws.minlaw.gov.bd/laws-of-bangladesh.html',
+                        'allowed_hosts' => ['bdlaws.minlaw.gov.bd'],
+                        'allowed_path_prefixes' => ['/'],
+                        'access_decision' => 'operator-authorised-public-legislation',
+                        'plaintext_override_reason' => 'Operator decision: bdlaws.minlaw.gov.bd serves the Constitution and every Act over HTTP and offers no HTTPS listener. Fetched over plaintext so statutory citations resolve. The provenance cost is real and stated rather than hidden — bytes fetched over HTTP can be altered in transit, so a checksum of them attests to what we received and not to what the ministry served. Statute text is corroborable against the printed gazette; nothing certified rests on these bytes alone.',
+                        'rate_limit_per_minute' => 6,
+                    ],
+                ],
+            ],
+            [
                 'slug' => 'worldbank-bangladesh',
                 'name' => 'World Bank project and lending records for Bangladesh',
                 'class' => 'multilateral',

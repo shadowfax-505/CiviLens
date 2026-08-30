@@ -41,7 +41,22 @@ class ApprovedSourceUrlGuard
 
         $parts = parse_url($url);
 
-        if (! is_array($parts) || strtolower((string) ($parts['scheme'] ?? '')) !== 'https') {
+        $scheme = is_array($parts) ? strtolower((string) ($parts['scheme'] ?? '')) : '';
+
+        // Plaintext by exception, per endpoint, with a recorded reason.
+        //
+        // HTTPS-only is right: this project's value is that a published figure
+        // traces to a document whose bytes are what the publisher served, and
+        // over HTTP those bytes can be altered in transit — a checksum of
+        // altered bytes is a checksum of the alteration. One government source
+        // serves no TLS at all, and the statutes a judgment cites are
+        // unreachable without it. The exception is narrow, named and recorded;
+        // a global relaxation would weaken provenance for every source
+        // including the ones that do serve TLS.
+        $plaintextAllowed = is_string($endpoint->plaintext_override_reason)
+            && trim($endpoint->plaintext_override_reason) !== '';
+
+        if (! is_array($parts) || ($scheme !== 'https' && ! ($scheme === 'http' && $plaintextAllowed))) {
             throw new UnsafeSourceUrl('Only HTTPS source URLs are allowed.');
         }
 
@@ -49,12 +64,14 @@ class ApprovedSourceUrlGuard
             throw new UnsafeSourceUrl('Source URLs cannot contain credentials.');
         }
 
-        if (isset($parts['port']) && $parts['port'] !== 443) {
-            throw new UnsafeSourceUrl('Only the standard HTTPS port is allowed.');
+        $defaultPort = $scheme === 'http' ? 80 : 443;
+
+        if (isset($parts['port']) && (int) $parts['port'] !== $defaultPort) {
+            throw new UnsafeSourceUrl('Only the standard port for the scheme is allowed.');
         }
 
         $host = strtolower(rtrim((string) ($parts['host'] ?? ''), '.'));
-        $port = (int) ($parts['port'] ?? 443);
+        $port = (int) ($parts['port'] ?? $defaultPort);
         $configuredHosts = $endpoint->allowed_hosts;
         $allowedHosts = collect(is_array($configuredHosts) ? $configuredHosts : [])
             ->filter(fn (mixed $allowed): bool => is_string($allowed))
@@ -119,23 +136,33 @@ class ApprovedSourceUrlGuard
             }
         }
 
-        return new ValidatedSourceUrl($this->canonicalize($url, $host, $port), $host, $addresses[0], $port);
+        return new ValidatedSourceUrl($this->canonicalize($url, $scheme, $host, $port), $host, $addresses[0], $port);
     }
 
-    private function canonicalize(string $url, string $host, int $port): string
+    /**
+     * The scheme is carried through rather than assumed.
+     *
+     * This rebuilt every URL as `https://` because every URL was https. With
+     * one endpoint fetched over plaintext by recorded exception, hardcoding it
+     * produced `https://host:80/` — TLS aimed at the plaintext port, which
+     * fails in a way that looks like the host being down rather than like a bug
+     * here.
+     */
+    private function canonicalize(string $url, string $scheme, string $host, int $port): string
     {
         $withoutFragment = $this->withoutFragment($url);
         $separator = strpos($withoutFragment, '://');
 
         if ($separator === false) {
-            throw new UnsafeSourceUrl('Source URL is not an absolute HTTPS URL.');
+            throw new UnsafeSourceUrl('Source URL is not an absolute URL.');
         }
 
         $authorityStart = $separator + 3;
         $authorityLength = strcspn($withoutFragment, '/?#', $authorityStart);
-        $authority = $port === 443 ? $host : $host.':'.$port;
+        $default = $scheme === 'http' ? 80 : 443;
+        $authority = $port === $default ? $host : $host.':'.$port;
 
-        return 'https://'.$authority.substr($withoutFragment, $authorityStart + $authorityLength);
+        return $scheme.'://'.$authority.substr($withoutFragment, $authorityStart + $authorityLength);
     }
 
     private function withoutFragment(string $url): string

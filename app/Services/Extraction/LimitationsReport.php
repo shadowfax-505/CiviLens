@@ -2,10 +2,12 @@
 
 namespace App\Services\Extraction;
 
+use App\Models\DiscoveredResource;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
 use App\Models\ExtractionRun;
 use App\Models\SourceArtifactVersion;
+use App\Models\SourceEndpoint;
 use App\Services\Statistics\ClopperPearson;
 
 /**
@@ -49,6 +51,7 @@ class LimitationsReport
             $this->correlatedSecondRead(),
             $this->scriptClassIsNotLanguage(),
             $this->sameFileHeldTwice(),
+            $this->fetchedOverPlaintext(),
             $this->unlocatable(),
             $this->agreementNeverMeasured(),
         ]));
@@ -250,6 +253,52 @@ class LimitationsReport
                 .'page says the level was borrowed, which is necessary and not sufficient — the '
                 .'claim it borrows is weaker than ADR-018 assumes, because that ADR takes a script '
                 .'pool to be one population and this one is two.',
+        ];
+    }
+
+    /**
+     * @return array{limitation: string, evidence: array<string, mixed>, why_it_matters: string}|null
+     */
+    private function fetchedOverPlaintext(): ?array
+    {
+        $endpoints = SourceEndpoint::query()
+            ->whereNotNull('plaintext_override_reason')
+            ->get(['id', 'name', 'base_url', 'plaintext_override_reason']);
+
+        if ($endpoints->isEmpty()) {
+            return null;
+        }
+
+        $artifacts = SourceArtifactVersion::query()
+            ->whereIn(
+                'discovered_resource_id',
+                DiscoveredResource::query()
+                    ->whereIn('source_endpoint_id', $endpoints->pluck('id'))
+                    ->select('id'),
+            )
+            ->count();
+
+        return [
+            'limitation' => 'Some sources are fetched over plaintext HTTP, so their checksums attest to what we received rather than to what the publisher served.',
+            'evidence' => [
+                'endpoints' => $endpoints
+                    ->map(fn (SourceEndpoint $endpoint): array => [
+                        'name' => (string) $endpoint->name,
+                        'base_url' => (string) $endpoint->base_url,
+                        'reason' => (string) $endpoint->plaintext_override_reason,
+                    ])
+                    ->all(),
+                'artifacts_fetched_over_plaintext' => $artifacts,
+            ],
+            'why_it_matters' => 'Everything this project claims rests on a document being traceable to '
+                .'bytes a publisher served. Over HTTP those bytes can be altered in transit, so a '
+                .'checksum of them records what arrived and not what was sent, and the guarantee '
+                .'that a value was read correctly says nothing about whether the page it was read '
+                .'from is the publisher\'s. The exception is per endpoint and carries a recorded '
+                .'reason; the host in question offers no HTTPS listener at all, so the alternative '
+                .'was not fetching it. Statute text is corroborable against the printed gazette, '
+                .'which is why this is an acceptable trade here and would not be for an audit '
+                .'report carrying figures nothing else states.',
         ];
     }
 

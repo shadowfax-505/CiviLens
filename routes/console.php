@@ -937,7 +937,7 @@ Artisan::command('civiclens:sources-report {--json}', function (SourceYieldRepor
     return 0;
 })->purpose('Report what every registered endpoint produced, and why it produced nothing');
 
-Artisan::command('civiclens:fetch-pending {--endpoint=* : Only these endpoint ids} {--limit=0 : Stop after this many, 0 for all} {--rate= : Requests per minute, defaults to the endpoint\'s own limit}', function (SourceAcquisitionService $acquisition, DiscoveryPacing $clock): int {
+Artisan::command('civiclens:fetch-pending {--endpoint=* : Only these endpoint ids} {--limit=0 : Stop after this many, 0 for all} {--rate= : Requests per minute, defaults to the endpoint\'s own limit} {--type=document : Which resource type to fetch; a publisher that answers with pages rather than files needs page}', function (SourceAcquisitionService $acquisition, DiscoveryPacing $clock): int {
     // Paced in one process rather than queued.
     //
     // The queued path is right for a handful of documents and wrong for
@@ -954,6 +954,10 @@ Artisan::command('civiclens:fetch-pending {--endpoint=* : Only these endpoint id
     $only = array_map('intval', (array) $this->option('endpoint'));
     $limit = (int) $this->option('limit');
     $rateOption = $this->option('rate');
+    // Statute text arrives as HTML, not as a file, so those resources are
+    // recorded as pages. Defaulting to documents keeps the ordinary case
+    // ordinary; a publisher that answers with pages has to be named.
+    $type = is_string($this->option('type')) && $this->option('type') !== '' ? (string) $this->option('type') : 'document';
 
     $endpoints = SourceEndpoint::query()
         ->when($only !== [], fn ($query) => $query->whereIn('id', $only))
@@ -980,7 +984,7 @@ Artisan::command('civiclens:fetch-pending {--endpoint=* : Only these endpoint id
 
         $pending = DiscoveredResource::query()
             ->where('source_endpoint_id', $endpoint->getKey())
-            ->where('resource_type', 'document')
+            ->where('resource_type', $type)
             ->where('status', '!=', 'acquired')
             ->orderBy('id')
             ->when($limit > 0, fn ($query) => $query->limit($limit - $fetched))
