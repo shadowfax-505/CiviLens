@@ -104,12 +104,28 @@ tail -f storage/logs/launchd-queue-worker.log     # a real ExtractPageTables is 
 php artisan queue:retry --queue=tables            # if they failed, this restores them
 ```
 
-**There are other civiclens agents on this machine.** `com.civiclens.queue`
-runs a second `queue:work` over `ingestion,default` and `com.civiclens.scheduler`
-runs `schedule:run` every minute. Both currently exit 78 and launchd keeps
-retrying them; the queue one succeeds when run by hand, so it can come back at
-any time and give you the two-workers-on-SQLite failure. Decide which worker
-owns this database before leaving any of them loaded.
+**Two older agents were moved aside, and why.** `com.civiclens.queue` ran a
+second `queue:work` over `ingestion,default`; `com.civiclens.scheduler` ran
+`schedule:run` every minute. Both were exiting 78 with launchd retrying, and the
+queue one succeeded when its command was run by hand — so it could return at any
+moment and produce the two-workers-on-SQLite failure this runbook warns about.
+The scheduler would also have run `sources-dispatch` and `decide-fields`
+unattended, and `decide-fields` changes what publishes.
+
+Unloading alone lasts until the next login, so the plists were moved rather than
+just unloaded:
+
+```bash
+ls ~/Library/LaunchAgents/disabled-by-civiclens/     # they are intact here
+mv ~/Library/LaunchAgents/disabled-by-civiclens/com.civiclens.queue.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.civiclens.queue.plist
+```
+
+`com.civiclens.clamd` is untouched — the artifact scanner, and not a queue
+worker.
+
+**One worker owns this database.** If you restore either of those, unload
+`com.civiclens.queue-worker` first.
 
 ## Acquiring
 
