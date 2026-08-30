@@ -40,6 +40,26 @@
         <string>--timeout=900</string>
     </array>
 
+
+    <!--
+        launchd does not give a login shell's PATH. It hands over roughly
+        /usr/bin:/bin:/usr/sbin:/sbin, and every external tool this pipeline
+        needs — pdftoppm, pdftotext, tesseract, soffice — lives in Homebrew's
+        prefix. Without this the first run of this agent consumed 3,445 table
+        jobs and failed every one with "Page rasterization could not read the
+        document", which is what a missing pdftoppm looks like from inside PHP:
+        not a crash, a page that cannot be read. The queue emptied, the failed
+        table grew, and the examined count barely moved.
+
+        Every optional tool in this pipeline fails closed and therefore fails
+        quietly. An agent that cannot see them does not announce it.
+    -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
     <key>WorkingDirectory</key>
     <string>/Users/muttakinrahman/Documents/New OpenCode Project/CivicLense/.worktrees/v2-ingestion</string>
 

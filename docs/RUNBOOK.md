@@ -86,6 +86,31 @@ User agents, so no password. Kill any hand-started worker before loading the
 first one — two against SQLite contend. The plists carry the reasoning for the
 queue order, the hourly recycle and the throttle intervals.
 
+**launchd does not give you a login shell's PATH.** It hands over roughly
+`/usr/bin:/bin:/usr/sbin:/sbin`, and every external tool here — `pdftoppm`,
+`pdftotext`, `tesseract`, `soffice` — lives under Homebrew. The first load of
+these agents consumed 3,445 table jobs and failed every one with "Page
+rasterization could not read the document", which is what a missing `pdftoppm`
+looks like from inside PHP: not a crash, a page that cannot be read. The queue
+emptied, `failed_jobs` filled, and the examined count barely moved. The plists
+now set PATH explicitly.
+
+Every optional tool in this pipeline fails closed, which is right and also
+means an agent that cannot see them will not say so. After loading, watch for a
+job that takes minutes rather than milliseconds:
+
+```bash
+tail -f storage/logs/launchd-queue-worker.log     # a real ExtractPageTables is 1-4 minutes
+php artisan queue:retry --queue=tables            # if they failed, this restores them
+```
+
+**There are other civiclens agents on this machine.** `com.civiclens.queue`
+runs a second `queue:work` over `ingestion,default` and `com.civiclens.scheduler`
+runs `schedule:run` every minute. Both currently exit 78 and launchd keeps
+retrying them; the queue one succeeds when run by hand, so it can come back at
+any time and give you the two-workers-on-SQLite failure. Decide which worker
+owns this database before leaving any of them loaded.
+
 ## Acquiring
 
 ```bash
