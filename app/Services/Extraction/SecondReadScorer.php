@@ -87,6 +87,7 @@ class SecondReadScorer
         private readonly TesseractOcrEngine $engine,
         private readonly AmountGrouping $grouping,
         private readonly BengaliNumerals $numerals,
+        private readonly TokenConfidence $tokenConfidence,
     ) {}
 
     /**
@@ -132,7 +133,12 @@ class SecondReadScorer
         foreach ($fields as $field) {
             $result = $this->score($field, $page, $raster instanceof GdImage ? $raster : null);
 
-            $field->forceFill($result + ['score_reader_version' => self::READER_VERSION])->save();
+            // Recorded with the score, so the stratum stays selectable as the
+            // corpus grows rather than needing a backfill each time.
+            $field->forceFill($result + [
+                'score_reader_version' => self::READER_VERSION,
+                'token_confidence' => $this->tokenConfidence->for($field, $page),
+            ])->save();
 
             $result['score_basis'] === 'unlocatable' ? $unlocatable++ : $scored++;
         }

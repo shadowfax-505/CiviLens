@@ -52,6 +52,7 @@ class LimitationsReport
             $this->scriptClassIsNotLanguage(),
             $this->sameFileHeldTwice(),
             $this->fetchedOverPlaintext(),
+            $this->certifiedOnAPoorRead(),
             $this->unlocatable(),
             $this->agreementNeverMeasured(),
         ]));
@@ -253,6 +254,54 @@ class LimitationsReport
                 .'page says the level was borrowed, which is necessary and not sufficient — the '
                 .'claim it borrows is weaker than ADR-018 assumes, because that ADR takes a script '
                 .'pool to be one population and this one is two.',
+        ];
+    }
+
+    /**
+     * @return array{limitation: string, evidence: array<string, mixed>, why_it_matters: string}|null
+     */
+    private function certifiedOnAPoorRead(): ?array
+    {
+        $threshold = (float) config('civiclens.extraction.ocr.accept_token_confidence', 80.0);
+
+        $stratum = ExtractionField::query()
+            ->where('decision', 'accepted')
+            ->whereNotNull('token_confidence')
+            ->where('token_confidence', '<', $threshold);
+
+        $published = (clone $stratum)->count();
+
+        if ($published === 0) {
+            return null;
+        }
+
+        $checked = (clone $stratum)->whereNotNull('is_correct');
+        $judged = (clone $checked)->count();
+        $wrong = (clone $checked)->where('is_correct', false)->count();
+        $interval = $this->clopperPearson->interval($wrong, max(1, $judged), 0.95);
+
+        return [
+            'limitation' => 'Some published figures were read poorly and certified anyway, and almost none have been checked.',
+            'evidence' => [
+                'token_confidence_threshold' => $threshold,
+                'published_below_it' => $published,
+                'of_those_judged' => $judged,
+                'wrong' => $wrong,
+                'error_rate' => $judged > 0 ? round($wrong / $judged, 4) : null,
+                'interval' => $judged > 0
+                    ? ['low' => round($interval['low'], 4), 'high' => round($interval['high'], 4)]
+                    : null,
+            ],
+            'why_it_matters' => 'A value read at low confidence can still certify, because the '
+                .'threshold is fitted on how far the two readings disagree rather than on how '
+                .'clearly either was read — and where both readings agree, they agree. That is the '
+                .'intended behaviour and it is also the least tested part of the guarantee: over '
+                .'labelled values as a whole, tokens below this threshold are wrong 28% of the time '
+                .'against 3.6% above it. Nought wrong of seven sounds like reassurance and is not, '
+                .'because the interval around it runs to 41%. The review screen has an audit mode '
+                .'that draws from this stratum, and those judgements are deliberately kept out of '
+                .'the calibration set and the held-out sample: a targeted draw cannot stand in for '
+                .'a uniform one.',
         ];
     }
 

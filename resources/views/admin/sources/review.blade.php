@@ -74,6 +74,32 @@
         </p>
     @endif
 
+    {{-- Auditing what was already certified, rather than adding to what will be.
+         2,394 published figures were read at a token confidence below 80 and
+         seven of them have ever been checked. --}}
+    <section class="mt-4 flex flex-wrap items-center gap-2" aria-label="What to judge">
+        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mode</span>
+        <a class="cl-chip @if (! $audit && ! $second_opinion) ring-2 ring-slate-900 dark:ring-white @endif"
+           href="{{ route('admin.sources.review') }}">New values</a>
+        <a class="cl-chip @if ($second_opinion) ring-2 ring-slate-900 dark:ring-white @endif"
+           href="{{ route('admin.sources.review', ['second' => 1]) }}">Second opinion</a>
+        <a class="cl-chip @if ($audit) ring-2 ring-slate-900 dark:ring-white @endif"
+           href="{{ route('admin.sources.review', ['audit' => 1]) }}">Audit certified poor reads</a>
+    </section>
+
+    @if ($audit)
+        <p class="mt-3 max-w-3xl rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+            <strong>Auditing values that are already published.</strong> These were read at a token
+            confidence below the acceptance threshold and certified anyway, because the second read
+            agreed with the first. Seven such values have ever been checked and none was wrong, which
+            sounds reassuring and is not: the interval around nought-of-seven runs to 41%.
+            <br>
+            These judgements are kept out of the calibration set and out of the held-out sample, because
+            a targeted draw cannot stand in for a uniform one. They measure the error rate inside this
+            stratum, which is the question worth asking.
+        </p>
+    @endif
+
     {{-- The whole point of the group chips: without a specific group the draw is
          uniform over the corpus, and a group holding 40 of 24,000 candidates is
          unreachable in practice rather than in principle. --}}
@@ -361,6 +387,11 @@
             <form method="POST" action="{{ route('admin.sources.review.store', $item) }}" class="mt-6" x-ref="form">
                 @csrf
                 <input type="hidden" name="verdict" x-ref="verdict" value="correct">
+                {{-- Carries the mode through the post, so an audit judgement is
+                     recorded as one and stays out of the calibration set. --}}
+                @if ($audit)
+                    <input type="hidden" name="audit" value="1">
+                @endif
                 <label class="text-sm font-semibold">Note, if anything needs saying
                     <input class="mt-1 w-full rounded border px-3 py-2 text-slate-950" name="note" maxlength="500">
                 </label>

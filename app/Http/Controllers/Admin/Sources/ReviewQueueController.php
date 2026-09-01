@@ -67,6 +67,21 @@ class ReviewQueueController extends Controller
         // disagreement.
         $second = $request->query('second') !== null;
 
+        // Auditing what was already certified, rather than adding to the
+        // calibration set.
+        //
+        // 2,394 published figures were read at a token confidence below 80, and
+        // the whole labelled evidence for that stratum is seven values, none
+        // wrong — an interval running to 41%. That is not reassurance, it is an
+        // absence of measurement, and it sits exactly where the guarantee is
+        // least tested.
+        //
+        // Drawn uniformly *within* the stratum, and the judgements are kept out
+        // of calibration and out of the realized-rate estimate: a targeted
+        // sample cannot stand in for a uniform one. It measures the error rate
+        // inside its own stratum, which is the question being asked.
+        $audit = $request->query('audit') !== null;
+
         $item = ExtractionField::query()
             ->with(['page', 'tableCell'])
             // One copy of each file. The same document reached the archive from
@@ -90,7 +105,13 @@ class ReviewQueueController extends Controller
             // confident items first would make the calibration set
             // unrepresentative of what the system accepts, and a bound computed
             // from it would be correct arithmetic about the wrong population.
-            ->when(! $second, fn ($query) => $query->whereNull('is_correct')->whereNull('gold_source'))
+            ->when(! $second && ! $audit, fn ($query) => $query->whereNull('is_correct')->whereNull('gold_source'))
+            ->when($audit, fn ($query) => $query
+                ->where('decision', 'accepted')
+                ->whereNotNull('token_confidence')
+                ->where('token_confidence', '<', (float) config('civiclens.extraction.ocr.accept_token_confidence', 80.0))
+                ->whereNull('is_correct')
+                ->whereNull('gold_source'))
             // Narrowing to a group does not weaken that. Exchangeability is
             // required within the group a threshold is fitted on, and
             // calibration is already per publisher and script, so drawing
@@ -131,6 +152,7 @@ class ReviewQueueController extends Controller
             'group' => $group,
             'groups' => $progress['levels'],
             'second_opinion' => $second,
+            'audit' => $audit,
             // How many places on the page carry these characters. One means the
             // crop is the value; several means the reviewer is judging the
             // reading, not which of them was meant; none means the page was read
@@ -274,7 +296,11 @@ class ReviewQueueController extends Controller
             // it should have said is a separate question this screen does not ask.
             'gold_value' => $correct ? $field->extracted_value : null,
             'gold_source' => 'reviewer',
-            'calibration_split' => $this->split(),
+            // An audit judgement is not a draw from the population, so it
+            // belongs to neither the calibration set nor the held-out sample
+            // that estimates the realized rate. Both filter on those two names
+            // explicitly, so a third keeps it out of the bound entirely.
+            'calibration_split' => $request->boolean('audit') ? 'audit' : $this->split(),
             'reviewed_by' => $request->user()->getKey(),
             'reviewed_at' => now(),
         ])->save();

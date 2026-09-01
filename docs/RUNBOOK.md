@@ -151,6 +151,7 @@ php artisan civiclens:generate-review-candidates [--from-cells]
 php artisan civiclens:score-fields [--sync] [--labelled]
 php artisan civiclens:classify-abstentions
 php artisan civiclens:backfill-word-geometry
+php artisan civiclens:backfill-token-confidence [--limit=1000]
 php artisan civiclens:reread-abstained [--limit=100] [--path=abstained]
 php artisan civiclens:prune-candidates [--apply]
 ```
@@ -168,6 +169,11 @@ than one version means a re-score is owed — a score from an older locator
 defers rather than over-accepts, so nothing breaks and nothing complains, and
 the guarantee quietly covers less of the corpus than it appears to.
 Recalibration follows the re-score (ADR-019).
+
+`backfill-token-confidence` records how well each *value* was read, as opposed
+to its page. It reads stored word geometry and recognises nothing, so it costs
+minutes rather than the hours a re-score costs. New scores carry it already;
+this is for the corpus that predates the column.
 
 `reread-abstained` is the way back for pages read before the recognizer could
 straighten a sideways page or judge a value on its own confidence. An abstained
@@ -219,6 +225,19 @@ nothing does.
 
 Then `civiclens:decide-fields` and publish. Judging alone changes nothing that
 is served.
+
+**Three modes.** `New values` is the ordinary draw. `?second=1` re-serves a
+value somebody else already judged, which is the only way
+`civiclens:reviewer-agreement` ever reports anything. `?audit=1` draws from
+figures that are **already published** and were read at a token confidence below
+the acceptance threshold — 2,394 of them, of which seven have ever been checked,
+none wrong, on an interval running to 41%.
+
+Audit judgements are recorded with `calibration_split = audit` and so enter
+neither the calibration set nor the held-out sample. That is deliberate: a
+targeted draw cannot stand in for a uniform one, and mixing it into either would
+make the bound describe a population that was never sampled. It measures the
+error rate inside its own stratum, which is the question it is asking.
 
 ## Certifying
 

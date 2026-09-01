@@ -33,6 +33,7 @@ use App\Services\Extraction\ScoreDiscriminationReport;
 use App\Services\Extraction\SecondReadScorer;
 use App\Services\Extraction\SelectiveOcrService;
 use App\Services\Extraction\TableStructureDetector;
+use App\Services\Extraction\TokenConfidence;
 use App\Services\Extraction\WordGeometryBackfill;
 use App\Services\Ingestion\ArchivedPageLinkHarvester;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
@@ -949,6 +950,38 @@ Artisan::command('civiclens:sources-report {--json}', function (SourceYieldRepor
 
     return 0;
 })->purpose('Report what every registered endpoint produced, and why it produced nothing');
+
+Artisan::command('civiclens:backfill-token-confidence {--limit=0}', function (TokenConfidence $confidence): int {
+    // Reads stored word geometry; recognises nothing. Minutes, not the hours a
+    // re-score costs, because the measurement already exists on the page and
+    // was simply never written down against the value.
+    $limit = (int) $this->option('limit');
+    $filled = 0;
+    $unlocatable = 0;
+
+    ExtractionField::query()
+        ->whereNull('token_confidence')
+        ->with('page:id,recognized_words')
+        ->when($limit > 0, fn ($query) => $query->limit($limit))
+        ->chunkById(1000, function ($fields) use ($confidence, &$filled, &$unlocatable): void {
+            foreach ($fields as $field) {
+                $measured = $confidence->for($field, $field->page);
+
+                if ($measured === null) {
+                    $unlocatable++;
+
+                    continue;
+                }
+
+                $field->forceFill(['token_confidence' => round($measured, 4)])->saveQuietly();
+                $filled++;
+            }
+        });
+
+    $this->line(json_encode(['measured' => $filled, 'no_matching_word' => $unlocatable], JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Record how well each value itself was read, from geometry already stored');
 
 Artisan::command('civiclens:reread-abstained {--limit=0 : Stop after this many, 0 for all} {--path=abstained : Which extraction path to re-read}', function (SelectiveOcrService $ocr): int {
     // The way back for pages read before the recognizer could straighten a
