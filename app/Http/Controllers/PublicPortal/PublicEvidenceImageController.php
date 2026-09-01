@@ -9,6 +9,7 @@ use App\Models\PublicationSnapshot;
 use App\Models\SourceArtifactVersion;
 use App\Services\Extraction\ArtifactWorkspace;
 use App\Services\Extraction\EvidenceImagePainter;
+use App\Services\Extraction\PageFrame;
 use App\Services\Extraction\PageRasterizer;
 use App\Services\Extraction\ValueLocator;
 use Illuminate\Http\Request;
@@ -59,7 +60,7 @@ class PublicEvidenceImageController extends Controller
         // Rendered once per page and kept. Rasterising a PDF page on demand is
         // the most expensive thing this application does, and a public URL that
         // does it per request is a denial of service with extra steps.
-        $cacheKey = 'public-pages/'.$field->extraction_page_id.'.png';
+        $cacheKey = 'public-pages/'.$field->extraction_page_id.'-'.((int) ($page->rotation_applied ?? 0)).'.png';
         $disk = Storage::disk('local');
 
         if ($disk->exists($cacheKey)) {
@@ -83,6 +84,12 @@ class PublicEvidenceImageController extends Controller
                 // adjudicated from that screen.
                 $page->recognized_dpi ?? (int) config('civiclens.extraction.review_page_dpi', 150),
             );
+
+            // The boxes were measured after the page was straightened, so the
+            // raster has to be turned the same way before anything is drawn on
+            // it. Rendering the stored orientation would ring the wrong part of
+            // the page with total confidence.
+            app(PageFrame::class)->align($image, $page);
 
             $png = file_get_contents($image);
 

@@ -9,6 +9,7 @@ use App\Models\SourceArtifactVersion;
 use App\Models\SourcePublisher;
 use App\Services\Extraction\ArtifactWorkspace;
 use App\Services\Extraction\EvidenceImagePainter;
+use App\Services\Extraction\PageFrame;
 use App\Services\Extraction\PageRasterizer;
 use App\Services\Extraction\ValueLocator;
 use Illuminate\Http\Request;
@@ -45,7 +46,12 @@ class ReviewPageImageController extends Controller
     ): Response {
         abort_unless($request->user()?->can('viewAny', SourcePublisher::class) === true, 403);
 
-        $cacheKey = 'review-pages/'.$field->extraction_page_id.'.png';
+        $page = $field->page;
+
+        // The turn is part of the key. An image cached before the page was
+        // straightened is in a different frame from the boxes now drawn on it,
+        // and reusing it would ring the wrong characters from cache.
+        $cacheKey = 'review-pages/'.$field->extraction_page_id.'-'.((int) ($page->rotation_applied ?? 0)).'.png';
         $disk = Storage::disk('local');
         $wantsCrop = $request->boolean('crop');
 
@@ -64,7 +70,6 @@ class ReviewPageImageController extends Controller
 
         try {
             $materialized = $workspace->materialize($artifact);
-            $page = $field->page;
 
             $image = $rasterizer->rasterize(
                 $materialized,
@@ -78,6 +83,12 @@ class ReviewPageImageController extends Controller
                 // adjudicated from that screen.
                 $page->recognized_dpi ?? (int) config('civiclens.extraction.review_page_dpi', 150),
             );
+
+            // The boxes were measured after the page was straightened, so the
+            // raster has to be turned the same way before anything is drawn on
+            // it. Rendering the stored orientation would ring the wrong part of
+            // the page with total confidence.
+            app(PageFrame::class)->align($image, $page);
 
             $png = file_get_contents($image);
 
