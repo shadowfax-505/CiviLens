@@ -11,9 +11,22 @@
     ONE worker. Two against SQLite contend, and the failures look like
     unrelated bugs — see the runbook.
 
-    Queue order matters and is deliberate: the tranches were split so pages
-    holding a value that could not be located are examined first. `court` sits
-    last because judgment fetching is paced by its own agent, not by this queue.
+    Queue order matters and is deliberate.
+
+    `ingestion` first, because reading a document is cheap and finding its
+    tables is not. The 2,490 fetched judgments are almost entirely native text
+    — 15 of 16 pages in the first sampled document, 9 of 9 in the next — so
+    extraction is pdftotext rather than OCR: hours for all of them. Table
+    detection runs about two minutes a page with thousands of pages left.
+    Behind the tables the judgments would wait days; ahead of them, an
+    afternoon.
+
+    Then the table tranches in their own order, chosen so that pages holding a
+    value that could not be located are examined first, since cells are what
+    let such a value be found.
+
+    `court` is absent: judgment fetching is paced by its own agent, not by this
+    queue.
 -->
 <plist version="1.0">
 <dict>
@@ -25,7 +38,7 @@
         <string>/opt/homebrew/bin/php</string>
         <string>artisan</string>
         <string>queue:work</string>
-        <string>--queue=tables,tables-candidates,tables-later,ingestion</string>
+        <string>--queue=ingestion,tables,tables-candidates,tables-later</string>
         <!--
             Recycled hourly rather than run for ever. A long-lived PHP worker
             accumulates memory, and this pipeline has already met three

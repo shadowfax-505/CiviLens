@@ -42,4 +42,15 @@ php artisan civiclens:publish "$LABEL" \
 
 log "post-publish health"
 php artisan civiclens:health
+
+# The worker was unloaded so the re-read and the score pass had the CPU to
+# themselves. Bring it back with ingestion first: 2,490 fetched judgments are
+# almost entirely native text and read in hours, while table detection has
+# thousands of pages left at two minutes each.
+log "restarting the worker, judgments first"
+cp ops/launchd/com.civiclens.queue-worker.plist "$HOME/Library/LaunchAgents/"
+launchctl unload "$HOME/Library/LaunchAgents/com.civiclens.queue-worker.plist" 2>/dev/null
+launchctl load "$HOME/Library/LaunchAgents/com.civiclens.queue-worker.plist"
+sleep 5
+launchctl list | grep civiclens.queue-worker || echo "worker did not start"
 log "done"
