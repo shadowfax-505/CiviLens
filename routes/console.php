@@ -937,6 +937,68 @@ Artisan::command('civiclens:sources-report {--json}', function (SourceYieldRepor
     return 0;
 })->purpose('Report what every registered endpoint produced, and why it produced nothing');
 
+Artisan::command('civiclens:reread-abstained {--limit=0 : Stop after this many, 0 for all} {--path=abstained : Which extraction path to re-read}', function (SelectiveOcrService $ocr): int {
+    // The way back for pages read before the recognizer could straighten a
+    // sideways page or judge a value on its own confidence.
+    //
+    // An abstained page stored no text, so this is the only way to recover one
+    // — and it is why the low-confidence path now keeps what it read, so this
+    // never has to be a full re-OCR of the corpus again.
+    $limitOption = $this->option('limit');
+    $limit = is_numeric($limitOption) ? (int) $limitOption : 0;
+
+    $pathOption = $this->option('path');
+    $path = is_string($pathOption) && $pathOption !== '' ? $pathOption : SelectiveOcrService::ABSTAINED;
+
+    $pages = ExtractionPage::query()
+        ->where('extraction_path', $path)
+        ->orderBy('id')
+        ->when($limit > 0, fn ($query) => $query->limit($limit))
+        ->pluck('id');
+
+    $this->line($pages->count().' pages to re-read.');
+
+    $recovered = 0;
+    $stillEmpty = 0;
+    $failed = 0;
+    $done = 0;
+
+    foreach ($pages as $id) {
+        $page = ExtractionPage::query()->with('run.artifactVersion')->find($id);
+
+        if (! $page instanceof ExtractionPage) {
+            continue;
+        }
+
+        try {
+            $ocr->reread($page);
+
+            $now = (string) $page->fresh()?->extraction_path;
+            $now === SelectiveOcrService::ABSTAINED ? $stillEmpty++ : $recovered++;
+        } catch (Throwable) {
+            // One unreadable artifact is not a broken corpus. Counted so a run
+            // that recovered nothing is distinguishable from one that had
+            // nothing to recover.
+            $failed++;
+        }
+
+        $done++;
+
+        if ($done % 25 === 0) {
+            $this->line(' '.$done.'/'.$pages->count().' — '.$recovered.' now carry text, '.$stillEmpty.' still blank, '.$failed.' failed');
+        }
+    }
+
+    $this->line(json_encode([
+        'reread' => $done,
+        'now_carry_text' => $recovered,
+        'still_blank' => $stillEmpty,
+        'failed' => $failed,
+    ], JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Read pages again that were abstained before the recognizer could straighten or judge them');
+
 Artisan::command('civiclens:fetch-pending {--endpoint=* : Only these endpoint ids} {--limit=0 : Stop after this many, 0 for all} {--rate= : Requests per minute, defaults to the endpoint\'s own limit} {--type=document : Which resource type to fetch; a publisher that answers with pages rather than files needs page}', function (SourceAcquisitionService $acquisition, DiscoveryPacing $clock): int {
     // Paced in one process rather than queued.
     //

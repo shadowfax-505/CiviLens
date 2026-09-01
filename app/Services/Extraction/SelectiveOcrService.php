@@ -83,6 +83,36 @@ class SelectiveOcrService
         return $this->recount($run);
     }
 
+    /**
+     * Read one page again, whatever it was routed to last time.
+     *
+     * `process()` only visits pages still marked as needing OCR, which is right
+     * for a first pass and useless for a second: an abstained page is not
+     * pending, it is finished and empty. This is the way back for the 1,386
+     * pages that were read before the recognizer learned to straighten a
+     * sideways page and before a value could be judged on its own confidence.
+     *
+     * Idempotent. Re-reading a page that now succeeds simply stores the better
+     * result, and re-reading one that still fails leaves it where it was.
+     */
+    public function reread(ExtractionPage $page): void
+    {
+        $run = $page->run;
+        $artifact = $run?->artifactVersion;
+
+        if (! $artifact instanceof SourceArtifactVersion) {
+            throw new ExtractionFailed('Page is not linked to a source artifact.');
+        }
+
+        $artifactPath = $this->workspace->materialize($artifact);
+
+        try {
+            $this->processPage($page, $artifactPath);
+        } finally {
+            $this->workspace->discard($artifactPath);
+        }
+    }
+
     private function processPage(ExtractionPage $page, string $artifactPath): void
     {
         $threshold = (float) config('civiclens.extraction.ocr.accept_confidence', 80.0);
@@ -216,8 +246,9 @@ class SelectiveOcrService
             return null;
         }
 
+        // imagedestroy is deprecated from PHP 8.5 and has done nothing since
+        // 8.0: a GdImage is an object and is collected like one.
         $rotated = @imagerotate($source, -$degrees, 0);
-        imagedestroy($source);
 
         if (! $rotated instanceof \GdImage) {
             return null;
@@ -225,7 +256,6 @@ class SelectiveOcrService
 
         $destination = $imagePath.'.straightened.png';
         $written = @imagepng($rotated, $destination);
-        imagedestroy($rotated);
 
         return $written ? $destination : null;
     }

@@ -151,6 +151,7 @@ php artisan civiclens:generate-review-candidates [--from-cells]
 php artisan civiclens:score-fields [--sync] [--labelled]
 php artisan civiclens:classify-abstentions
 php artisan civiclens:backfill-word-geometry
+php artisan civiclens:reread-abstained [--limit=100] [--path=abstained]
 php artisan civiclens:prune-candidates [--apply]
 ```
 
@@ -167,6 +168,13 @@ than one version means a re-score is owed — a score from an older locator
 defers rather than over-accepts, so nothing breaks and nothing complains, and
 the guarantee quietly covers less of the corpus than it appears to.
 Recalibration follows the re-score (ADR-019).
+
+`reread-abstained` is the way back for pages read before the recognizer could
+straighten a sideways page or judge a value on its own confidence. An abstained
+page stored no text, so re-reading is the only way to recover one — and it is
+why the low-confidence path now *keeps* what it read, so this never has to be a
+full re-OCR of the corpus again. Roughly three seconds a page, and it competes
+with table detection for CPU: pause the worker first.
 
 `fetch-pending` fetches discovered documents in one paced process instead of
 through the queue, and for thousands of documents from one host it is the only
