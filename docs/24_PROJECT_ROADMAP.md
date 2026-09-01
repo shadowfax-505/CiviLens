@@ -59,8 +59,25 @@ and the *name* of a config key, and the value is read at request time and withhe
 from any host outside the allowlist.
 
 ### Extraction
-**1,804 pages**; born-digital text where it exists, OCR (`ben+eng`) where it does
-not, and 388 abstained — attempted and declined, counted rather than hidden.
+
+> Counts here go stale within days and this section has been wrong before.
+> `civiclens:paper-report` regenerates every figure; what follows is the shape,
+> not the arithmetic.
+
+Born-digital text where it exists, OCR (`ben+eng`) where it does not, and pages
+the recognizer declined counted rather than hidden. Since this was written the
+corpus has grown roughly twentyfold — the Supreme Court's High Court Division
+alone contributes about 2,500 judgments, almost entirely native text — and three
+things about reading changed:
+
+- A page stored sideways is straightened before it is read, and the turn is
+  recorded, because the geometry is then in the rotated frame (ADR-023).
+- A page whose *mean* confidence falls short is no longer discarded. Its text is
+  kept, marked uncertified, and each value on it is judged on its own reading.
+  The old behaviour stored nothing at all for 1,386 pages; re-reading them
+  recovered 1,137.
+- A value is counted once however many times its document was extracted, and a
+  document found at two addresses is one document.
 Legacy-font mojibake is detected and routed to OCR. 307 pages across the four
 largest audit reports had been read before that check existed and kept an
 unreadable text layer; `civiclens:reroute-pages` re-read them, and no page in the
