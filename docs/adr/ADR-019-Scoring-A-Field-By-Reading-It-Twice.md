@@ -301,3 +301,26 @@ blind spot this ADR opened with and has not closed. A rule line read as a digit
 by both passes on a single-script page produces two identical readings of a
 figure ten times too large, and nothing here finds it. Only a person looking at
 the page does.
+
+---
+
+## Addendum, 2026-09-01: the statistic this ADR rejected was still the gate
+
+This ADR replaced page-level OCR confidence as a *score*, because it is
+identical for every field on a page and ranks errors at AUC 0.511. It did not
+touch the other place the same number was used: whether a page was read at all.
+
+A page was accepted only if its mean word confidence reached 80, and 1,386 pages
+that fell short stored no text whatsoever. One of them, straightened, had a mean
+of 74.1 and 56 numeric tokens averaging 83.5 — fifty-six figures read well and
+discarded because dot leaders dragged the arithmetic mean under the line.
+
+The measurement that settles it, over 719 labelled values located in the
+geometry: tokens read at 80 or above are wrong 3.6% of the time, which is this
+corpus's reviewer error rate; below 80 they are wrong 28%. **Per-token
+confidence is predictive where the page mean is a coin flip** — the same
+quantity, informative per value and uninformative averaged.
+
+ADR-023 records the change. The lesson for this ADR is narrower and worth
+keeping: rejecting a statistic for one job does not remove it from the others,
+and the gate is a decision about a value's fate exactly as the score is.
