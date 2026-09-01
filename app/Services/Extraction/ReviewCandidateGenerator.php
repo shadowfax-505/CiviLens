@@ -131,6 +131,19 @@ class ReviewCandidateGenerator
         // the locator to find again on the page.
         'case_number' => '/\b(?:Writ Petition|Criminal Appeal|Criminal Revision|Civil Revision|Civil Appeal|Criminal Miscellaneous(?: Case)?|Contempt Petition|First Appeal|Second Appeal)\s+(?:No\.?|Nos\.?)\s*\d[\d,\s]{0,12}\s+of\s+(?:19|20)\d{2}/iu',
 
+        // A precedent, as lawyers cite one: "54 DLR (AD) 111", "15 BLC (AD)
+        // 222". Volume, reporter, division, page — the address of a decision
+        // in a printed law report, and how a judgment points at the authority
+        // it is relying on.
+        //
+        // The reporters are named rather than matched as any capitalised
+        // abbreviation. A generic pattern found "OF" 163 times, out of "No.
+        // 8951 OF 2025", and "PW" 16 times, out of "prosecution witness 3".
+        // Naming them says plainly which reports this recognises, and the ones
+        // listed are those the corpus actually cites: DLR leads with 446
+        // appearances, then BLC, BLD, BLT, MLR.
+        'law_report_citation' => '/\b\d{1,4}\s+(?:DLR|BLC|BLD|BLT|MLR|ALR|ADC|CLR|SCOB|BCR|BSCR|SCC)\s*(?:\((?:AD|HCD|HD|HC|\d{4})\)\s*)*\d{1,4}\b/u',
+
         // "Article 102(2)(a)(ii) of the Constitution", "Section 410 of the Code
         // of Criminal Procedure". 396 of 563 judgments cite a provision this
         // way, and this is what makes registering BD Laws worth the plaintext
@@ -374,7 +387,7 @@ class ReviewCandidateGenerator
         // Case number before the generic reference pattern: "No. 8951 of 2025"
         // would otherwise be harvested as a bare reference and the case would
         // be identified by a fragment of itself.
-        foreach (['case_number', 'statutory_reference', 'date', 'reference', 'organisation', 'amount'] as $kind) {
+        foreach (['case_number', 'law_report_citation', 'statutory_reference', 'date', 'reference', 'organisation', 'amount'] as $kind) {
             if (preg_match_all(self::PATTERNS[$kind], $text, $matches, PREG_OFFSET_CAPTURE) === false) {
                 continue;
             }
@@ -408,7 +421,7 @@ class ReviewCandidateGenerator
                 // Only the two long kinds. The short ones do not span lines,
                 // and normalising them would change candidates the existing
                 // labels were drawn from.
-                if ($kind === 'case_number' || $kind === 'statutory_reference') {
+                if (in_array($kind, ['case_number', 'statutory_reference', 'law_report_citation'], true)) {
                     $value = trim((string) preg_replace('/\s+/u', ' ', $value));
                 }
 

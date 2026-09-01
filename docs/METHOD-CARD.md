@@ -33,8 +33,10 @@ not that it was filed under the wrong heading, not that it sits in the wrong col
   sample of distinct documents — which is what exchangeability requires. Counted from the checksum.
 - **Unit (court records).** Two further kinds, measured over 563 read judgments: the identifier a
   judgment gives itself — `WRIT PETITION NO. 8951 OF 2025` — which 401 of them carry, and the
-  provision it invokes — `Section 410 of the Code of Criminal Procedure` — which 396 carry. Both are
-  short enough to find again on the page, which is what makes them certifiable. What a court *held*
+  provision it invokes — `Section 410 of the Code of Criminal Procedure` — which 396 carry, and the
+  precedents it relies on — `54 DLR (AD) 111` — which 293 carry. All three are short enough to find
+  again on the page, which is what makes them certifiable. The law reports are named rather than
+  matched as any capitalised abbreviation, so what is recognised is stated rather than guessed. What a court *held*
   is a sentence, not a token: it is carried as cited context and is not certified, on the same
   footing as table structure.
 - **Unit.** A numeric token — amount, date, reference number. Audit reports carry no labelled fields:

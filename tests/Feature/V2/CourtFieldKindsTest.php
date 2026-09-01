@@ -63,3 +63,29 @@ it('leaves ordinary audit prose alone', function (): void {
     expect(tokensOfKind($text, 'case_number'))->toBe([])
         ->and(tokensOfKind($text, 'statutory_reference'))->toBe([]);
 });
+
+it('reads a precedent as a lawyer cites one', function (): void {
+    // Volume, reporter, division, page — the address of a decision in a
+    // printed law report, and how a judgment points at the authority it relies
+    // on. 1,196 of them across 293 documents.
+    expect(tokensOfKind('reported in 28 DLR (AD) 38, wherein their lordships held', 'law_report_citation'))
+        ->toBe(['28 DLR (AD) 38'])
+        ->and(tokensOfKind('Society [54 DLR (AD) 111] the Apex Court observed', 'law_report_citation'))
+        ->toBe(['54 DLR (AD) 111']);
+});
+
+it('separates citations a judgment chains together', function (): void {
+    // Judgments give the same decision several addresses at once, joined by
+    // equals signs. Each is a citation in its own right.
+    expect(tokensOfKind('1986 6 BLD (AD) 328= 6 BCR (1986) (AD) 174=38 DLR (AD) 254 wherein', 'law_report_citation'))
+        ->toBe(['6 BLD (AD) 328', '6 BCR (1986) (AD) 174', '38 DLR (AD) 254']);
+});
+
+it('names the reporters rather than matching any abbreviation', function (): void {
+    // A generic pattern for a capitalised abbreviation between two numbers
+    // found "OF" 163 times, out of "No. 8951 OF 2025", and "PW" 16 times, out
+    // of "prosecution witness 3". Naming the reports says plainly which ones
+    // this recognises.
+    expect(tokensOfKind('WRIT PETITION NO. 8951 OF 2025 filed by PW 3 and PW 12 today', 'law_report_citation'))
+        ->toBe([]);
+});
