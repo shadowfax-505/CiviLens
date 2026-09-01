@@ -31,6 +31,12 @@ not that it was filed under the wrong heading, not that it sits in the wrong col
   discovery follows both, so a share of stored artifacts hold a file already held. A duplicated
   document duplicates its candidates, and a calibration set drawn from that pool would not be a
   sample of distinct documents — which is what exchangeability requires. Counted from the checksum.
+- **Unit (court records).** Two further kinds, measured over 563 read judgments: the identifier a
+  judgment gives itself — `WRIT PETITION NO. 8951 OF 2025` — which 401 of them carry, and the
+  provision it invokes — `Section 410 of the Code of Criminal Procedure` — which 396 carry. Both are
+  short enough to find again on the page, which is what makes them certifiable. What a court *held*
+  is a sentence, not a token: it is carried as cited context and is not certified, on the same
+  footing as table structure.
 - **Unit.** A numeric token — amount, date, reference number. Audit reports carry no labelled fields:
   sixty pages were sampled and not one held three label-value pairs. A token is decomposable, so a
   bound over tokens stays valid where a bound over page-level character accuracy would not.

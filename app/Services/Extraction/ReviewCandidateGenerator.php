@@ -124,6 +124,19 @@ class ReviewCandidateGenerator
         //
         // The span ends at a particle. `এর` and `কে` mark the noun before them,
         // so what follows is the sentence resuming rather than more of the name.
+        // A judgment names itself in its first lines: "WRIT PETITION NO. 8951 OF
+        // 2025", "Criminal Revision No.204 of 2007". Measured over 563 read
+        // judgments, 401 of them carry one in this form — the identifier by
+        // which a case is cited, looked up and tracked, and short enough for
+        // the locator to find again on the page.
+        'case_number' => '/\b(?:Writ Petition|Criminal Appeal|Criminal Revision|Civil Revision|Civil Appeal|Criminal Miscellaneous(?: Case)?|Contempt Petition|First Appeal|Second Appeal)\s+(?:No\.?|Nos\.?)\s*\d[\d,\s]{0,12}\s+of\s+(?:19|20)\d{2}/iu',
+
+        // "Article 102(2)(a)(ii) of the Constitution", "Section 410 of the Code
+        // of Criminal Procedure". 396 of 563 judgments cite a provision this
+        // way, and this is what makes registering BD Laws worth the plaintext
+        // exception: a citation stops being a string and becomes resolvable.
+        'statutory_reference' => '/\b(?:Article|Section|Rule|Order)\s+\d+[A-Za-z]?(?:\([^)\n]{1,12}\))*\s+of\s+the\s+[A-Z][A-Za-z0-9\s,\.\-]{3,60}?(?=[,;\.]|\s+(?:and|which|as|is|are|was|were)\b)/u',
+
         'organisation' => '/(?:মেসার্স|মেসাস|M\/S\.?|M\/s\.?)\s+(?:(?!(?:এর|কে|হতে|থেকে|এবং|নং|নামে|নামীয়|at|DT|কর্তৃক|প্রকৃত|বরাবর)\s)[\x{0980}-\x{09FF}A-Za-z][\x{0980}-\x{09FF}A-Za-z0-9.\x{0027}&-]*\s+){0,3}(?!(?:এর|কে|হতে|থেকে|এবং|নং|at|DT)\s)[\x{0980}-\x{09FF}A-Za-z][\x{0980}-\x{09FF}A-Za-z0-9.\x{0027}&-]*/u',
     ];
 
@@ -358,7 +371,10 @@ class ReviewCandidateGenerator
         // Dates first, then references, then amounts. A date claimed as a
         // reference is a mislabelled item a reviewer then has to argue with,
         // and an amount would otherwise swallow half of either.
-        foreach (['date', 'reference', 'organisation', 'amount'] as $kind) {
+        // Case number before the generic reference pattern: "No. 8951 of 2025"
+        // would otherwise be harvested as a bare reference and the case would
+        // be identified by a fragment of itself.
+        foreach (['case_number', 'statutory_reference', 'date', 'reference', 'organisation', 'amount'] as $kind) {
             if (preg_match_all(self::PATTERNS[$kind], $text, $matches, PREG_OFFSET_CAPTURE) === false) {
                 continue;
             }
@@ -382,6 +398,19 @@ class ReviewCandidateGenerator
                 }
 
                 $value = $match[0];
+
+                // A court citation runs across a line break more often than
+                // not — "Writ Petition No. 9477 of\n2016" — and the locator
+                // matches a run of recognised words, which carry no newlines.
+                // Left as captured, every one of these would be unlocatable by
+                // construction and defer by rule without anyone learning why.
+                //
+                // Only the two long kinds. The short ones do not span lines,
+                // and normalising them would change candidates the existing
+                // labels were drawn from.
+                if ($kind === 'case_number' || $kind === 'statutory_reference') {
+                    $value = trim((string) preg_replace('/\s+/u', ' ', $value));
+                }
 
                 if ($kind === 'amount') {
                     $value = $this->withoutResultMarker($value, $text, $match[1]);
