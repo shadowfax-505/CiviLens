@@ -280,3 +280,36 @@ it('shows what was judged beside what the calibration could use', function (): v
 
     $this->get(route('admin.sources.review'))->assertSee('awaiting a re-score');
 });
+
+it('shows a group whose every judgement is unscorable and whose queue is empty', function (): void {
+    // parliament-bangladesh|bn: fifteen values judged, none scorable, nothing
+    // left to judge. It appeared in neither the labelled list nor the unjudged
+    // list, so it appeared nowhere — a reviewer had no way to learn the group
+    // existed, let alone that it is stuck waiting on a re-score. A screen that
+    // omits a group certifying nothing is the same silent narrowing as a report
+    // that omits a zero.
+    ['page' => $page] = publishableDocument();
+
+    foreach (range(1, 3) as $ignored) {
+        certifiedFieldOn($page, 'deferred', [
+            'publisher_group' => 'parliament-bangladesh',
+            'script_class' => 'bn',
+            'gold_source' => 'reviewer',
+            'is_correct' => true,
+            'calibration_split' => 'calibration',
+            'nonconformity_score' => null,
+            'score_basis' => 'unlocatable',
+        ]);
+    }
+
+    $this->actingAs(searchAdminUser());
+
+    $group = collect($this->get(route('admin.sources.review'))->viewData('groups'))
+        ->firstWhere('key', 'parliament-bangladesh|bn');
+
+    expect($group)->not->toBeNull()
+        ->and($group['judged'])->toBe(3)
+        ->and($group['size'])->toBe(0)
+        ->and($group['unscorable'])->toBe(3)
+        ->and($group['waiting'])->toBe(0);
+});

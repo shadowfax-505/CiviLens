@@ -386,6 +386,20 @@ class ReviewQueueController extends Controller
             }
         }
 
+        // Groups where every judgement is unscorable and nothing is left to
+        // judge appear in neither list, so they appeared nowhere at all.
+        //
+        // parliament-bangladesh|bn is one: fifteen values judged, none of them
+        // scorable, no candidates remaining. A reviewer had no way to learn the
+        // group existed, let alone that it is stuck — and a screen that omits a
+        // group certifying nothing is the same silent narrowing as a report
+        // that omits a zero.
+        foreach (array_keys($judged) as $key) {
+            if (! array_key_exists($key, $groups)) {
+                $groups[$key] = 0;
+            }
+        }
+
         $waiting = $unlabelled
             ->mapWithKeys(fn (object $row): array => [
                 (string) $row->publisher_group.'|'.(string) $row->script_class => (int) $row->aggregate,
