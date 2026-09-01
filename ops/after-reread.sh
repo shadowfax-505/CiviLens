@@ -26,5 +26,20 @@ log "calibration"
 php artisan civiclens:calibration-report
 
 log "health"
+if ! php artisan civiclens:health; then
+    log "health reported a problem — NOT publishing"
+    exit 1
+fi
+
+# Published only if health passes. It exits non-zero on drift or breakage, and
+# a snapshot built on a corpus that fails its own checks is worse than a stale
+# one: the stale one is at least consistent.
+LABEL="$(date '+%Y-%m-%d')-recovered"
+log "publishing $LABEL"
+php artisan civiclens:publish "$LABEL" \
+  --notes="Pages that were abstained and stored nothing have been read again: sideways pages straightened, and pages whose mean confidence fell short now kept with each value judged on its own reading rather than the page average. Scores re-taken corpus-wide under the current reader." \
+  --publish
+
+log "post-publish health"
 php artisan civiclens:health
 log "done"
