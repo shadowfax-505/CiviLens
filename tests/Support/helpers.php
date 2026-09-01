@@ -10,6 +10,7 @@ use App\Models\SourceEndpoint;
 use App\Models\User;
 use App\Services\Ingestion\RobotsPolicy;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Process;
 
 if (! function_exists('searchAdminUser')) {
@@ -131,5 +132,23 @@ if (! function_exists('ocrToolchainMissing')) {
         }
 
         return $missing;
+    }
+}
+
+if (! function_exists('scannedArtifact')) {
+    function scannedArtifact(): SourceArtifactVersion
+    {
+        Storage::fake('local');
+        $contents = (string) file_get_contents(base_path('tests/Fixtures/Extraction/scanned-text.pdf'));
+        Storage::disk('local')->put('ingestion/approved/demo/scanned-text.pdf', $contents);
+
+        return SourceArtifactVersion::factory()->create([
+            'storage_disk' => 'local',
+            'storage_path' => 'ingestion/approved/demo/scanned-text.pdf',
+            'media_type' => 'application/pdf',
+            'byte_size' => strlen($contents),
+            'is_quarantined' => false,
+            'malware_status' => 'clean',
+        ]);
     }
 }

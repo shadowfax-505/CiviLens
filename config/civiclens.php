@@ -47,7 +47,23 @@ return [
         'pdftotext_binary' => env('EXTRACTION_PDFTOTEXT_BINARY', 'pdftotext'),
         'pdfinfo_binary' => env('EXTRACTION_PDFINFO_BINARY', 'pdfinfo'),
         'process_timeout_seconds' => (int) env('EXTRACTION_PROCESS_TIMEOUT', 60),
-        'max_pages' => (int) env('EXTRACTION_MAX_PAGES', 500),
+        // A sanity bound on reading a document at all, not a cost control.
+        //
+        // Reading a text layer is pdftotext: a 587-page audit report with one
+        // costs seconds, and the old limit of 500 refused it outright while
+        // letting through a 400-page scan that costs seven hours. Page count
+        // was never the expense — needing OCR is, and that now has its own
+        // limit below.
+        'max_pages' => (int) env('EXTRACTION_MAX_PAGES', 2000),
+
+        // How many pages of one document will be recognised.
+        //
+        // OCR runs about 65 seconds a page here, so a 672-page scan is twelve
+        // hours of one worker for one document. Beyond this the remaining
+        // pages abstain with the reason recorded, which is the difference
+        // between reading most of a document and reading none of it: the whole
+        // run used to fail on the page count and store nothing.
+        'max_ocr_pages' => (int) env('EXTRACTION_MAX_OCR_PAGES', 400),
         'max_bytes' => (int) env('EXTRACTION_MAX_BYTES', 52428800),
         // Characters per square inch below which a page is treated as lacking a usable
         // text layer and routed to OCR. Reported alongside results so the operating

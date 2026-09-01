@@ -54,6 +54,26 @@ class SelectiveOcrService
             return $run;
         }
 
+        // A ceiling on how much of one document will be recognised.
+        //
+        // OCR runs about 65 seconds a page, so a 672-page scan is twelve hours
+        // of the only worker for one document. Refusing the document outright
+        // on its page count — which is what used to happen — stored nothing at
+        // all; reading the first part of it and saying so is strictly better,
+        // and the abstention carries the reason.
+        $ceiling = (int) config('civiclens.extraction.max_ocr_pages', 400);
+
+        if ($pending->count() > $ceiling) {
+            foreach ($pending->slice($ceiling) as $page) {
+                $page->forceFill([
+                    'extraction_path' => self::ABSTAINED,
+                    'failure_reason' => 'Beyond the first '.$ceiling.' pages this document was not recognised; OCR of one document has a ceiling.',
+                ])->save();
+            }
+
+            $pending = $pending->take($ceiling);
+        }
+
         $artifact = $run->artifactVersion;
 
         // Some formats have no page image to fall back on.

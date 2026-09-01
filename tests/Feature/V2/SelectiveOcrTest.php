@@ -24,22 +24,6 @@ function bengaliDataMissing(): bool
     return $missing;
 }
 
-function scannedArtifact(): SourceArtifactVersion
-{
-    Storage::fake('local');
-    $contents = (string) file_get_contents(__DIR__.'/../../Fixtures/Extraction/scanned-text.pdf');
-    Storage::disk('local')->put('ingestion/approved/demo/scanned-text.pdf', $contents);
-
-    return SourceArtifactVersion::factory()->create([
-        'storage_disk' => 'local',
-        'storage_path' => 'ingestion/approved/demo/scanned-text.pdf',
-        'media_type' => 'application/pdf',
-        'byte_size' => strlen($contents),
-        'is_quarantined' => false,
-        'malware_status' => 'clean',
-    ]);
-}
-
 it('routes an image-only pdf to ocr and then accepts it on the primary pass', function (): void {
     config()->set('civiclens.extraction.ocr.primary_dpi', 150);
     config()->set('civiclens.extraction.ocr.accept_confidence', 80.0);
