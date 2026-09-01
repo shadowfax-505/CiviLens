@@ -3,6 +3,7 @@
 use App\Models\DiscoveredResource;
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
+use App\Models\ExtractionRun;
 use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
 use App\Services\Extraction\PaperReport;
@@ -145,4 +146,40 @@ it('counts a file held at two addresses once, and says how many there were', fun
     expect($corpus['documents_acquired'])->toBe(1)
         ->and($corpus['duplication']['artifacts_stored'])->toBe(2)
         ->and($corpus['duplication']['second_copies_of_a_file_already_held'])->toBe(1);
+});
+
+it('counts a page once however many times the document was extracted', function (): void {
+    // A document is extracted again after a router fix, after a format learns
+    // to be read, after a failed run is retried — and every attempt leaves its
+    // pages behind. Counting rows reported 11,162 pages for a corpus of 9,732,
+    // and 244 of the surplus belonged to runs that had failed and would never
+    // be read at all: they sat in the path breakdown as pages awaiting OCR.
+    $artifact = SourceArtifactVersion::factory()->create(['media_type' => 'application/pdf']);
+
+    $failed = ExtractionRun::factory()->create([
+        'source_artifact_version_id' => $artifact->id,
+        'status' => 'failed',
+    ]);
+
+    ExtractionPage::factory()->create([
+        'extraction_run_id' => $failed->id,
+        'page_number' => 1,
+        'extraction_path' => 'ocr_required',
+    ]);
+
+    $current = ExtractionRun::factory()->create([
+        'source_artifact_version_id' => $artifact->id,
+        'status' => 'completed',
+    ]);
+
+    ExtractionPage::factory()->create([
+        'extraction_run_id' => $current->id,
+        'page_number' => 1,
+        'extraction_path' => 'native',
+    ]);
+
+    $extraction = app(PaperReport::class)->build()['extraction'];
+
+    expect($extraction['pages'])->toBe(1)
+        ->and($extraction['by_path'])->toBe(['native' => 1]);
 });

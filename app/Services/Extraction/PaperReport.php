@@ -79,7 +79,7 @@ class PaperReport
      */
     private function abstention(): array
     {
-        $byReason = ExtractionPage::query()
+        $byReason = ExtractionPage::query()->current()
             ->whereNotNull('abstention_reason')
             ->selectRaw('abstention_reason, count(*) as aggregate')
             ->groupBy('abstention_reason')
@@ -91,10 +91,10 @@ class PaperReport
             + ($byReason[AbstentionClassifier::SPARSE] ?? 0);
 
         return [
-            'pages_abstained' => ExtractionPage::query()->where('extraction_path', SelectiveOcrService::ABSTAINED)->count(),
+            'pages_abstained' => ExtractionPage::query()->current()->where('extraction_path', SelectiveOcrService::ABSTAINED)->count(),
             'by_reason' => $byReason,
             'pages_with_nothing_to_read' => $nothingToRead,
-            'unclassified' => ExtractionPage::query()
+            'unclassified' => ExtractionPage::query()->current()
                 ->where('extraction_path', SelectiveOcrService::ABSTAINED)
                 ->whereNull('abstention_reason')
                 ->count(),
@@ -260,8 +260,12 @@ class PaperReport
      */
     private function extraction(): array
     {
-        $pages = ExtractionPage::query()->count();
-        $byPath = ExtractionPage::query()->get(['extraction_path'])->countBy('extraction_path')->all();
+        // Current pages only. A document extracted twice leaves both attempts
+        // behind, and counting rows reported 11,162 pages for a corpus of
+        // 9,732 — with 244 of the surplus belonging to runs that failed and
+        // will never be read.
+        $pages = ExtractionPage::query()->current()->count();
+        $byPath = ExtractionPage::query()->current()->get(['extraction_path'])->countBy('extraction_path')->all();
 
         return [
             'pages' => $pages,
@@ -271,7 +275,7 @@ class PaperReport
             'abstained_share' => $pages === 0
                 ? null
                 : round(((int) ($byPath[SelectiveOcrService::ABSTAINED] ?? 0)) / $pages, 4),
-            'pages_with_word_geometry' => ExtractionPage::query()->whereNotNull('recognized_words')->count(),
+            'pages_with_word_geometry' => ExtractionPage::query()->current()->whereNotNull('recognized_words')->count(),
         ];
     }
 

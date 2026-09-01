@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -45,6 +46,41 @@ class ExtractionPage extends Model
             'tables_detected_at' => 'datetime',
             'ink_coverage' => 'float',
         ];
+    }
+
+    /**
+     * Pages of the run that currently describes each document.
+     *
+     * A document can be extracted more than once — after a router fix, after a
+     * format learned to be read, after a failed run is retried — and every
+     * attempt leaves its pages behind. Counting all of them counts the same
+     * page as many times as it has been read: 11,162 rows against 9,732
+     * documents' worth of pages, and 244 of the surplus were pages of runs that
+     * failed and will never be read at all.
+     *
+     * The same discipline as the canonical-file scope on artifacts. A corpus
+     * figure has to describe the corpus, not the number of times it was
+     * processed.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeCurrent(Builder $query): void
+    {
+        $query->whereIn(
+            'extraction_run_id',
+            ExtractionRun::query()
+                // Failed runs excluded, not merely superseded ones. A run that
+                // failed left its pages behind in whatever state it reached —
+                // 244 of them marked as awaiting an OCR pass that could never
+                // happen — and those are not pages of this corpus.
+                //
+                // A run still in progress is counted: its pages are real work,
+                // and excluding them would make every figure dip while the
+                // pipeline is busy.
+                ->where('status', '!=', 'failed')
+                ->selectRaw('max(id)')
+                ->groupBy('source_artifact_version_id'),
+        );
     }
 
     /** @return BelongsTo<ExtractionRun, self> */
