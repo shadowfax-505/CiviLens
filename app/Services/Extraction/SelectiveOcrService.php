@@ -329,6 +329,17 @@ class SelectiveOcrService
     ): void {
         $page->forceFill([
             'extraction_path' => $path,
+            // The classification of an abstention belongs to the abstention.
+            //
+            // A page that was abstained, classified, and then read on a later
+            // pass kept the old label: 884 pages on the low-confidence path
+            // still carried one, 55 of them reading `blank-page` while holding
+            // text, and 82 pages that now extract cleanly were still marked as
+            // abstentions. The classifier only ever fills the field — it looks
+            // for abstained pages that have none — so nothing was ever going to
+            // clear it. Any report grouping abstentions by reason counted pages
+            // that had stopped abstaining.
+            'abstention_reason' => null,
             // How far the page was turned before it was read. Word geometry is
             // recorded in the rotated frame, so anything drawing a crop on the
             // page image later has to turn it the same way first — a box drawn

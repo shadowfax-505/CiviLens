@@ -3,7 +3,9 @@
 use App\Models\ExtractionPage;
 use App\Services\Extraction\AbstentionClassifier;
 use App\Services\Extraction\ArtifactWorkspace;
+use App\Services\Extraction\NativeExtractionService;
 use App\Services\Extraction\PageRasterizer;
+use App\Services\Extraction\SelectiveOcrService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -108,3 +110,29 @@ it('does not classify the same page twice', function (): void {
 
     expect(app(AbstentionClassifier::class)->classify())->toBe([]);
 });
+
+it('drops the classification when a page stops abstaining', function (): void {
+    // A page abstained, was classified, and was then read on a later pass —
+    // after straightening, or once a value could be judged on its own
+    // confidence. It kept the old label: 884 pages on the low-confidence path
+    // still carried one, 55 of them reading `blank-page` while holding text,
+    // and 82 pages that now extract cleanly were still marked as abstentions.
+    //
+    // The classifier only ever fills the field, looking for abstained pages
+    // that have none, so nothing was ever going to clear it. Any report
+    // grouping abstentions by reason counted pages that had stopped
+    // abstaining.
+    config()->set('civiclens.extraction.ocr.primary_dpi', 150);
+    config()->set('civiclens.extraction.ocr.enhanced_dpi', 300);
+    config()->set('civiclens.extraction.ocr.accept_confidence', 1.0);
+
+    $run = app(NativeExtractionService::class)->extract(scannedArtifact());
+
+    $run->pages()->update(['abstention_reason' => 'blank-page']);
+
+    $run = app(SelectiveOcrService::class)->process($run);
+    $page = $run->pages()->sole();
+
+    expect($page->extraction_path)->not->toBe(SelectiveOcrService::ABSTAINED)
+        ->and($page->abstention_reason)->toBeNull();
+})->skip(fn (): bool => ocrToolchainMissing(), 'poppler or tesseract is not installed');
