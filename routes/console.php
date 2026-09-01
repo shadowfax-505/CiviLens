@@ -560,7 +560,14 @@ Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Sc
         ->whereIn('id', ExtractionField::query()->whereNull('score_basis')->select('extraction_page_id'))
         ->orderBy('id')
         ->limit(max(1, $limit))
-        ->get();
+        // Identifiers, not pages.
+        //
+        // Every page carries its full text and its word geometry, so holding
+        // twelve thousand of them at once exhausted 128 MB after a hundred
+        // pages — the fourth time this pipeline has met that exact shape, and
+        // again because the corpus grew past what the code assumed. The rows
+        // are fetched one at a time inside the loop instead.
+        ->pluck('id');
 
     $pages = $unscored;
 
@@ -572,7 +579,7 @@ Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Sc
     // sat that way unnoticed.
     if ($pages->count() < $limit) {
         $stale = (clone $query)
-            ->whereNotIn('id', $pages->modelKeys())
+            ->whereNotIn('id', $pages->all())
             ->whereIn('id', ExtractionField::query()
                 ->whereNotNull('score_basis')
                 ->where(fn ($field) => $field
@@ -581,7 +588,7 @@ Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Sc
                 ->select('extraction_page_id'))
             ->orderBy('id')
             ->limit(max(1, $limit - $pages->count()))
-            ->get();
+            ->pluck('id');
 
         $pages = $pages->concat($stale);
     }
@@ -591,10 +598,10 @@ Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Sc
     if ($pages->count() < $limit) {
         $pages = $pages->concat(
             (clone $query)
-                ->whereNotIn('id', $pages->modelKeys())
+                ->whereNotIn('id', $pages->all())
                 ->orderBy('id')
                 ->limit(max(1, $limit - $pages->count()))
-                ->get()
+                ->pluck('id')
         );
     }
 
@@ -608,7 +615,13 @@ Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Sc
         $done = 0;
         $total = $pages->count();
 
-        foreach ($pages as $page) {
+        foreach ($pages as $pageId) {
+            $page = ExtractionPage::query()->find($pageId);
+
+            if (! $page instanceof ExtractionPage) {
+                continue;
+            }
+
             $result = $scorer->scorePage($page);
             $scored += $result['scored'];
             $unlocatable += $result['unlocatable'];
@@ -626,8 +639,8 @@ Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Sc
 
     $dispatched = 0;
 
-    $pages->each(function (ExtractionPage $page) use (&$dispatched): void {
-        ScorePageFields::dispatch($page->getKey());
+    $pages->each(function (int $pageId) use (&$dispatched): void {
+        ScorePageFields::dispatch($pageId);
         $dispatched++;
     });
 
