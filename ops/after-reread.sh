@@ -12,9 +12,16 @@ set -eu
 cd "$(dirname "$0")/.."
 log() { printf '\n=== %s %s\n' "$(date '+%H:%M:%S')" "$1"; }
 
-until ! pgrep -f "[r]eread-abstained" >/dev/null; do sleep 60; done
-log "re-read finished"
-tail -1 storage/logs/reread-abstained.log
+# Wait only if a re-read is actually in flight. Written as a wait-for-process,
+# this blocked for hours on stale shells whose own command lines contained the
+# pattern it grepped for — so the check is now "is one running right now", and
+# a chain started after the re-read has finished simply proceeds.
+if pgrep -x "php" -f "civiclens:reread-abstained" >/dev/null 2>&1; then
+    log "waiting for the re-read in flight"
+    while pgrep -x "php" -f "civiclens:reread-abstained" >/dev/null 2>&1; do sleep 60; done
+    log "re-read finished"
+    tail -1 storage/logs/reread-abstained.log
+fi
 
 log "generating candidates"
 php artisan civiclens:generate-review-candidates --limit=12000
