@@ -20,6 +20,18 @@ class SelectiveOcrService
 
     public const ABSTAINED = 'abstained';
 
+    /**
+     * Read, kept, and not certified.
+     *
+     * A page whose mean word confidence never reached the threshold used to
+     * store nothing at all, so recovering it meant recognising the whole thing
+     * again. Its text is now kept and plainly marked: searchable, available to a
+     * better recognizer later, and excluded from candidates so none of it enters
+     * the guarantee. Blank pages still abstain outright — there is nothing to
+     * keep.
+     */
+    public const LOW_CONFIDENCE = 'ocr_low_confidence';
+
     public function __construct(
         private readonly OcrEngine $engine,
         private readonly PageRasterizer $rasterizer,
@@ -88,47 +100,134 @@ class SelectiveOcrService
             return;
         }
 
+        // The enhanced pass also straightens the page.
+        //
+        // A landscape form or budget table printed on a portrait page reaches
+        // OCR sideways and comes back as gibberish. Six pages in a
+        // twenty-four-page sample of readable-but-abstained pages needed a
+        // quarter turn; rotating and re-reading lifted mean confidence by
+        // twenty to twenty-seven points and roughly doubled the recovered text.
+        //
+        // Only on the second pass, so a page the primary read fine never pays
+        // for orientation detection.
         $enhanced = $this->attempt(
             $artifactPath,
             $page->page_number,
             (int) config('civiclens.extraction.ocr.enhanced_dpi', 300),
             (int) config('civiclens.extraction.ocr.enhanced_psm', 6),
+            straighten: true,
+            rotationApplied: $rotation,
         );
 
         $elapsed = $primary->durationMs + $enhanced->durationMs;
 
         if ($enhanced->isConfident($threshold)) {
-            $this->store($page, $enhanced, self::ENHANCED, $elapsed);
+            $this->store($page, $enhanced, self::ENHANCED, $elapsed, $rotation);
 
             return;
         }
 
-        // Keep the better of the two confidences on the abstention so the
-        // calibration record shows how close the page came, but store no text.
         $best = $this->betterOf($primary, $enhanced);
 
-        $page->forceFill([
-            'extraction_path' => self::ABSTAINED,
-            'confidence' => $best->meanConfidence,
-            'script_class' => $this->scripts->classify($best->text),
-            'extracted_text' => null,
-            'content_hash' => null,
-            'character_count' => 0,
-            'word_count' => 0,
-            'duration_ms' => $elapsed,
-            'failure_reason' => 'Confidence remained below the acceptance threshold after one enhanced pass.',
-        ])->save();
+        // Nothing on the page worth keeping. Ink coverage and the abstention
+        // classifier already tell a blank page from a badly printed one, and a
+        // blank page's text is an empty string however hard it is read.
+        if (trim($best->text) === '') {
+            $page->forceFill([
+                'extraction_path' => self::ABSTAINED,
+                'confidence' => $best->meanConfidence,
+                'script_class' => $this->scripts->classify($best->text),
+                'extracted_text' => null,
+                'content_hash' => null,
+                'character_count' => 0,
+                'word_count' => 0,
+                'duration_ms' => $elapsed,
+                'failure_reason' => 'Nothing legible on the page after one enhanced pass.',
+            ])->save();
+
+            return;
+        }
+
+        // Read but not vouched for. The mean is a page-level statistic and the
+        // guarantee is per field: on one page measured here the mean was 74.1
+        // while its 56 numeric tokens averaged 83.5, so discarding the page
+        // threw away fifty-six figures that were read well. The text is kept
+        // and marked; whether any individual value is good enough to offer a
+        // reviewer is decided per token, where that question belongs.
+        $this->store(
+            $page,
+            $best,
+            self::LOW_CONFIDENCE,
+            $elapsed,
+            $best === $enhanced ? $rotation : null,
+            'Confidence remained below the acceptance threshold after one enhanced pass.',
+        );
     }
 
-    private function attempt(string $artifactPath, int $pageNumber, int $dpi, int $psm): OcrPageResult
-    {
+    private function attempt(
+        string $artifactPath,
+        int $pageNumber,
+        int $dpi,
+        int $psm,
+        bool $straighten = false,
+        ?int &$rotationApplied = null,
+    ): OcrPageResult {
         $imagePath = $this->rasterizer->rasterize($artifactPath, $pageNumber, $dpi);
+        $straightened = null;
 
         try {
-            return $this->engine->recognize($imagePath, $dpi, $psm);
+            if ($straighten) {
+                $degrees = $this->engine->detectRotation($imagePath);
+                $straightened = $degrees === null ? null : $this->rotate($imagePath, $degrees);
+
+                if ($straightened !== null) {
+                    $rotationApplied = $degrees;
+                }
+            }
+
+            return $this->engine->recognize($straightened ?? $imagePath, $dpi, $psm);
         } finally {
+            if ($straightened !== null) {
+                @unlink($straightened);
+            }
+
             $this->rasterizer->discard($imagePath);
         }
+    }
+
+    /**
+     * A turned copy of the page image, or null if it could not be made.
+     *
+     * GD rather than ImageMagick: `imagerotate` is already a dependency — the
+     * second read works on `GdImage` — and this machine has no `magick`
+     * binary. A rotation that fails returns null and the page is read as
+     * stored, which is what happened before any of this existed.
+     *
+     * GD rotates anticlockwise and Tesseract reports the clockwise turn needed,
+     * hence the negation. Getting this backwards would turn a sideways page
+     * further sideways, and it would look like the rotation had simply not
+     * helped.
+     */
+    private function rotate(string $imagePath, int $degrees): ?string
+    {
+        $source = @imagecreatefrompng($imagePath);
+
+        if (! $source instanceof \GdImage) {
+            return null;
+        }
+
+        $rotated = @imagerotate($source, -$degrees, 0);
+        imagedestroy($source);
+
+        if (! $rotated instanceof \GdImage) {
+            return null;
+        }
+
+        $destination = $imagePath.'.straightened.png';
+        $written = @imagepng($rotated, $destination);
+        imagedestroy($rotated);
+
+        return $written ? $destination : null;
     }
 
     private function betterOf(OcrPageResult $first, OcrPageResult $second): OcrPageResult
@@ -136,10 +235,23 @@ class SelectiveOcrService
         return ($second->meanConfidence ?? -1.0) > ($first->meanConfidence ?? -1.0) ? $second : $first;
     }
 
-    private function store(ExtractionPage $page, OcrPageResult $result, string $path, int $elapsed): void
-    {
+    private function store(
+        ExtractionPage $page,
+        OcrPageResult $result,
+        string $path,
+        int $elapsed,
+        ?int $rotation = null,
+        ?string $reason = null,
+    ): void {
         $page->forceFill([
             'extraction_path' => $path,
+            // How far the page was turned before it was read. Word geometry is
+            // recorded in the rotated frame, so anything drawing a crop on the
+            // page image later has to turn it the same way first — a box drawn
+            // in the wrong frame is the shape of bug that produced a one-pixel
+            // crop earlier in this project.
+            'rotation_applied' => $rotation,
+            'failure_reason' => $reason,
             'confidence' => $result->meanConfidence,
             'script_class' => $this->scripts->classify($result->text),
             'extracted_text' => $result->text,
@@ -164,7 +276,6 @@ class SelectiveOcrService
             'character_count' => mb_strlen($result->text),
             'word_count' => $result->wordCount,
             'duration_ms' => $elapsed,
-            'failure_reason' => null,
         ])->save();
     }
 

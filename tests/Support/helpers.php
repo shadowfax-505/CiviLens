@@ -10,6 +10,7 @@ use App\Models\SourceEndpoint;
 use App\Models\User;
 use App\Services\Ingestion\RobotsPolicy;
 use Illuminate\Support\Facades\Cache;
+use Symfony\Component\Process\Process;
 
 if (! function_exists('searchAdminUser')) {
     function searchAdminUser(): User
@@ -100,5 +101,35 @@ if (! function_exists('publishableDocument')) {
             'publisher_group' => 'dgcivil-bangladesh',
             'script_class' => 'bn',
         ], $overrides));
+    }
+}
+
+if (! function_exists('ocrToolchainMissing')) {
+    /**
+     * Poppler and Tesseract are real runtime dependencies that CI installs and
+     * verifies. These guards only spare a local machine that lacks them; they cannot
+     * hide missing coverage on CI, where the toolchain step fails outright.
+     */
+    function ocrToolchainMissing(): bool
+    {
+        static $missing = null;
+
+        if ($missing === null) {
+            $missing = false;
+
+            foreach ([
+                (string) config('civiclens.extraction.ocr.pdftoppm_binary', 'pdftoppm'),
+                (string) config('civiclens.extraction.ocr.tesseract_binary', 'tesseract'),
+            ] as $binary) {
+                $process = new Process([$binary, $binary === 'tesseract' ? '--version' : '-v']);
+                $process->run();
+
+                if (! $process->isSuccessful()) {
+                    $missing = true;
+                }
+            }
+        }
+
+        return $missing;
     }
 }

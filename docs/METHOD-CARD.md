@@ -52,6 +52,9 @@ not that it was filed under the wrong heading, not that it sits in the wrong col
   never corrected — which reading is right is exactly what neither pass can tell us.
 - **Labels.** Reviewer adjudication is the only admissible label (ADR-016). "Can't tell" is recorded
   and excluded rather than coerced into a verdict.
+- **Orientation.** A landscape page stored portrait is read sideways and comes back as gibberish. The
+  enhanced pass detects the turn and straightens the image first; the rotation applied is recorded,
+  because the word geometry is then in the rotated frame and any crop drawn later has to agree.
 - **Sampling.** Uniform at random, never by confidence. Queueing the most confident items first would
   make the calibration set unrepresentative of what the system accepts.
 
@@ -80,8 +83,17 @@ claim's description.
 - **Values that cannot be located.** A field whose characters cannot be found again on its page
   carries no score, is always deferred, and is excluded from calibration. It is never accepted, so it
   cannot contribute to the bound — but it is also never covered by it. The share is reported.
-- **Pages the recognizer abstained on.** Attempted and declined; no text is stored and nothing from
-  them is certified.
+- **Pages the recognizer abstained on.** A page with nothing legible on it: attempted, declined, no
+  text stored, nothing certified.
+- **Pages read but not vouched for.** A page whose mean word confidence never reached the threshold
+  keeps its text, marked, and offers only those values whose *own* token confidence clears it. The
+  page-level mean is a poor judge of an individual value — ADR-019 measured it at AUC 0.511 for
+  ranking errors — and it was deciding whether a page was read at all. On one measured page the mean
+  was 74.1 while its 56 numeric tokens averaged 83.5. The token threshold is fitted, not chosen: over
+  719 labelled values located in the geometry, tokens read at 80 or above were wrong 3.6% of the
+  time, matching the corpus reviewer error rate, and tokens below 80 were wrong 28% of the time.
+  **Values recovered this way are a different population from the one the current thresholds were
+  fitted on, so they are candidates until their group is labelled afresh.**
 - **Values the two readings dispute in a way that changes the number.** See the deferral rules
   above. Like an unlocatable value, such a field is never accepted, so it cannot contribute to the
   bound — and is equally not covered by it. The counts are reported.

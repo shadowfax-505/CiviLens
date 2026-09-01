@@ -66,6 +66,54 @@ class TesseractOcrEngine implements OcrEngine
     }
 
     /**
+     * How far this page is turned, in degrees clockwise, or null if unknown.
+     *
+     * A landscape form or budget table printed on a portrait page reaches OCR
+     * at its stored orientation, which is sideways. Tesseract reads it as
+     * gibberish and the page abstains: in a sample of readable-but-abstained
+     * pages, six in twenty-four needed a quarter turn and one needed a half.
+     * Rotating and re-reading four of them lifted mean confidence by twenty to
+     * twenty-seven points and roughly doubled the recovered text.
+     *
+     * `--psm 0` runs orientation and script detection only. It is far cheaper
+     * than recognition and it declines to answer on a page with too little
+     * text, which is why the return is nullable rather than a confident zero.
+     *
+     * The reported confidence is not a percentage — it is a ratio Tesseract
+     * computes between the best and second-best orientation, typically between
+     * 0 and 15. A low one means the page is nearly as plausible upside down,
+     * and acting on that would turn upright pages over.
+     */
+    public function detectRotation(string $imagePath, float $minimumConfidence = 1.5): ?int
+    {
+        try {
+            $output = $this->run([
+                $this->binary(),
+                $imagePath,
+                '-',
+                '--psm', '0',
+            ]);
+        } catch (ExtractionFailed) {
+            // Too little text to judge. Not an error: most such pages are the
+            // blank and almost-blank ones that abstain correctly anyway.
+            return null;
+        }
+
+        if (preg_match('/Rotate: (\d+)/', $output, $rotation) !== 1) {
+            return null;
+        }
+
+        if (preg_match('/Orientation confidence: ([\d.]+)/', $output, $confidence) === 1
+            && (float) $confidence[1] < $minimumConfidence) {
+            return null;
+        }
+
+        $degrees = (int) $rotation[1] % 360;
+
+        return $degrees === 0 ? null : $degrees;
+    }
+
+    /**
      * Tesseract emits one TSV row per layout element; only rows carrying both a
      * non-negative confidence and non-empty text are recognized words. Structural
      * rows report -1 and would drag any mean toward nonsense if averaged in.

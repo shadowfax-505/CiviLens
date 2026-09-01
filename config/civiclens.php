@@ -83,6 +83,15 @@ return [
             // exactly one enhanced pass is permitted; still below, the page abstains to
             // manual review rather than publishing text nobody vouched for.
             'accept_confidence' => (float) env('EXTRACTION_OCR_ACCEPT_CONFIDENCE', 80.0),
+
+            // The same number, applied to a token rather than to a page.
+            //
+            // Measured on 719 labelled values located in the word geometry:
+            // tokens read at 80 or above were wrong 3.6% of the time, which is
+            // the corpus-wide reviewer error rate, and tokens below 80 were
+            // wrong 28% of the time. Page-level mean confidence ranks errors at
+            // AUC 0.511 (ADR-019); per-token confidence does not.
+            'accept_token_confidence' => (float) env('EXTRACTION_OCR_ACCEPT_TOKEN_CONFIDENCE', 80.0),
             'timeout_seconds' => (int) env('EXTRACTION_OCR_TIMEOUT', 120),
         ],
 

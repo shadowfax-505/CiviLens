@@ -283,6 +283,22 @@ class ReviewCandidateGenerator
                 }
 
                 foreach ($this->tokens((string) $page->extracted_text) as $token) {
+                    // On a page the recognizer would not vouch for as a whole,
+                    // each value has to earn its own place.
+                    //
+                    // The page-level mean is a coin flip at ranking errors —
+                    // ADR-019 measured AUC 0.511 — but the *token's own*
+                    // confidence is strongly predictive. Across 719 labelled
+                    // values located in the geometry, tokens read at 80 or above
+                    // were wrong 3.6% of the time, which is the corpus reviewer
+                    // rate; below 80 they were wrong 28% of the time. So the
+                    // threshold of 80 was never the wrong number. It was applied
+                    // to the page instead of to the value.
+                    if ($page->extraction_path === SelectiveOcrService::LOW_CONFIDENCE
+                        && ! $this->tokenReadWell($page, $token['value'])) {
+                        continue;
+                    }
+
                     if (ExtractionField::query()
                         ->where('extraction_page_id', $page->getKey())
                         ->where('evidence_offset_start', $token['start'])
@@ -458,6 +474,40 @@ class ReviewCandidateGenerator
      * up, and a bracketed figure summed as positive is a sign error in the
      * arithmetic rather than in the reading.
      */
+    /**
+     * Whether some word carrying this value was read confidently.
+     *
+     * Applied only to pages on the low-confidence path. Pages that cleared the
+     * page-level gate keep the candidates they always had: changing what those
+     * pages yield would change the population the existing labels were drawn
+     * from, and the bound would then be fitted on one corpus and applied to
+     * another.
+     */
+    private function tokenReadWell(ExtractionPage $page, string $value): bool
+    {
+        $words = $page->recognized_words;
+
+        if (! is_array($words) || $words === []) {
+            // No geometry to judge by. A page read before word boxes were
+            // stored should not be silently promoted on the strength of a
+            // measurement nobody took.
+            return false;
+        }
+
+        $minimum = (float) config('civiclens.extraction.ocr.accept_token_confidence', 80.0);
+        $value = trim($value);
+
+        foreach ($words as $word) {
+            $text = trim((string) ($word['t'] ?? ''));
+
+            if ($text !== '' && mb_strpos($text, $value) !== false && (float) ($word['c'] ?? 0) >= $minimum) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function normalisedAmount(string $value): ?string
     {
         // A comma that does not group thousands is most likely a decimal point

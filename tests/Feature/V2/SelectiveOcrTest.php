@@ -11,34 +11,6 @@ use Symfony\Component\Process\Process;
 
 uses(RefreshDatabase::class);
 
-/**
- * Poppler and Tesseract are real runtime dependencies that CI installs and
- * verifies. These guards only spare a local machine that lacks them; they cannot
- * hide missing coverage on CI, where the toolchain step fails outright.
- */
-function ocrToolchainMissing(): bool
-{
-    static $missing = null;
-
-    if ($missing === null) {
-        $missing = false;
-
-        foreach ([
-            (string) config('civiclens.extraction.ocr.pdftoppm_binary', 'pdftoppm'),
-            (string) config('civiclens.extraction.ocr.tesseract_binary', 'tesseract'),
-        ] as $binary) {
-            $process = new Process([$binary, $binary === 'tesseract' ? '--version' : '-v']);
-            $process->run();
-
-            if (! $process->isSuccessful()) {
-                $missing = true;
-            }
-        }
-    }
-
-    return $missing;
-}
-
 function bengaliDataMissing(): bool
 {
     static $missing = null;
@@ -125,7 +97,15 @@ it('abstains rather than storing text it cannot vouch for', function (): void {
         ->and($run->pages_abstained)->toBe(1);
 })->skip(fn (): bool => ocrToolchainMissing(), 'poppler or tesseract is not installed');
 
-it('abstains when the threshold is unreachable even though text was recognized', function (): void {
+it('keeps the text when the threshold is unreachable, and does not certify it', function (): void {
+    // This used to abstain and store nothing, so recovering the page meant
+    // recognising it again — and 1,386 pages were in that state. The mean is a
+    // page-level statistic while the guarantee is per field: on one measured
+    // page the mean was 74.1 while its 56 numeric tokens averaged 83.5, so
+    // discarding the page threw away fifty-six figures that were read well.
+    //
+    // Kept, marked, and not certified. Whether any individual value is good
+    // enough to offer a reviewer is decided per token.
     config()->set('civiclens.extraction.ocr.primary_dpi', 150);
     config()->set('civiclens.extraction.ocr.enhanced_dpi', 300);
     config()->set('civiclens.extraction.ocr.accept_confidence', 99.9);
@@ -135,10 +115,14 @@ it('abstains when the threshold is unreachable even though text was recognized',
     );
     $page = $run->pages()->sole();
 
-    expect($page->extraction_path)->toBe(SelectiveOcrService::ABSTAINED)
-        ->and($page->extracted_text)->toBeNull()
+    expect($page->extraction_path)->toBe(SelectiveOcrService::LOW_CONFIDENCE)
+        ->and($page->extraction_path)->not->toBe(SelectiveOcrService::ABSTAINED)
+        ->and($page->extracted_text)->not->toBeNull()
         ->and($page->confidence)->toBeGreaterThan(80.0)
-        ->and($page->confidence)->toBeLessThan(99.9);
+        ->and($page->confidence)->toBeLessThan(99.9)
+        // The reason it fell short travels with it, so a later reader knows
+        // this is a page the recognizer declined rather than one nobody tried.
+        ->and($page->failure_reason)->toContain('below the acceptance threshold');
 })->skip(fn (): bool => ocrToolchainMissing(), 'poppler or tesseract is not installed');
 
 it('leaves a fully native run untouched', function (): void {
