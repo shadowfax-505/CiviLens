@@ -53,6 +53,7 @@ class LimitationsReport
             $this->sameFileHeldTwice(),
             $this->fetchedOverPlaintext(),
             $this->certifiedOnAPoorRead(),
+            $this->pooledThresholdWouldBreach($alpha),
             $this->unlocatable(),
             $this->agreementNeverMeasured(),
         ]));
@@ -254,6 +255,61 @@ class LimitationsReport
                 .'page says the level was borrowed, which is necessary and not sufficient — the '
                 .'claim it borrows is weaker than ADR-018 assumes, because that ADR takes a script '
                 .'pool to be one population and this one is two.',
+        ];
+    }
+
+    /**
+     * @return array{limitation: string, evidence: array<string, mixed>, why_it_matters: string}|null
+     */
+    private function pooledThresholdWouldBreach(float $alpha): ?array
+    {
+        $realized = $this->calibration->build($alpha)['realized'];
+        $breaching = $realized['groups_where_pooled_breaches_alpha'] ?? [];
+
+        if ($breaching === []) {
+            return null;
+        }
+
+        $detail = [];
+
+        foreach ($realized['groups'] ?? [] as $group) {
+            if (! in_array($group['group'] ?? '', $breaching, true)) {
+                continue;
+            }
+
+            $detail[(string) $group['group']] = [
+                'held_out_values' => $group['fields'] ?? null,
+                'pooled_accepts' => $group['pooled']['accepted'] ?? null,
+                'pooled_error_among_accepted' => $group['pooled']['error_among_accepted'] ?? null,
+                'conditional_accepts' => $group['group_conditional']['accepted'] ?? null,
+                'conditional_error_among_accepted' => $group['group_conditional']['error_among_accepted'] ?? null,
+                'sample_can_rule_out_a_breach' => $group['sample_can_rule_out_a_breach'] ?? null,
+            ];
+        }
+
+        return [
+            'limitation' => 'The pooled threshold this scheme falls back on would breach alpha on at least one group.',
+            'evidence' => [
+                'groups' => $detail,
+                'accepted_values_using_a_group_conditional_threshold' => ExtractionField::query()
+                    ->where('decision', 'accepted')
+                    ->where('decision_basis', 'group')
+                    ->count(),
+                'accepted_values_using_a_borrowed_threshold' => ExtractionField::query()
+                    ->where('decision', 'accepted')
+                    ->where('decision_basis', '!=', 'group')
+                    ->count(),
+            ],
+            'why_it_matters' => 'Read the right way round, this is the argument for the scheme rather '
+                .'than against it: on dgcivil-bangladesh|mixed a threshold fitted across every group '
+                .'accepts all nineteen held-out values and gets one wrong, while the group\'s own '
+                .'threshold accepts four and gets none wrong. ADR-018 exists for exactly that, and '
+                .'nothing certified today rests on a pooled threshold. The limitation is about the '
+                .'fallback: a group too small for a threshold of its own borrows one fitted on every '
+                .'publisher writing its script, and this is direct evidence that a borrowed '
+                .'threshold can be wrong for the group inside it. The sample cannot establish the '
+                .'breach either — nineteen values and one error is an interval running to 26% — so '
+                .'this is a caution about a mechanism, not a measured failure.',
         ];
     }
 

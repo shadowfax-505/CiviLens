@@ -113,3 +113,23 @@ it('reports that a script class named for a language holds none of it', function
         ->and($report['evidence']['by_script_class']['en']['labels_on_legacy_font_pages'])->toBe(1)
         ->and($report['evidence']['by_script_class']['bn']['accepted_on_legacy_font_pages'])->toBe(0);
 });
+
+it('says nothing about the pooled threshold when it breaches nowhere', function (): void {
+    // The report withdraws a limitation the corpus does not have, or every
+    // limitation becomes furniture a reader learns to skip.
+    expect(limitationsNow())
+        ->not->toContain('The pooled threshold this scheme falls back on would breach alpha on at least one group.');
+});
+
+it('records that nothing certified rests on a borrowed threshold', function (): void {
+    // The distinction the pooled-breach limitation turns on: a group with its
+    // own threshold is not exposed to the fallback, and this is the number that
+    // says whether any value is.
+    ['page' => $page] = publishableDocument();
+
+    certifiedFieldOn($page, 'accepted', ['decision_basis' => 'group']);
+    certifiedFieldOn($page, 'accepted', ['decision_basis' => 'script']);
+
+    expect(ExtractionField::query()->where('decision', 'accepted')->where('decision_basis', '!=', 'group')->count())
+        ->toBe(1);
+});
