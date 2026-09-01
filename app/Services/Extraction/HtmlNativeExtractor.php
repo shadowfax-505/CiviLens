@@ -50,6 +50,7 @@ class HtmlNativeExtractor implements NativeTextExtractor
             throw new ExtractionFailed('Native extraction could not read the document.');
         }
 
+        $html = $this->asUtf8($html);
         $text = trim($html) === '' ? '' : $this->toText($html);
 
         return new NativeExtractionResult(
@@ -63,6 +64,48 @@ class HtmlNativeExtractor implements NativeTextExtractor
             '1',
             (int) round((microtime(true) - $startedAt) * 1000),
         );
+    }
+
+    /**
+     * The document as UTF-8, whatever it arrived as.
+     *
+     * `bdlaws.minlaw.gov.bd` — the government's legal database, holding the
+     * Constitution and every Act — serves UTF-16. DOMDocument reads bytes as
+     * single-byte text, meets the byte-order mark, and stops: a 2.5 MB page of
+     * statute yielded **two characters**, which is the BOM rendered as Latin-1.
+     *
+     * The damage was not confined to losing the text. Two characters is a thin
+     * text layer, so routing sent the page to OCR, and OCR tried to rasterise
+     * HTML with pdftoppm — which cannot work, so the whole extraction run
+     * failed and took its other pages with it. 200 runs were in that state.
+     *
+     * Detected from the byte-order mark rather than from a declared charset: a
+     * page that lies about its encoding in a meta tag is common, and a BOM is
+     * the encoding announcing itself.
+     */
+    private function asUtf8(string $html): string
+    {
+        $prefix = substr($html, 0, 2);
+
+        $encoding = match (true) {
+            $prefix === "\xFE\xFF" => 'UTF-16BE',
+            $prefix === "\xFF\xFE" => 'UTF-16LE',
+            default => null,
+        };
+
+        if ($encoding === null) {
+            return $html;
+        }
+
+        $converted = @mb_convert_encoding($html, 'UTF-8', $encoding);
+
+        if (! is_string($converted) || $converted === '') {
+            return $html;
+        }
+
+        // The mark survives conversion as U+FEFF and would otherwise be the
+        // first character of every extracted page.
+        return ltrim($converted, "\u{FEFF}");
     }
 
     private function toText(string $html): string

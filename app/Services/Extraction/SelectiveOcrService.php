@@ -56,6 +56,28 @@ class SelectiveOcrService
 
         $artifact = $run->artifactVersion;
 
+        // Some formats have no page image to fall back on.
+        //
+        // A thin text layer means "send it to OCR", and OCR means rasterise the
+        // page — which pdftoppm can only do for a PDF. An HTML page with little
+        // text was therefore handed to a rasterizer that cannot read it, the
+        // exception failed the whole run, and every other page in that run was
+        // lost with it. 200 runs sat failed that way, 99 of them the statute
+        // pages of the government's legal database.
+        //
+        // There is nothing to read and that is a result, not a breakage: the
+        // page abstains, with the reason recorded, and the run completes.
+        if ($artifact instanceof SourceArtifactVersion && ! $this->rasterizable($artifact)) {
+            foreach ($pending as $page) {
+                $page->forceFill([
+                    'extraction_path' => self::ABSTAINED,
+                    'failure_reason' => 'No page image exists for this format, and the text layer was too thin to use.',
+                ])->save();
+            }
+
+            return $this->recount($run);
+        }
+
         if (! $artifact instanceof SourceArtifactVersion) {
             throw new ExtractionFailed('Extraction run is not linked to a source artifact.');
         }
@@ -111,6 +133,18 @@ class SelectiveOcrService
         } finally {
             $this->workspace->discard($artifactPath);
         }
+    }
+
+    /**
+     * Whether this format has page images at all.
+     *
+     * Word documents count: `ArtifactWorkspace` renders them to PDF on the way
+     * out, so by the time a rasterizer sees one it is a PDF (ADR-022).
+     */
+    private function rasterizable(SourceArtifactVersion $artifact): bool
+    {
+        return strtolower((string) $artifact->media_type) === 'application/pdf'
+            || in_array(strtolower((string) $artifact->media_type), WordDocumentConverter::MEDIA_TYPES, true);
     }
 
     private function processPage(ExtractionPage $page, string $artifactPath): void
