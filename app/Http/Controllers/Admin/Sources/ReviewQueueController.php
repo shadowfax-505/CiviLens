@@ -312,7 +312,7 @@ class ReviewQueueController extends Controller
     }
 
     /**
-     * @return array{adjudicated: int, remaining: int, groups: array<string, int>, minimum: int, levels: list<array{key: string, size: int, alpha: float, at_target: bool, waiting: int, to_target: int, best_possible_alpha: float, remaining_effort: int}>, ceiling: float}
+     * @return array{adjudicated: int, remaining: int, groups: array<string, int>, minimum: int, levels: list<array{key: string, size: int, alpha: float, at_target: bool, waiting: int, to_target: int, best_possible_alpha: float, remaining_effort: int, judged: int, held_out: int, unscorable: int}>, ceiling: float}
      */
     private function progress(): array
     {
@@ -336,6 +336,40 @@ class ReviewQueueController extends Controller
         // An aggregate over rows, so the base builder rather than the model:
         // a count is not an ExtractionField and pretending otherwise invents a
         // property on the model that does not exist.
+        // What a reviewer actually did, beside what the calibration could use.
+        //
+        // Two things quietly discount a judgement and neither was visible on
+        // this screen. A share of every judgement is held out to measure error
+        // rather than to fit the threshold, and a value whose score is null —
+        // deferred by rule as unlocatable, or for a disputed sign, alphabet or
+        // leading digit — cannot be in a conformal calibration set at all.
+        //
+        // So a reviewer judged 624 values in one group and saw 19 counted, with
+        // nothing on the page to explain the other 605. That is a screen
+        // moving the goalposts, and it was mine.
+        $judged = ExtractionField::query()
+            ->whereNotNull('is_correct')
+            ->selectRaw('publisher_group, script_class, count(*) as aggregate')
+            ->groupBy('publisher_group', 'script_class')
+            ->toBase()
+            ->get()
+            ->mapWithKeys(fn (object $row): array => [
+                (string) $row->publisher_group.'|'.(string) $row->script_class => (int) $row->aggregate,
+            ])
+            ->all();
+
+        $unscorable = ExtractionField::query()
+            ->whereNotNull('is_correct')
+            ->whereNull('nonconformity_score')
+            ->selectRaw('publisher_group, script_class, count(*) as aggregate')
+            ->groupBy('publisher_group', 'script_class')
+            ->toBase()
+            ->get()
+            ->mapWithKeys(fn (object $row): array => [
+                (string) $row->publisher_group.'|'.(string) $row->script_class => (int) $row->aggregate,
+            ])
+            ->all();
+
         $unlabelled = ExtractionField::query()
             ->whereNull('gold_source')
             ->whereNull('is_correct')
@@ -391,6 +425,12 @@ class ReviewQueueController extends Controller
                 // Sorting on this puts the cheapest completions first, which is
                 // the difference between a reviewer finishing four groups in an
                 // hour and finishing none.
+                'judged' => $judged[$key] ?? 0,
+                'held_out' => max(0, ($judged[$key] ?? 0) - (int) $size - ($unscorable[$key] ?? 0)),
+                // Judged, and unusable for fitting a threshold until the value
+                // can be scored. Almost all of these are waiting on a re-score
+                // rather than on more judgements.
+                'unscorable' => $unscorable[$key] ?? 0,
                 'remaining_effort' => min(
                     max(0, (int) ceil(1 / $alpha) - 1 - (int) $size),
                     $waiting[$key] ?? 0,

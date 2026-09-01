@@ -119,6 +119,12 @@
         <section class="cl-card mt-4 p-4" aria-label="What each group can currently certify">
             <p class="text-sm font-semibold">What each group can certify as it stands</p>
             <p class="mt-1 text-xs text-slate-500">
+                <strong>Judged and counted are different numbers.</strong> Roughly three judgements
+                in ten are held out to measure the error rate rather than to fit the threshold, and a
+                value the pipeline could not score &mdash; one it could not find again on its page,
+                or deferred for a disputed sign, alphabet or leading digit &mdash; cannot be part of
+                a conformal calibration set at all. Those are not lost: almost all of them are
+                waiting on <code>civiclens:score-fields</code>, not on more judgements.
                 Groups with no labels are listed too. They certify nothing, which is the reason to
                 judge them: a group needs only nineteen values to reach &alpha; = 0.05, and reaching
                 it is what lets every other value in that group be decided by a threshold rather
@@ -129,7 +135,8 @@
                     <thead>
                         <tr class="text-xs uppercase tracking-wide text-slate-500">
                             <th class="py-1 pr-4">Group</th>
-                            <th class="py-1 pr-4">Labels</th>
+                            <th class="py-1 pr-4">You judged</th>
+                            <th class="py-1 pr-4">Counted</th>
                             <th class="py-1 pr-4">To reach &alpha; = 0.05</th>
                             <th class="py-1 pr-4">Tightest &alpha;</th>
                         </tr>
@@ -138,7 +145,26 @@
                         @foreach ($progress['levels'] as $level)
                             <tr class="border-t border-slate-100 dark:border-slate-800">
                                 <td class="py-1 pr-4 font-mono text-xs">{{ $level['key'] }}</td>
-                                <td class="py-1 pr-4">{{ $level['size'] }}</td>
+                                <td class="py-1 pr-4">{{ number_format($level['judged']) }}</td>
+                                {{-- Judged and counted are different numbers, and a screen that
+                                     showed only the second read as though the work had not
+                                     happened. Some judgements are held out to measure error rather
+                                     than to fit the threshold; a value with no score cannot be in a
+                                     conformal calibration set at all, and almost every one of those
+                                     is waiting on a re-score rather than on more judgements. --}}
+                                <td class="py-1 pr-4">
+                                    <strong>{{ $level['size'] }}</strong>
+                                    @if ($level['held_out'] > 0)
+                                        <span class="block text-xs text-slate-500">
+                                            {{ number_format($level['held_out']) }} held out to measure error
+                                        </span>
+                                    @endif
+                                    @if ($level['unscorable'] > 0)
+                                        <span class="block text-xs text-amber-700 dark:text-amber-400">
+                                            {{ number_format($level['unscorable']) }} awaiting a re-score
+                                        </span>
+                                    @endif
+                                </td>
                                 {{-- The finish line, not the size of the pile. A group showing
                                      3,353 waiting reads as endless work when it is sixteen
                                      judgements from certifying anything at all. --}}

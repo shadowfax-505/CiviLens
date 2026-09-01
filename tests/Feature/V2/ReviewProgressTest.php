@@ -235,3 +235,48 @@ it('sinks a group that has already reached the target', function (): void {
     expect($groups->first()['key'])->toBe('cbad-bangladesh|bn')
         ->and($groups->last()['key'])->toBe('dgcivil-bangladesh|bn');
 });
+
+it('shows what was judged beside what the calibration could use', function (): void {
+    // A reviewer judged 624 values in one group and the screen showed 19, with
+    // nothing to explain the other 605. Two things discount a judgement and
+    // neither was visible: a share is held out to measure error rather than to
+    // fit the threshold, and a value with no score cannot be in a conformal
+    // calibration set at all. Almost every one of those is waiting on a
+    // re-score, not on more judgements.
+    ['page' => $page] = publishableDocument();
+
+    foreach (range(1, 4) as $ignored) {
+        certifiedFieldOn($page, 'accepted', [
+            'publisher_group' => 'imed-bangladesh',
+            'script_class' => 'en',
+            'gold_source' => 'reviewer',
+            'is_correct' => true,
+            'calibration_split' => 'calibration',
+            'nonconformity_score' => 0.1,
+        ]);
+    }
+
+    foreach (range(1, 7) as $ignored) {
+        certifiedFieldOn($page, 'deferred', [
+            'publisher_group' => 'imed-bangladesh',
+            'script_class' => 'en',
+            'gold_source' => 'reviewer',
+            'is_correct' => true,
+            'calibration_split' => 'calibration',
+            // Unlocatable by a locator that has since been fixed.
+            'nonconformity_score' => null,
+            'score_basis' => 'unlocatable',
+        ]);
+    }
+
+    $this->actingAs(searchAdminUser());
+
+    $group = collect($this->get(route('admin.sources.review'))->viewData('groups'))
+        ->firstWhere('key', 'imed-bangladesh|en');
+
+    expect($group['judged'])->toBe(11)
+        ->and($group['size'])->toBe(4)
+        ->and($group['unscorable'])->toBe(7);
+
+    $this->get(route('admin.sources.review'))->assertSee('awaiting a re-score');
+});
