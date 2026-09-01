@@ -4,6 +4,8 @@ namespace App\Services\Extraction;
 
 use App\Data\Extraction\GroupCalibration;
 use App\Models\ExtractionField;
+use App\Models\ExtractionRun;
+use App\Models\SourceArtifactVersion;
 use Illuminate\Support\Collection;
 
 class FieldDecisionService
@@ -46,7 +48,35 @@ class FieldDecisionService
             ->where('decision', self::ACCEPTED)
             ->update(['decision' => self::DEFERRED, 'decision_basis' => null]);
 
+        // A value read off a second copy of a file is not a second value.
+        //
+        // The same document reaches the archive from two addresses, both copies
+        // are extracted, and both produce candidates — 2,373 accepted values
+        // sat on 31 duplicate artifacts. Publication lists each file once and
+        // so could not place them, which was right: showing both would count
+        // one document's figures twice. But they stayed accepted, so the
+        // certified total counted them, and the snapshot could never catch up.
+        // Drift of 2,373 that no amount of publishing would clear.
+        //
+        // The canonical scope already governs candidate generation, the review
+        // queue and the published document list. This is the fourth place, and
+        // the one where it decides what the corpus claims to certify.
+        $counts[self::DEFERRED] += ExtractionField::query()
+            ->where('decision', self::ACCEPTED)
+            ->whereIn('extraction_run_id', ExtractionRun::query()
+                ->whereNotIn('source_artifact_version_id', SourceArtifactVersion::query()->canonical()->select('id'))
+                ->select('id'))
+            ->update(['decision' => self::DEFERRED, 'decision_basis' => null]);
+
         ExtractionField::query()
+            // And excluded from the pass below, not merely deferred above it.
+            // Deferring first and then deciding everything without a
+            // gold_source simply accepted them again — the reviewer-rejection
+            // rule survives that only because an adjudicated field carries a
+            // gold_source and is skipped.
+            ->whereNotIn('extraction_run_id', ExtractionRun::query()
+                ->whereNotIn('source_artifact_version_id', SourceArtifactVersion::query()->canonical()->select('id'))
+                ->select('id'))
             ->when(
                 $targetSplit !== null,
                 fn ($query) => $query->where('calibration_split', $targetSplit),

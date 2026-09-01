@@ -7,6 +7,7 @@ use App\Models\ExtractionRun;
 use App\Models\PublicationDocument;
 use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
+use App\Services\Extraction\FieldDecisionService;
 use App\Services\Extraction\LimitationsReport;
 use App\Services\Publication\PublicationSnapshotBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -137,4 +138,30 @@ it('withdraws that once no file is held twice', function (): void {
 
     expect($limitations)
         ->not->toContain('The archive holds some files twice, and the corpus is smaller than the artifact count.');
+});
+
+it('never certifies a value read off a second copy of a file', function (): void {
+    // 2,373 accepted values sat on 31 duplicate artifacts. Publication lists
+    // each file once and so could not place them — rightly, since showing both
+    // would count one document's figures twice — but they stayed accepted, so
+    // the certified total counted them and the snapshot could never catch up.
+    // Drift of 2,373 that no amount of publishing would clear.
+    ['first' => $first, 'second' => $second] = sameFileTwice();
+
+    $canonical = fieldOnArtifact($first);
+    $duplicate = fieldOnArtifact($second);
+
+    foreach ([$canonical, $duplicate] as $field) {
+        $field->forceFill([
+            'decision' => 'accepted',
+            'nonconformity_score' => 0.01,
+            'score_basis' => 'second-read',
+        ])->save();
+    }
+
+    app(FieldDecisionService::class)->decide(0.05);
+
+    expect($duplicate->fresh()->decision)->toBe('deferred')
+        // The canonical copy is untouched: the figure is published from there.
+        ->and($canonical->fresh()->decision)->not->toBe('deferred');
 });
