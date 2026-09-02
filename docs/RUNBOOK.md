@@ -387,8 +387,30 @@ values are the ones that certify best.
 the test suite alongside it roughly doubles the wall time per page. A page timed
 at 237s with the worker running measured 65s with it paused.
 
-**`retry_after` must exceed the longest job.** It is 90 seconds by default and
-table detection runs about ninety seconds a page with a tail past ten minutes,
-so the queue would hand a still-running job to another worker and the same page
-would be read twice. `DB_QUEUE_RETRY_AFTER` is set to 1200 against the worker's
-`--timeout=900`.
+**Three timeouts have to be ordered, and were not.** The rule is
+
+    a job's own $timeout  <=  the worker's --timeout  <  retry_after
+
+and it held at neither end. `ExtractAcquiredArtifact` asks for 1500 while the
+worker ran with `--timeout=900`, so a 587-page judgment was killed at fifteen
+minutes every time and could never finish; and `retry_after` was 1200, below
+the worker's own timeout, so a reservation was reclaimed while its job was
+still running and the job came round again. The result was one document with
+three completed runs and 1,761 stored pages for 587 real ones, published as
+fifteen figures that were eight values and seven of the same values again.
+
+Now 1500 <= 1800 < 2100, and `QueueTimeoutOrderingTest` parses the plist and
+fails the suite if raising a job's timeout breaks it.
+
+**Restart the worker after changing a job class.** `queue:work` loads classes
+once and holds them for the hour until `--max-time` recycles it, so a fix to a
+job does nothing for the process already running. Twenty-four extraction jobs
+were retried into a worker still holding the broken class and died a second
+time for the reason that had just been fixed. `launchctl unload` then `load`,
+then retry.
+
+**A job class is a serialization format.** Adding a constructor parameter
+changes it, and every payload already queued lacks the new property. A promoted
+constructor property has no declared default, and `unserialize` never calls the
+constructor, so reading it is a fatal error rather than a false. Declare such a
+property with a default instead of promoting it.
