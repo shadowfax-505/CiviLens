@@ -69,3 +69,31 @@ it('reads it again when asked to', function (): void {
     (new ExtractAcquiredArtifact((int) $run->source_artifact_version_id, force: true))
         ->handle($native, $ocr);
 });
+
+it('runs a payload enqueued before the force flag existed', function (): void {
+    // A queued job outlives the class that made it. Adding $force to the
+    // constructor left every payload already in the queue without it, and PHP
+    // restores only what a payload carries — so reading the property was a
+    // fatal error rather than a false, and twenty-four extraction jobs died
+    // within minutes of the change.
+    $run = ExtractionRun::factory()->create(['status' => 'completed']);
+
+    $job = (new ReflectionClass(ExtractAcquiredArtifact::class))->newInstanceWithoutConstructor();
+
+    $artifactId = new ReflectionProperty($job, 'artifactId');
+    $artifactId->setValue($job, (int) $run->source_artifact_version_id);
+
+    // The declared default is what saves it: applied when the object is
+    // created, including by unserialize, which never calls the constructor.
+    $force = new ReflectionProperty($job, 'force');
+
+    expect($force->isInitialized($job))->toBeTrue()
+        ->and($force->getValue($job))->toBeFalse();
+
+    $native = Mockery::mock(NativeExtractionService::class);
+    $native->shouldNotReceive('extract');
+
+    // The document has been read, and an old payload cannot have asked for a
+    // re-read, so this returns rather than throwing.
+    $job->handle($native, Mockery::mock(SelectiveOcrService::class));
+});

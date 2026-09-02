@@ -52,10 +52,26 @@ class ExtractAcquiredArtifact implements ShouldBeUnique, ShouldQueue
     public array $backoff = [60, 300];
 
     /**
-     * @param  bool  $force  read it again even if it has already been read
+     * Read it again even if it has already been read.
+     *
+     * Declared with a default rather than promoted into the constructor, and
+     * that is the whole point: a queued job outlives the class that made it.
+     * Promoting this left every payload already in the queue without the
+     * property, and a promoted property has no default to fall back on — PHP
+     * restores only what a payload carries, so reading it was a fatal error
+     * rather than a false. Twenty-four extraction jobs died that way within
+     * minutes of the change.
+     *
+     * A declared default is applied when the object is created, including by
+     * unserialize, which bypasses the constructor. So an old payload reads
+     * false: it was enqueued before anyone could ask for a re-read.
      */
-    public function __construct(public readonly int $artifactId, public readonly bool $force = false)
+    public bool $force = false;
+
+    public function __construct(public readonly int $artifactId, bool $force = false)
     {
+        $this->force = $force;
+
         $this->onQueue('ingestion');
     }
 
