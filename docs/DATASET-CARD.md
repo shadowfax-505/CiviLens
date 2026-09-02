@@ -97,6 +97,13 @@ exceptions to it:
   The router that reroutes unreadable pages finds nothing to reroute here: the text layer is dense
   and confident, and only its alphabet is wrong. Measured from the residue those fonts leave, and
   reported by `civiclens:limitations`.
+- **Judgments name private individuals.** The High Court Division's judgments are published by the
+  court and reproduced here as the court published them: an accused person, a petitioner, a witness,
+  named as the judgment names them. This is the first source in this corpus where the people on a
+  page are frequently *not* officials acting in an official capacity, and serving those pages where a
+  search engine can reach them is a different reach from a file on the court's own site. The
+  correction and withdrawal route at `/public/corrections` says so and is the remedy; it records a
+  refusal as fully as a grant and will not accept a decision without a reason.
 - **Word-processor documents.** A few sources publish `.doc`/`.docx`. Such a file has no pages until
   software lays it out, so it is rendered to PDF before anything reads it, and the page image a
   reader is shown is that rendering rather than the publisher's own. Flagged on the evidence page for

@@ -3,10 +3,21 @@
         <header class="space-y-3">
             <h1 class="text-3xl font-bold">Ask for a correction or withdrawal</h1>
             <p class="text-slate-600 dark:text-slate-400">
-                This site republishes audit reports issued by Bangladeshi public bodies, and shows the
-                scanned pages figures were read from. Audit reports name people — usually officials
-                acting in an official capacity — and some pages carry a telephone number beside a firm
+                This site republishes documents issued by Bangladeshi public bodies — audit reports,
+                evaluation reports, gazettes, and judgments of the High Court Division — and shows the
+                scanned pages figures were read from. Audit reports name people, usually officials
+                acting in an official capacity, and some pages carry a telephone number beside a firm
                 or a banking reference.
+            </p>
+            <p class="text-slate-600 dark:text-slate-400">
+                <strong>Judgments are different and worth saying so plainly.</strong> A judgment names
+                the people in the case — an accused person, a petitioner, a witness — and many of them
+                are private individuals rather than anyone acting in an official capacity. The
+                judgments here are published by the Supreme Court itself and are reproduced as the
+                court published them, without alteration. That does not make republishing them
+                neutral: a page a search engine can reach is a different kind of reach from a file on
+                the court's own website, and if you are named in one you may have good reason to say
+                so.
             </p>
             <p class="text-slate-600 dark:text-slate-400">
                 Serving those pages as images that a search engine can reach is a different kind of

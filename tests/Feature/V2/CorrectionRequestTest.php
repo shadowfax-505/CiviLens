@@ -93,3 +93,15 @@ it('says on the page that refusals are recorded too', function (): void {
         ->assertOk()
         ->assertSee('including the ones we refuse');
 });
+
+it('tells a reader that judgments name private individuals', function (): void {
+    // The page said the site republishes "audit reports" whose people are
+    // "usually officials acting in an official capacity". Both stop being true
+    // the moment 2,491 High Court judgments publish: an accused person in a
+    // criminal appeal is neither. Someone arriving to object should find the
+    // situation described, not a description of a different corpus.
+    $this->get(route('public.corrections.create'))
+        ->assertOk()
+        ->assertSee('Judgments are different')
+        ->assertSee('private individuals');
+});
