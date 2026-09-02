@@ -636,6 +636,10 @@ Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Sc
             }
         }
 
+        // The walk is over, so the document held for the last page is not going
+        // to be wanted again.
+        $scorer->release();
+
         $this->info("Scored {$scored} values; {$unlocatable} could not be located and defer by rule.");
 
         return 0;

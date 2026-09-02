@@ -91,6 +91,24 @@ class SecondReadScorer
     ) {}
 
     /**
+     * The artifact currently copied to local disk, and where it was put.
+     *
+     * A page is scored by rasterising it, and rasterising needs the file on
+     * local disk, so every page used to copy the whole document again. Walking
+     * the corpus in page order means a document's pages arrive one after
+     * another, so the copy before this one was almost always the same file.
+     *
+     * Measured over the 18,531 pages waiting to be re-scored: 28.1 GB copied
+     * one page at a time, against 0.7 GB copied once per document. Forty times
+     * the IO, for a file that was already sitting there. One document held at a
+     * time is enough to collect nearly all of it, because the pages are
+     * contiguous; a document revisited later simply copies again.
+     */
+    private ?int $heldArtifactId = null;
+
+    private ?string $heldPath = null;
+
+    /**
      * Score every field on one page, rasterising the page once.
      *
      * Per page rather than per field: one raster serves every field on it, which
@@ -108,12 +126,11 @@ class SecondReadScorer
 
         $artifact = $page->run?->artifactVersion;
         $image = null;
-        $materialized = null;
         $raster = null;
 
         try {
             if ($artifact instanceof SourceArtifactVersion) {
-                $materialized = $this->workspace->materialize($artifact);
+                $materialized = $this->hold($artifact);
                 $image = $this->rasterizer->rasterize(
                     $materialized,
                     (int) $page->page_number,
@@ -147,9 +164,58 @@ class SecondReadScorer
             $this->rasterizer->discard($image);
         }
 
-        $this->workspace->discard($materialized);
-
         return ['scored' => $scored, 'unlocatable' => $unlocatable];
+    }
+
+    /**
+     * A local path to this artifact, copying it only if it is not the one held.
+     */
+    private function hold(SourceArtifactVersion $artifact): string
+    {
+        $id = (int) $artifact->getKey();
+
+        // The temporary directory is not ours alone — the system may clear it
+        // under us — so a held path is only good while the file is still there.
+        if ($this->heldArtifactId === $id && $this->heldPath !== null && is_file($this->heldPath)) {
+            return $this->heldPath;
+        }
+
+        $this->release();
+
+        $path = $this->workspace->materialize($artifact);
+
+        $this->heldArtifactId = $id;
+        $this->heldPath = $path;
+
+        return $path;
+    }
+
+    /**
+     * Drop the held copy.
+     *
+     * Public because the caller knows when the walk is over and this object may
+     * outlive it: a queue worker keeps the container between jobs, and a copy
+     * kept past the last page is a file nobody deletes.
+     */
+    public function release(): void
+    {
+        // Nothing held, nothing to do — and the check is not merely an
+        // optimisation. A subclass built without running this constructor, of
+        // which the test suite has one, would fatal on reading the workspace,
+        // and it reaches here through the destructor as well as the caller.
+        // Nothing can be held unless hold() ran, so a held path is also proof
+        // the dependency is there.
+        if ($this->heldPath !== null) {
+            $this->workspace->discard($this->heldPath);
+        }
+
+        $this->heldArtifactId = null;
+        $this->heldPath = null;
+    }
+
+    public function __destruct()
+    {
+        $this->release();
     }
 
     /**
