@@ -69,3 +69,48 @@ making; it is configuration, and the report states it.
 script is crude — grouping by similarity of score distributions would keep more conditionality. That
 is worth doing when there are enough publishers for the clustering to mean anything, and is not worth
 doing for three groups.
+
+---
+
+## Addendum, 2026-09-02: certifying per kind of value needs calibrating per kind
+
+A threshold is now refused for a kind of value the group has never labelled.
+That closes an overclaim — 4,135 court values facing a threshold fitted on 105
+dates, and 389 already-accepted values elsewhere in the same position — but it
+does not open the other side. Refusing a kind is not the same as certifying it.
+
+The group in this ADR is publisher × script, and the threshold is still fitted
+across every kind inside it. So the way to make a kind certifiable is to
+calibrate it, and there are only two routes:
+
+1. **Wait for the group's own draw to reach it.** The queue draws uniformly
+   inside the group, which is what makes the calibration set exchangeable with
+   what the group certifies. Case numbers are 5.6% of `supremecourt|en`, so
+   nineteen of them costs on the order of 340 judgements — and statutory
+   references, at 4.7%, about the same again.
+
+2. **Make the stratum publisher × script × kind.** Then a kind-filtered draw is
+   uniform inside its own stratum and nineteen judgements buy that kind
+   directly.
+
+**Filtering the review queue by kind without doing (2) is the one move that must
+not be made.** It looks like the obvious shortcut and it is the exact error this
+ADR's group filter was careful to avoid: judging case numbers on purpose
+enriches the calibration set in case numbers, the set stops being a uniform
+sample of the group, and the threshold it fits is arithmetic about a population
+that does not exist. It would buy the court kinds a certification by
+invalidating what certification means. The review screen therefore *reports*
+which kinds a group has never judged, and offers no way to draw by kind.
+
+Route 2 is the real answer and it is not free. Splitting each group by kind
+multiplies the strata — `supremecourt|en` alone holds seven kinds — and most of
+the pieces land below the nineteen labels a 5% claim needs, which is precisely
+the situation this ADR was written for: adaptive α, so each stratum certifies at
+the level its own count supports, and a borrowed threshold where it cannot. The
+cost is that the group-conditional claim becomes a kind-conditional claim, and
+every count on the review screen and in the paper is recomputed against a
+finer partition.
+
+That is a decision about what the paper claims, not a refactor, so it is
+recorded here and not taken. Until it is taken, court values stay withheld and
+the corpus certifies figures.

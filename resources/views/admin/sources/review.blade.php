@@ -190,6 +190,21 @@
                                             {{ number_format($level['unscorable']) }} awaiting a re-score
                                         </span>
                                     @endif
+                                    {{-- A group can read "reached" and still certify none of
+                                         this. A threshold rests on the kinds of value it was
+                                         fitted on, so a kind nobody in this group has judged
+                                         is withheld however many labels the group has.
+
+                                         Shown, and not offered as a filter: the draw has to be
+                                         uniform inside the group, and judging by kind would
+                                         enrich the calibration set in that kind. What unlocks
+                                         these is calibrating per kind, which is a decision, not
+                                         a button. --}}
+                                    @foreach ($level['uncovered_kinds'] as $kind => $count)
+                                        <span class="block text-xs text-slate-500">
+                                            {{ number_format($count) }} {{ str_replace('_', ' ', $kind) }} withheld &mdash; none judged here
+                                        </span>
+                                    @endforeach
                                 </td>
                                 {{-- The finish line, not the size of the pile. A group showing
                                      3,353 waiting reads as endless work when it is sixteen
