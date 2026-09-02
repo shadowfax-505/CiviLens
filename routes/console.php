@@ -15,6 +15,7 @@ use App\Models\SourceCrawlRun;
 use App\Models\SourceEndpoint;
 use App\Models\SourcePublisher;
 use App\Services\Extraction\AbstentionClassifier;
+use App\Services\Extraction\ArtifactWorkspace;
 use App\Services\Extraction\BenchmarkEvaluationService;
 use App\Services\Extraction\BengaliTextPlausibility;
 use App\Services\Extraction\BornDigitalWordExtractor;
@@ -24,6 +25,7 @@ use App\Services\Extraction\ExtractionRoutingReport;
 use App\Services\Extraction\FieldDecisionService;
 use App\Services\Extraction\KeyValueExtractor;
 use App\Services\Extraction\LimitationsReport;
+use App\Services\Extraction\NativeWordGeometry;
 use App\Services\Extraction\PageRoutingPolicy;
 use App\Services\Extraction\PaperReport;
 use App\Services\Extraction\PipelineHealthReport;
@@ -34,6 +36,7 @@ use App\Services\Extraction\SecondReadScorer;
 use App\Services\Extraction\SelectiveOcrService;
 use App\Services\Extraction\TableStructureDetector;
 use App\Services\Extraction\TokenConfidence;
+use App\Services\Extraction\WordDocumentConverter;
 use App\Services\Extraction\WordGeometryBackfill;
 use App\Services\Ingestion\ArchivedPageLinkHarvester;
 use App\Services\Ingestion\BangladeshSourceCatalogue;
@@ -950,6 +953,117 @@ Artisan::command('civiclens:sources-report {--json}', function (SourceYieldRepor
 
     return 0;
 })->purpose('Report what every registered endpoint produced, and why it produced nothing');
+
+Artisan::command('civiclens:backfill-native-geometry {--limit=0} {--dpi=150}', function (NativeWordGeometry $geometry, ArtifactWorkspace $workspace): int {
+    // Word boxes for pages read from their own text layer.
+    //
+    // A value is located by matching words against boxes, and boxes came only
+    // from OCR — so a native page had text and no geometry, and every value on
+    // it was unlocatable and deferred by rule. The existing remedy
+    // re-recognises the page; this asks the PDF where its words are, which is
+    // both faster and more accurate, since it is the position the document
+    // declares rather than one inferred from a picture of it.
+    $limit = (int) $this->option('limit');
+    $dpiOption = $this->option('dpi');
+    $dpi = is_numeric($dpiOption) ? max(72, (int) $dpiOption) : 150;
+
+    // Formats that have pages. An HTML record has text and no page image at
+    // all, so it can never carry word boxes and its values are unlocatable for
+    // a reason no amount of geometry fixes — asking pdftotext to read one
+    // simply fails. Word documents count: they are rendered to PDF on the way
+    // out (ADR-022).
+    $withPages = array_merge(['application/pdf'], WordDocumentConverter::MEDIA_TYPES);
+
+    $pages = ExtractionPage::query()
+        ->where('extraction_path', PageRoutingPolicy::NATIVE)
+        ->whereNull('recognized_words')
+        ->whereNotNull('extracted_text')
+        ->whereIn('extraction_run_id', ExtractionRun::query()
+            ->whereIn('source_artifact_version_id', SourceArtifactVersion::query()
+                ->whereIn('media_type', $withPages)
+                ->select('id'))
+            ->select('id'))
+        ->when($limit > 0, fn ($query) => $query->limit($limit))
+        ->orderBy('extraction_run_id')
+        ->pluck('id');
+
+    $this->line($pages->count().' native pages without word geometry.');
+
+    $filled = 0;
+    $empty = 0;
+    $failed = 0;
+    $done = 0;
+    $currentRun = null;
+    $materialized = null;
+
+    try {
+        foreach ($pages as $id) {
+            $page = ExtractionPage::query()->with('run.artifactVersion')->find($id);
+
+            if (! $page instanceof ExtractionPage) {
+                continue;
+            }
+
+            try {
+                // One materialisation per document rather than per page: the
+                // pages arrive in run order, and copying a PDF once for each of
+                // its pages was measured at more than the reading costs.
+                if ($currentRun !== $page->extraction_run_id) {
+                    if ($materialized !== null) {
+                        $workspace->discard($materialized);
+                    }
+
+                    $artifact = $page->run?->artifactVersion;
+
+                    if (! $artifact instanceof SourceArtifactVersion) {
+                        $failed++;
+
+                        continue;
+                    }
+
+                    $materialized = $workspace->materialize($artifact);
+                    $currentRun = $page->extraction_run_id;
+                }
+
+                $boxes = $geometry->forPage((string) $materialized, (int) $page->page_number, $dpi);
+
+                if ($boxes === []) {
+                    $empty++;
+
+                    continue;
+                }
+
+                $page->forceFill([
+                    'recognized_words' => $boxes,
+                    'recognized_dpi' => $dpi,
+                ])->saveQuietly();
+
+                $filled++;
+            } catch (Throwable) {
+                $failed++;
+            }
+
+            $done++;
+
+            if ($done % 500 === 0) {
+                $this->line(' '.$done.'/'.$pages->count().' — '.$filled.' now carry boxes');
+            }
+        }
+    } finally {
+        if ($materialized !== null) {
+            $workspace->discard($materialized);
+        }
+    }
+
+    $this->line(json_encode([
+        'pages' => $done,
+        'now_carry_boxes' => $filled,
+        'no_words_on_the_page' => $empty,
+        'failed' => $failed,
+    ], JSON_THROW_ON_ERROR));
+
+    return 0;
+})->purpose('Take word positions from a PDF text layer, for pages that were never recognised');
 
 Artisan::command('civiclens:backfill-token-confidence {--limit=0}', function (TokenConfidence $confidence): int {
     // Reads stored word geometry; recognises nothing. Minutes, not the hours a

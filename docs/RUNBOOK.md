@@ -152,6 +152,7 @@ php artisan civiclens:score-fields [--sync] [--labelled]
 php artisan civiclens:classify-abstentions
 php artisan civiclens:backfill-word-geometry
 php artisan civiclens:backfill-token-confidence [--limit=1000]
+php artisan civiclens:backfill-native-geometry [--limit=500] [--dpi=150]
 php artisan civiclens:reread-abstained [--limit=100] [--path=abstained]
 php artisan civiclens:prune-candidates [--apply]
 ```
@@ -169,6 +170,22 @@ than one version means a re-score is owed — a score from an older locator
 defers rather than over-accepts, so nothing breaks and nothing complains, and
 the guarantee quietly covers less of the corpus than it appears to.
 Recalibration follows the re-score (ADR-019).
+
+`backfill-native-geometry` gives word boxes to pages read from their own text
+layer. A value is located by matching words against boxes and boxes came only
+from OCR, so a native page had text and no geometry — every value on it
+unlocatable and deferred by rule, which was 78,551 of 79,226 court candidates.
+`backfill-word-geometry` recovers boxes by recognising the page again, about
+thirteen hours for that corpus; this asks the PDF where its words are, which
+takes about ten milliseconds a page and is the position the document declares
+rather than one inferred from a picture of it.
+
+Only formats that have pages. An HTML record has no page image at all, so its
+values are unlocatable for a reason geometry cannot fix.
+
+The `--dpi` is a choice, not a measurement — a text layer has no pixels — and it
+is written onto the page beside the boxes so anything drawing a crop rasterises
+to the same number.
 
 `backfill-token-confidence` records how well each *value* was read, as opposed
 to its page. It reads stored word geometry and recognises nothing, so it costs
