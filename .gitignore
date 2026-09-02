@@ -88,3 +88,11 @@ __pycache__/
 
 # Field values replaced by a correction, kept so a repair is reversible.
 /storage/app/corrections
+
+# 87 MB of judgment text and extracted values, written by
+# civiclens:export-court-corpus. Derived rather than authored: the command
+# rebuilds it from the database in sixteen seconds, the manifest names the
+# snapshot it was taken against, and the holdout split is recomputed from each
+# document's sha256 — so a committed copy could only ever be a stale one that
+# disagrees with the corpus it claims to describe.
+/storage/app/corpus/
