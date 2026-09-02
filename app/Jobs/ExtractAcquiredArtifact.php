@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\ExtractionRun;
 use App\Models\SourceArtifactVersion;
 use App\Services\Extraction\NativeExtractionService;
 use App\Services\Extraction\SelectiveOcrService;
@@ -50,7 +51,10 @@ class ExtractAcquiredArtifact implements ShouldBeUnique, ShouldQueue
     /** @var list<int> */
     public array $backoff = [60, 300];
 
-    public function __construct(public readonly int $artifactId)
+    /**
+     * @param  bool  $force  read it again even if it has already been read
+     */
+    public function __construct(public readonly int $artifactId, public readonly bool $force = false)
     {
         $this->onQueue('ingestion');
     }
@@ -65,6 +69,30 @@ class ExtractAcquiredArtifact implements ShouldBeUnique, ShouldQueue
         $artifact = SourceArtifactVersion::query()->find($this->artifactId);
 
         if (! $artifact instanceof SourceArtifactVersion) {
+            return;
+        }
+
+        // Reading a document a second time is not harmless.
+        //
+        // `ShouldBeUnique` stops two copies of this job coexisting for an hour,
+        // and says nothing about a document read yesterday. Artifact 665 —
+        // 587 pages — carried three completed runs and 1,761 stored pages,
+        // exactly three copies of itself, and a fourth was in flight when this
+        // was found. Every copy is a full OCR pass: hours of the one worker,
+        // spent to store pages the corpus already had.
+        //
+        // The published counts survived it, because ExtractionPage::current()
+        // reads only the latest non-failed run per artifact. So this wasted
+        // days of machine time and reported nothing wrong, which is the shape
+        // of defect this pipeline keeps meeting.
+        //
+        // A re-read is sometimes right — a routing policy changes, a text layer
+        // turns out to be mojibake — so it stays available, and has to be asked
+        // for.
+        if (! $this->force && ExtractionRun::query()
+            ->where('source_artifact_version_id', $artifact->getKey())
+            ->where('status', 'completed')
+            ->exists()) {
             return;
         }
 

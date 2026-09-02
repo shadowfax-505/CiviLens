@@ -40,7 +40,10 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
-            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+            // Longer than the worker's --timeout, or a job still running has
+            // its reservation reclaimed and is dispatched a second time. That
+            // is how one 587-page document came to be read three times.
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 2100),
             'after_commit' => false,
         ],
 

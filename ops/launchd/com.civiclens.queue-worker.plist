@@ -50,7 +50,27 @@
             job leaves no row in failed_jobs. Recorded in the runbook.
         -->
         <string>--tries=1</string>
-        <string>--timeout=900</string>
+        <!--
+            At least the longest job's own timeout, and it was not.
+
+            ExtractAcquiredArtifact declares timeout = 1500 and says in as many
+            words that the worker must be given at least as much or it stops the
+            job before that applies. This said 900. A 587-page document takes
+            longer than that to read, so the worker killed it at fifteen
+            minutes, the reservation lapsed, and the job came round again — the
+            same document read three times over, 1,761 stored pages for 587
+            real ones.
+
+            The ordering that has to hold, and now does:
+
+                job timeout (1500) <= worker --timeout (1800) < retry_after (2100)
+
+            The last inequality matters as much as the first: a reservation
+            reclaimed while its job is still running dispatches that job a
+            second time, which is the duplication above by another route.
+            QueueTimeoutOrderingTest pins all of it.
+        -->
+        <string>--timeout=1800</string>
     </array>
 
 
