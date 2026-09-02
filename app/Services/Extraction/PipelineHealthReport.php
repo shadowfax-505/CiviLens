@@ -4,7 +4,9 @@ namespace App\Services\Extraction;
 
 use App\Models\ExtractionField;
 use App\Models\ExtractionPage;
+use App\Models\ExtractionRun;
 use App\Models\PublicationSnapshot;
+use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
 use Illuminate\Support\Facades\DB;
 
@@ -42,6 +44,7 @@ class PipelineHealthReport
             'ca_bundle' => $this->caBundle(),
             'queue' => $this->queue(),
             'endpoints' => $this->endpoints(),
+            'stranded_documents' => $this->strandedDocuments(),
             'scoring' => $this->scoring(),
             'publication' => $this->publication(),
         ];
@@ -323,6 +326,90 @@ class PipelineHealthReport
             'pages_holding_tables' => $holding,
             'pages_with_no_table' => max(0, $examined - $holding),
             'pages_not_yet_examined' => (clone $eligible)->whereNull('tables_detected_at')->count(),
+        ];
+    }
+
+    /**
+     * Documents whose every reading failed, with nothing queued to read them.
+     *
+     * A document refused under a policy that has since changed is never
+     * revisited, and nothing said so. Artifact 129 is a 672-page judgment
+     * refused four times in August for exceeding a 500-page limit; the limit is
+     * 2,000 now and would admit it, but its last attempt was two weeks ago,
+     * there is no job for it, and it is simply absent from the corpus — which
+     * the court corpus export noticed as `held_but_never_read: 1` and this
+     * report did not notice at all.
+     *
+     * Small, and the point is that the number was invisible:
+     * this is the pipeline's usual failure shape, where the corpus is quietly
+     * smaller than the archive and every report looks well.
+     *
+     * Not a failure of the pipeline's health in the sense that stops a
+     * publication — nothing here is broken, and a document that genuinely
+     * cannot be read will sit here for ever — so it reports rather than fails.
+     * A count that rises is the signal.
+     *
+     * @return array{ok: bool, stranded: int, reasons: array<string, int>, detail: string}
+     */
+    private function strandedDocuments(): array
+    {
+        $queued = [];
+
+        // Decoded, not pattern-matched.
+        //
+        // A job row is a JSON envelope whose `data.command` is a serialized PHP
+        // object, so inside the raw column the property reads
+        // `s:10:\"artifactId\";i:1;` with the quotes escaped. A regex written
+        // against the unescaped form matches nothing, silently — which is how
+        // the first version of this check reported five stranded documents when
+        // it could not see a queued job at all. Reading the envelope first
+        // removes the guess about escaping.
+        foreach (DB::table('jobs')->select('payload')->cursor() as $job) {
+            $envelope = json_decode((string) $job->payload, true);
+            $command = is_array($envelope) ? ($envelope['data']['command'] ?? null) : null;
+
+            if (is_string($command) && preg_match('/artifactId";i:(\d+);/', $command, $matches) === 1) {
+                $queued[(int) $matches[1]] = true;
+            }
+        }
+
+        $attempted = ExtractionRun::query()->distinct()->pluck('source_artifact_version_id');
+
+        $read = ExtractionRun::query()
+            ->where('status', '!=', 'failed')
+            ->distinct()
+            ->pluck('source_artifact_version_id')
+            ->all();
+
+        $stranded = SourceArtifactVersion::query()
+            ->where('is_quarantined', false)
+            ->whereIn('id', $attempted)
+            ->whereNotIn('id', $read)
+            ->pluck('id')
+            ->reject(fn (int $id): bool => isset($queued[$id]))
+            ->values();
+
+        $reasons = [];
+
+        if ($stranded->isNotEmpty()) {
+            $reasons = ExtractionRun::query()
+                ->whereIn('source_artifact_version_id', $stranded)
+                ->whereNotNull('failure_reason')
+                ->selectRaw('failure_reason, count(distinct source_artifact_version_id) as aggregate')
+                ->groupBy('failure_reason')
+                ->pluck('aggregate', 'failure_reason')
+                ->map(fn (int|string $count): int => (int) $count)
+                ->all();
+        }
+
+        return [
+            'ok' => true,
+            'stranded' => $stranded->count(),
+            'reasons' => $reasons,
+            'detail' => $stranded->isEmpty()
+                ? 'Every document that was attempted has been read, or is queued to be.'
+                : $stranded->count().' documents were attempted, failed every time, and have no job'
+                    .' waiting to read them. Re-dispatch them once the reason no longer applies.',
         ];
     }
 }
