@@ -66,21 +66,10 @@ class ExtractionPage extends Model
      */
     public function scopeCurrent(Builder $query): void
     {
-        $query->whereIn(
-            'extraction_run_id',
-            ExtractionRun::query()
-                // Failed runs excluded, not merely superseded ones. A run that
-                // failed left its pages behind in whatever state it reached —
-                // 244 of them marked as awaiting an OCR pass that could never
-                // happen — and those are not pages of this corpus.
-                //
-                // A run still in progress is counted: its pages are real work,
-                // and excluding them would make every figure dip while the
-                // pipeline is busy.
-                ->where('status', '!=', 'failed')
-                ->selectRaw('max(id)')
-                ->groupBy('source_artifact_version_id'),
-        );
+        // One definition, in ExtractionRun. It was written out here and the
+        // decision pass did not have it at all, which is how a document read
+        // twice came to be certified twice.
+        $query->whereIn('extraction_run_id', ExtractionRun::currentIds());
     }
 
     /** @return BelongsTo<ExtractionRun, self> */

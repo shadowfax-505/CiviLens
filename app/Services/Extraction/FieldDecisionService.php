@@ -68,7 +68,30 @@ class FieldDecisionService
                 ->select('id'))
             ->update(['decision' => self::DEFERRED, 'decision_basis' => null]);
 
+        // A document read twice is not two documents.
+        //
+        // Artifact 665 is a 587-page judgment. It carried three completed runs,
+        // each a full set of pages and fields, and the live snapshot published
+        // its document with fifteen figures: eight values from one run and
+        // seven of the same values from another. Corpus-wide, 9,737 accepted
+        // values sat on runs that had been superseded.
+        //
+        // This is the duplicate-artifact rule one level down. That one is about
+        // the same file arriving at two addresses; this is about the same file
+        // read twice. ExtractionPage::current() has always known which run
+        // counts — candidate generation, the review queue and the published
+        // page list all ask it — and the decision pass was the one place that
+        // never did.
+        $counts[self::DEFERRED] += ExtractionField::query()
+            ->where('decision', self::ACCEPTED)
+            ->whereNotIn('extraction_run_id', ExtractionRun::currentIds())
+            ->update(['decision' => self::DEFERRED, 'decision_basis' => null]);
+
         ExtractionField::query()
+            // Excluded from the pass as well as deferred above it, for the same
+            // reason as the duplicates: deferring first and then deciding
+            // everything without a gold_source accepts them straight back.
+            ->whereIn('extraction_run_id', ExtractionRun::currentIds())
             // And excluded from the pass below, not merely deferred above it.
             // Deferring first and then deciding everything without a
             // gold_source simply accepted them again — the reviewer-rejection

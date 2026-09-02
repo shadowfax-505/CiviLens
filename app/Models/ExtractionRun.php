@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -81,5 +82,31 @@ class ExtractionRun extends Model
     public function fields(): HasMany
     {
         return $this->hasMany(ExtractionField::class);
+    }
+
+    /**
+     * The one run per artifact whose work counts: the latest that did not fail.
+     *
+     * Held here rather than restated at each call site, because it decides what
+     * the corpus *is* and three places already needed it. A document read twice
+     * has two complete sets of pages and fields, and anything that forgets to
+     * ask this counts the same document twice — 9,737 accepted values sat on
+     * superseded runs, and one 587-page judgment was published with fifteen
+     * figures that were eight values and seven of the same values again.
+     *
+     * Failed runs excluded, not merely superseded ones: a run that failed left
+     * its pages in whatever state it reached, and those are not pages of this
+     * corpus. A run still in progress is counted, because its pages are real
+     * work and excluding them would make every figure dip while the pipeline is
+     * busy.
+     *
+     * @return Builder<self>
+     */
+    public static function currentIds(): Builder
+    {
+        return self::query()
+            ->where('status', '!=', 'failed')
+            ->selectRaw('max(id)')
+            ->groupBy('source_artifact_version_id');
     }
 }
