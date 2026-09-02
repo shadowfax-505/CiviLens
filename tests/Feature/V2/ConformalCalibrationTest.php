@@ -61,7 +61,7 @@ it('picks the largest threshold whose corrected risk still satisfies alpha', fun
     $rows[] = [0.95, false];
     seedFields('mof', 'bn', 'calibration', $rows);
 
-    $calibration = (new ConformalCalibrator)->calibrate(0.10)->get('mof|bn');
+    $calibration = (new ConformalCalibrator)->calibrate(0.10)->get('mof|bn|tender_reference');
 
     expect($calibration->calibrationSize)->toBe(20)
         ->and($calibration->certifiable())->toBeTrue()
@@ -72,7 +72,7 @@ it('picks the largest threshold whose corrected risk still satisfies alpha', fun
 it('refuses to certify a group that is too small to satisfy the bound', function (): void {
     seedFields('tiny', 'bn', 'calibration', [[0.01, true], [0.02, true], [0.03, true]]);
 
-    $calibration = (new ConformalCalibrator)->calibrate(0.05)->get('tiny|bn');
+    $calibration = (new ConformalCalibrator)->calibrate(0.05)->get('tiny|bn|tender_reference');
 
     expect($calibration->calibrationSize)->toBe(3)
         ->and($calibration->minimumCalibrationSize)->toBe(19)
@@ -117,7 +117,7 @@ it('holds the false acceptance guarantee on held-out data', function (): void {
     seedFields('mof', 'en', 'test', scoreSeries(200, 0.001, 0.005, 0.80));
 
     $report = app(CalibrationReport::class)->build(0.05);
-    $group = collect($report['realized']['groups'])->firstWhere('group', 'mof|en');
+    $group = collect($report['realized']['groups'])->firstWhere('group', 'mof|en|tender_reference');
 
     expect($group['group_conditional']['false_acceptance_rate'])->toBeLessThanOrEqual(0.05)
         ->and($group['group_conditional']['accepted'])->toBeGreaterThan(0);
@@ -134,13 +134,13 @@ it('shows a pooled threshold breaching alpha on the low-resource group it hides'
     seedFields('mof', 'bn', 'test', scoreSeries(40, 0.001, 0.002, 0.02));
 
     $report = app(CalibrationReport::class)->build(0.05);
-    $bengali = collect($report['realized']['groups'])->firstWhere('group', 'mof|bn');
+    $bengali = collect($report['realized']['groups'])->firstWhere('group', 'mof|bn|tender_reference');
 
     expect($report['realized']['overall']['pooled']['false_acceptance_rate'])->toBeLessThanOrEqual(0.05)
         ->and($bengali['pooled']['false_acceptance_rate'])->toBeGreaterThan(0.05)
         ->and($bengali['pooled_breaches_alpha'])->toBeTrue()
         ->and($bengali['group_conditional']['false_acceptance_rate'])->toBeLessThanOrEqual(0.05)
-        ->and($report['realized']['groups_where_pooled_breaches_alpha'])->toContain('mof|bn');
+        ->and($report['realized']['groups_where_pooled_breaches_alpha'])->toContain('mof|bn|tender_reference');
 });
 
 it('states what it guarantees and what it only measures', function (): void {

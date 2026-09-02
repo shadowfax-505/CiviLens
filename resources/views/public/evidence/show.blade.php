@@ -58,7 +58,12 @@
                                     &alpha; = {{ $figure->certified_alpha }}
                                     <span class="text-slate-500">
                                         @if ($figure->isConditional())
-                                            (conditional on {{ $figure->publisher_group }} · {{ $figure->script_class }})
+                                            {{-- The kind of value is part of the claim now that it is
+                                                 part of the stratum. A threshold fitted on dates says
+                                                 nothing about case numbers, so naming only the
+                                                 publisher and script would state a wider claim than
+                                                 the one that was certified. --}}
+                                            (conditional on {{ $figure->publisher_group }} · {{ $figure->script_class }} · {{ str_replace('_', ' ', (string) $figure->field_kind) }})
                                         @else
                                             (borrowed from a wider pool)
                                         @endif

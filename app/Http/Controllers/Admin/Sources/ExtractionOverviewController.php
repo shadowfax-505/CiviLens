@@ -44,7 +44,7 @@ class ExtractionOverviewController extends Controller
                 // not be counted as one.
                 'borrowed' => ExtractionField::query()
                     ->where('decision', 'accepted')
-                    ->where('decision_basis', '!=', 'group')
+                    ->where('decision_basis', '!=', 'stratum')
                     ->count(),
             ],
         ]);

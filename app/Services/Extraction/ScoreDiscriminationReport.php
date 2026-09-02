@@ -24,11 +24,11 @@ class ScoreDiscriminationReport
         $labelled = ExtractionField::query()
             ->whereNotNull('is_correct')
             ->whereNotNull('nonconformity_score')
-            ->get(['is_correct', 'nonconformity_score', 'publisher_group', 'script_class', 'score_basis']);
+            ->get(['is_correct', 'nonconformity_score', 'publisher_group', 'script_class', 'field_key', 'score_basis']);
 
         $groups = [];
 
-        foreach ($labelled->groupBy(fn (ExtractionField $f): string => $f->publisher_group.'|'.$f->script_class) as $key => $rows) {
+        foreach ($labelled->groupBy(fn (ExtractionField $f): string => $f->publisher_group.'|'.$f->script_class.'|'.$f->field_key) as $key => $rows) {
             $groups[] = ['group' => (string) $key] + $this->auc($rows);
         }
 

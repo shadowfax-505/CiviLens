@@ -98,7 +98,7 @@ if (! function_exists('publishableDocument')) {
             'extracted_value' => '১,২৩,৪৫৬',
             'decision' => $decision,
             'decision_alpha' => 0.05,
-            'decision_basis' => $decision === 'accepted' ? 'group' : null,
+            'decision_basis' => $decision === 'accepted' ? 'stratum' : null,
             'publisher_group' => 'dgcivil-bangladesh',
             'script_class' => 'bn',
         ], $overrides));

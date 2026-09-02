@@ -74,7 +74,7 @@ it('records the level an acceptance was certified at, not the level asked for', 
 
     expect($production->decision)->toBe(FieldDecisionService::ACCEPTED)
         ->and((float) $production->decision_alpha)->toBe(0.1)
-        ->and($production->decision_basis)->toBe('group');
+        ->and($production->decision_basis)->toBe('stratum');
 });
 
 it('defers everything in a group with no calibration at all', function (): void {

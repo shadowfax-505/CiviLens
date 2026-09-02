@@ -53,7 +53,7 @@ class ReviewQueueController extends Controller
         $group = $request->session()->get('review.group');
         $group = is_string($group) && $group !== '' ? $group : null;
 
-        [$publisher, $script] = $group === null ? [null, null] : $this->splitGroup($group);
+        [$publisher, $script, $kind] = $group === null ? [null, null, null] : $this->splitGroup($group);
 
         // A share of the queue is items somebody else has already judged, shown
         // to a different person so agreement can be measured. Without it the
@@ -137,6 +137,21 @@ class ReviewQueueController extends Controller
             // A publisher-only value can still be in a session from before this
             // was per-script, and it should keep working.
             ->when($script !== null, fn ($query) => $query->where('script_class', $script))
+            // And by the kind of value, which became part of the stratum.
+            //
+            // This is the move that was refused while the threshold was fitted
+            // per publisher and script: judging case numbers on purpose would
+            // have enriched the group's calibration set in case numbers and the
+            // set would have stopped being a uniform sample of what the group
+            // certifies. Now the threshold is fitted per kind, so a draw inside
+            // one kind is uniform inside the very population that kind's
+            // threshold is applied to — the same argument that licenses the
+            // publisher and script filters above, one level finer.
+            //
+            // What it buys: nineteen labels certify a kind directly. Case
+            // numbers are 5.6% of supremecourt|en, so reaching nineteen of them
+            // through a group-wide draw cost on the order of 340 judgements.
+            ->when($kind !== null, fn ($query) => $query->where('field_key', $kind))
             ->inRandomOrder()
             ->first();
 
@@ -309,19 +324,22 @@ class ReviewQueueController extends Controller
     }
 
     /**
-     * A group key as publisher and script.
+     * A stratum key as publisher, script and kind of value.
      *
-     * @return array{0: string, 1: string|null}
+     * @return array{0: string, 1: string|null, 2: string|null}
      */
     private function splitGroup(string $group): array
     {
-        if (! str_contains($group, '|')) {
-            return [$group, null];
-        }
+        $parts = explode('|', $group);
 
-        [$publisher, $script] = explode('|', $group, 2);
+        $publisher = $parts[0];
+        $script = ($parts[1] ?? '') === '' ? null : $parts[1];
+        // A key held in a session from before the stratum gained the kind has
+        // two parts, and it should keep working: it means every kind, which is
+        // what it meant when it was written.
+        $kind = ($parts[2] ?? '') === '' ? null : $parts[2];
 
-        return [$publisher, $script === '' ? null : $script];
+        return [$publisher, $script, $kind];
     }
 
     /**
@@ -338,17 +356,17 @@ class ReviewQueueController extends Controller
     }
 
     /**
-     * @return array{adjudicated: int, remaining: int, groups: array<string, int>, minimum: int, levels: list<array{key: string, size: int, alpha: float, at_target: bool, waiting: int, to_target: int, best_possible_alpha: float, remaining_effort: int, judged: int, held_out: int, unscorable: int, uncovered_kinds: array<string, int>}>, ceiling: float}
+     * @return array{adjudicated: int, remaining: int, groups: array<string, int>, minimum: int, levels: list<array{key: string, size: int, alpha: float, at_target: bool, waiting: int, to_target: int, best_possible_alpha: float, remaining_effort: int, judged: int, held_out: int, unscorable: int}>, ceiling: float}
      */
     private function progress(): array
     {
         $groups = ExtractionField::query()
             ->calibratable()
             ->where('calibration_split', 'calibration')
-            ->get(['publisher_group', 'script_class'])
+            ->get(['publisher_group', 'script_class', 'field_key'])
             // Grouped in PHP rather than by a raw aggregate, so the key is built
             // the same way the calibrator builds it and the two cannot drift.
-            ->countBy(fn (ExtractionField $field): string => $field->publisher_group.'|'.$field->script_class)
+            ->countBy(fn (ExtractionField $field): string => $field->publisher_group.'|'.$field->script_class.'|'.$field->field_key)
             ->all();
 
         // Groups holding candidates and no labels at all.
@@ -375,47 +393,28 @@ class ReviewQueueController extends Controller
         // moving the goalposts, and it was mine.
         $judged = ExtractionField::query()
             ->whereNotNull('is_correct')
-            ->selectRaw('publisher_group, script_class, count(*) as aggregate')
-            ->groupBy('publisher_group', 'script_class')
+            ->selectRaw('publisher_group, script_class, field_key, count(*) as aggregate')
+            ->groupBy('publisher_group', 'script_class', 'field_key')
             ->toBase()
             ->get()
             ->mapWithKeys(fn (object $row): array => [
-                (string) $row->publisher_group.'|'.(string) $row->script_class => (int) $row->aggregate,
+                (string) $row->publisher_group.'|'.(string) $row->script_class.'|'.(string) $row->field_key => (int) $row->aggregate,
             ])
             ->all();
 
         $unscorable = ExtractionField::query()
             ->whereNotNull('is_correct')
             ->whereNull('nonconformity_score')
-            ->selectRaw('publisher_group, script_class, count(*) as aggregate')
-            ->groupBy('publisher_group', 'script_class')
+            ->selectRaw('publisher_group, script_class, field_key, count(*) as aggregate')
+            ->groupBy('publisher_group', 'script_class', 'field_key')
             ->toBase()
             ->get()
             ->mapWithKeys(fn (object $row): array => [
-                (string) $row->publisher_group.'|'.(string) $row->script_class => (int) $row->aggregate,
+                (string) $row->publisher_group.'|'.(string) $row->script_class.'|'.(string) $row->field_key => (int) $row->aggregate,
             ])
             ->all();
 
-        // Which kinds of value each group has labelled, and which it has not.
-        //
-        // Reported, never used to choose what to show. A threshold is fitted per
-        // publisher and script, so the draw has to be uniform inside that group;
-        // filtering the queue by kind would enrich the calibration set in the
-        // kind being filtered for and break the exchangeability the group filter
-        // above is careful to preserve. It would buy the court kinds a
-        // certification by invalidating what the certification means.
-        //
-        // So this tells a reviewer what is withheld and why, and the remedy —
-        // calibrating per kind, not merely refusing kinds — is a decision
-        // recorded in ADR-018 rather than something this screen can do.
-        $labelledKinds = ExtractionField::query()
-            ->calibratable()
-            ->where('calibration_split', 'calibration')
-            ->get(['publisher_group', 'script_class', 'field_key'])
-            ->countBy(fn (ExtractionField $field): string => $field->publisher_group.'|'.$field->script_class.'|'.$field->field_key)
-            ->all();
-
-        $candidateKinds = ExtractionField::query()
+        $unlabelled = ExtractionField::query()
             ->whereNull('gold_source')
             ->whereNull('is_correct')
             ->toBase()
@@ -423,33 +422,8 @@ class ReviewQueueController extends Controller
             ->groupBy('publisher_group', 'script_class', 'field_key')
             ->get();
 
-        $uncovered = [];
-
-        foreach ($candidateKinds as $row) {
-            $key = (string) $row->publisher_group.'|'.(string) $row->script_class;
-
-            if (array_key_exists($key.'|'.(string) $row->field_key, $labelledKinds)) {
-                continue;
-            }
-
-            $uncovered[$key][(string) $row->field_key] = (int) $row->aggregate;
-        }
-
-        foreach ($uncovered as $key => $kinds) {
-            arsort($kinds);
-            $uncovered[$key] = $kinds;
-        }
-
-        $unlabelled = ExtractionField::query()
-            ->whereNull('gold_source')
-            ->whereNull('is_correct')
-            ->toBase()
-            ->selectRaw('publisher_group, script_class, count(*) as aggregate')
-            ->groupBy('publisher_group', 'script_class')
-            ->get();
-
         foreach ($unlabelled as $row) {
-            $key = (string) $row->publisher_group.'|'.(string) $row->script_class;
+            $key = (string) $row->publisher_group.'|'.(string) $row->script_class.'|'.(string) $row->field_key;
 
             if (! array_key_exists($key, $groups)) {
                 $groups[$key] = 0;
@@ -472,7 +446,7 @@ class ReviewQueueController extends Controller
 
         $waiting = $unlabelled
             ->mapWithKeys(fn (object $row): array => [
-                (string) $row->publisher_group.'|'.(string) $row->script_class => (int) $row->aggregate,
+                (string) $row->publisher_group.'|'.(string) $row->script_class.'|'.(string) $row->field_key => (int) $row->aggregate,
             ])
             ->all();
 
@@ -510,11 +484,6 @@ class ReviewQueueController extends Controller
                 // the difference between a reviewer finishing four groups in an
                 // hour and finishing none.
                 'judged' => $judged[$key] ?? 0,
-                // Kinds of value this group holds candidates for and has never
-                // labelled. Those cannot certify at all, whatever the group's
-                // label count reaches, so a group can read "at target" and still
-                // withhold thousands of values.
-                'uncovered_kinds' => $uncovered[(string) $key] ?? [],
                 'held_out' => max(0, ($judged[$key] ?? 0) - (int) $size - ($unscorable[$key] ?? 0)),
                 // Judged, and unusable for fitting a threshold until the value
                 // can be scored. Almost all of these are waiting on a re-score

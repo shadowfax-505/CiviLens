@@ -295,11 +295,11 @@ class LimitationsReport
                 'groups' => $detail,
                 'accepted_values_using_a_group_conditional_threshold' => ExtractionField::query()
                     ->where('decision', 'accepted')
-                    ->where('decision_basis', 'group')
+                    ->where('decision_basis', 'stratum')
                     ->count(),
                 'accepted_values_using_a_borrowed_threshold' => ExtractionField::query()
                     ->where('decision', 'accepted')
-                    ->where('decision_basis', '!=', 'group')
+                    ->where('decision_basis', '!=', 'stratum')
                     ->count(),
             ],
             'why_it_matters' => 'Read the right way round, this is the argument for the scheme rather '
@@ -321,15 +321,15 @@ class LimitationsReport
     /**
      * Kinds of value certified on very few labels of that kind.
      *
-     * A kind absent from a group's labels no longer certifies at all. What this
-     * reports is the case the rule does not catch: a kind present, but present
-     * two or three times, carrying a threshold fitted mostly on something else.
+     * The stratum is publisher x script x kind, so a kind with no labels at all
+     * forms no stratum and certifies nothing. What this reports is the rung
+     * below that: a kind labelled twice cannot fit a threshold of its own at
+     * this alpha, so it borrows one from every kind the publisher writes in
+     * that script — valid for that pool, and not a claim about the kind.
      *
-     * Refusing those outright was rejected. A per-kind minimum would split every
-     * group into a handful of strata, most of them below the count ADR-018 needs
-     * to certify anything, and the guarantee would shrink to almost nothing —
-     * which is why the minimum is enforced per group and this is written down
-     * instead.
+     * That borrowing is what keeps the split by kind affordable, and it is
+     * exactly where a claim is weakest, so it is counted here rather than left
+     * to the basis label on each figure.
      *
      * @return array{limitation: string, evidence: array<string, mixed>, why_it_matters: string}|null
      */
@@ -389,10 +389,11 @@ class LimitationsReport
                 'strata' => array_slice($thin, 0, 20),
             ],
             'why_it_matters' => 'A threshold is fitted on labelled values and applied to unlabelled '
-                .'ones, which holds only while the two are alike. The group is a publisher and a '
-                .'script, not a kind of value, and reading a case number is not the same task as '
-                .'reading a date. A kind nobody has judged in its group is now deferred outright; '
-                .'a kind judged twice is not, and the guarantee over those values rests on the '
+                .'ones, which holds only while the two are alike, and reading a case number is not '
+                .'the same task as reading a date. A kind nobody has judged forms no stratum and is '
+                .'deferred outright. A kind judged twice borrows a threshold fitted across every '
+                .'kind its publisher writes in that script: valid for that pool, and not a '
+                .'statement about the kind, so the guarantee over these values rests on the '
                 .'assumption that they read like the kinds that were judged.',
         ];
     }

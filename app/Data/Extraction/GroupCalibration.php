@@ -7,6 +7,25 @@ final readonly class GroupCalibration
     public function __construct(
         public string $publisherGroup,
         public string $scriptClass,
+        /**
+         * Which kind of value this threshold was fitted on.
+         *
+         * The stratum is publisher x script x kind. Publisher and script alone
+         * was enough while every value was a figure — reading a Bengali amount
+         * and a Bengali date are close to the same task — and court records
+         * broke it: `supremecourt|en` was labelled 105 dates and 15 amounts, and
+         * a threshold from those was about to certify 2,308 case numbers and 972
+         * statutory references, which are multi-word values with their own
+         * punctuation and their own ways of going wrong.
+         *
+         * Refusing an unlabelled kind closed the overclaim but could not open
+         * the other side: a kind becomes certifiable only by being calibrated,
+         * and calibrating it means making it the stratum. That also makes a
+         * kind-filtered review draw uniform inside its own stratum, which is
+         * what lets nineteen judgements buy a kind directly instead of the
+         * ~340 a uniform draw over the group would cost.
+         */
+        public string $fieldKey,
         public float $alpha,
         public int $calibrationSize,
         public int $minimumCalibrationSize,
@@ -20,46 +39,21 @@ final readonly class GroupCalibration
         public float $certifiedAlpha = 1.0,
         /**
          * Which population the threshold was calibrated on:
-         * 'group' this publisher and script, 'script' every publisher writing
-         * this script, 'marginal' everything, 'none' nothing was certified.
+         * 'stratum' this publisher, script and kind — the only conditional
+         * case; 'group' every kind this publisher writes in this script;
+         * 'script' every publisher writing this script; 'marginal' everything;
+         * 'none' nothing was certified.
          */
-        public string $basis = 'group',
-        /**
-         * Which kinds of value the labels behind this threshold were.
-         *
-         * A threshold is fitted on labelled values and applied to unlabelled
-         * ones, and that is only sound while the two are alike. The group key
-         * is publisher and script, which was enough while every value was a
-         * figure: reading a Bengali amount and a Bengali date are close to the
-         * same task. Court records broke it. `supremecourt|en` was labelled
-         * 105 dates, 15 amounts and 3 references, and would have certified
-         * 2,308 case numbers, 972 statutory references and 855 law report
-         * citations against it — multi-word values with their own punctuation
-         * and their own way of going wrong, of which nobody has judged one.
-         *
-         * @var list<string>
-         */
-        public array $calibratedKinds = [],
+        public string $basis = 'stratum',
     ) {}
 
-    /**
-     * Does this threshold rest on any label of this kind of value?
-     *
-     * Absence is the case worth refusing. A kind nobody has judged is not a
-     * harder case of a kind they have — it is a population the calibration set
-     * says nothing about, exactly as a group with no labels is, and this class
-     * already defers that one.
-     *
-     * An empty list means nothing was recorded rather than nothing was
-     * labelled — a calibration fitted on real fields always has at least one
-     * kind — so it covers everything and leaves older behaviour alone.
-     */
-    public function covers(string $fieldKey): bool
+    public function key(): string
     {
-        return $this->calibratedKinds === [] || in_array($fieldKey, $this->calibratedKinds, true);
+        return $this->publisherGroup.'|'.$this->scriptClass.'|'.$this->fieldKey;
     }
 
-    public function key(): string
+    /** The publisher and script alone, which is the rung above this stratum. */
+    public function groupKey(): string
     {
         return $this->publisherGroup.'|'.$this->scriptClass;
     }
@@ -82,7 +76,7 @@ final readonly class GroupCalibration
      */
     public function conditional(): bool
     {
-        return $this->basis === 'group';
+        return $this->basis === 'stratum';
     }
 
     /** @return array<string, mixed> */
@@ -91,6 +85,7 @@ final readonly class GroupCalibration
         return [
             'publisher_group' => $this->publisherGroup,
             'script_class' => $this->scriptClass,
+            'field_key' => $this->fieldKey,
             'alpha' => $this->alpha,
             'calibration_size' => $this->calibrationSize,
             'minimum_calibration_size' => $this->minimumCalibrationSize,
@@ -103,7 +98,6 @@ final readonly class GroupCalibration
             'certified_alpha' => round($this->certifiedAlpha, 6),
             'basis' => $this->basis,
             'conditional' => $this->conditional(),
-            'calibrated_kinds' => $this->calibratedKinds,
         ];
     }
 }

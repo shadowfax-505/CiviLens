@@ -114,3 +114,57 @@ finer partition.
 That is a decision about what the paper claims, not a refactor, so it is
 recorded here and not taken. Until it is taken, court values stay withheld and
 the corpus certifies figures.
+
+---
+
+## Addendum, 2026-09-02: the stratum is publisher × script × kind
+
+The addendum above set out two routes and recorded the second as a decision not
+taken. It has now been taken, deliberately: **the stratum is publisher × script
+× kind of value.**
+
+What changed:
+
+- `ConformalCalibrator` keys on `publisher|script|kind`. So does the realized
+  rate in `CalibrationReport` and the AUC in `ScoreDiscriminationReport` — a
+  realized rate measured over one population and compared with a threshold
+  fitted on another is not a check of anything.
+- The ladder gained a rung. A stratum too small for the alpha asked for now
+  borrows, in order, from every kind its publisher writes in that script
+  (`group`), then that script across publishers (`script`), then everything
+  (`marginal`). The new rung is the one most strata will land on while the kinds
+  are young, which is the whole reason it exists.
+- `basis = 'stratum'` is the conditional case. It was `'group'`, and everything
+  that keyed on that string was moved: `PublicationFigure::isGroupConditional()`,
+  the extraction overview, the limitations report.
+- The public evidence page names the kind in the claim. Saying "conditional on
+  dgcivil-bangladesh · bn" while the threshold was fitted on one kind of value
+  would state a wider claim than the one that was certified.
+- The explicit "is this kind covered?" check in `FieldDecisionService` is gone.
+  A kind with no labels forms no stratum, so deny-by-default already refuses
+  it — one mechanism instead of two saying the same thing.
+- The review queue draws by stratum, kind included. **This is the move the
+  previous addendum said must not be made, and what makes it sound now is that
+  the threshold is fitted per kind.** A draw inside one kind is uniform inside
+  the very population that kind's threshold is applied to. Nineteen judgements
+  buy a kind directly, against roughly 340 through a group-wide draw for
+  something at 5.6% of the pool.
+
+What it costs, stated plainly:
+
+- **A claim is now conditional on the kind of value.** "dgcivil-bangladesh · bn
+  is certified at 0.05" is no longer a sentence this system can say; it says
+  "dgcivil-bangladesh · bn · amount". That is a narrower claim and a truer one.
+- **Every count is against a finer partition.** Strata multiply — a benchmark
+  with three gold field names is three strata of one, not one of three — and
+  more of them sit below nineteen labels, so more borrow, and borrowing is not
+  a conditional claim. The limitations report counts exactly that.
+- **Labels already collected are unevenly spread across the new partition.**
+  `supremecourt|en` was 105 dates, 15 amounts and 3 references; those become
+  three strata, of which one certifies and two do not. Nothing is lost, but
+  what looked like 123 labels for one group is not 123 labels for any stratum.
+
+The gain is that the guarantee is now about the thing it was measured on. The
+previous arrangement would have certified 2,308 case numbers on the strength of
+105 dates, and a bound that holds over a population nobody sampled is
+arithmetic, not evidence.

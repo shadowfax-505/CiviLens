@@ -165,10 +165,15 @@ it('produces fields the conformal calibrator can consume', function (): void {
 
     expect(ExtractionField::query()->calibratable()->count())->toBe(3);
 
-    $calibration = app(ConformalCalibrator::class)->calibrate(0.5)->get('mof|en');
+    // A benchmark's gold field names are its kinds of value, and the stratum is
+    // publisher x script x kind — so three gold fields are three strata of one,
+    // not one stratum of three. That fragmentation is the cost ADR-018's ladder
+    // exists to absorb, and it is worth asserting rather than hiding.
+    $calibrations = app(ConformalCalibrator::class)->calibrate(0.5);
 
-    expect($calibration)->not->toBeNull()
-        ->and($calibration->calibrationSize)->toBe(3);
+    expect($calibrations)->toHaveCount(3)
+        ->and($calibrations->get('mof|en|allocation'))->not->toBeNull()
+        ->and($calibrations->get('mof|en|allocation')->calibrationSize)->toBe(1);
 })->skip(fn (): bool => benchmarkToolchainMissing(), 'poppler or tesseract is not installed');
 
 it('locates the shortest run of words backing a value and returns their confidences', function (): void {

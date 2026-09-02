@@ -1,6 +1,5 @@
 <?php
 
-use App\Data\Extraction\GroupCalibration;
 use App\Models\ExtractionField;
 use App\Services\Extraction\ConformalCalibrator;
 use App\Services\Extraction\FieldDecisionService;
@@ -8,16 +7,16 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-/** A group calibrated on `date` alone, with plenty of labels. */
-function calibratedOnDatesAlone(int $labels = 40): void
+/** A stratum with plenty of labels, all of one kind. */
+function strataLabelledOn(string $kind, int $labels = 40): void
 {
     ['page' => $page] = publishableDocument();
 
-    foreach (range(1, $labels) as $index) {
+    foreach (range(1, $labels) as $ignored) {
         ExtractionField::factory()->create([
             'extraction_run_id' => $page->extraction_run_id,
             'extraction_page_id' => $page->id,
-            'field_key' => 'date',
+            'field_key' => $kind,
             'publisher_group' => 'supremecourt-bangladesh',
             'script_class' => 'en',
             'calibration_split' => 'calibration',
@@ -29,7 +28,7 @@ function calibratedOnDatesAlone(int $labels = 40): void
     }
 }
 
-function undecidedValue(string $kind): ExtractionField
+function strataUndecided(string $kind): ExtractionField
 {
     ['page' => $page] = publishableDocument();
 
@@ -48,42 +47,58 @@ function undecidedValue(string $kind): ExtractionField
 }
 
 it('certifies a kind the calibration set contains', function (): void {
-    calibratedOnDatesAlone();
-    $date = undecidedValue('date');
+    strataLabelledOn('date');
+
+    $date = strataUndecided('date');
 
     app(FieldDecisionService::class)->decide(0.05);
 
-    expect($date->refresh()->decision)->toBe(FieldDecisionService::ACCEPTED);
+    expect($date->refresh()->decision)->toBe(FieldDecisionService::ACCEPTED)
+        ->and($date->refresh()->decision_basis)->toBe('stratum');
 });
 
-it('defers a kind no label in the group covers', function (): void {
-    // The threshold rests on 105 dates. A case number is not a harder date: it
-    // is a population the calibration set says nothing about, and a score below
-    // a threshold fitted on something else is not evidence about it.
-    calibratedOnDatesAlone();
-    $caseNumber = undecidedValue('case_number');
+it('defers a kind the group has judged nothing of', function (): void {
+    // The stratum is publisher x script x kind, so a case number in a group
+    // that has only ever labelled dates has no calibration of its own — and
+    // deny-by-default takes it from there. A score below a threshold fitted on
+    // something else is not evidence about it.
+    strataLabelledOn('date');
+
+    $caseNumber = strataUndecided('case_number');
 
     app(FieldDecisionService::class)->decide(0.05);
 
     expect($caseNumber->refresh()->decision)->toBe(FieldDecisionService::DEFERRED);
 });
 
-it('records which kinds a threshold rests on', function (): void {
-    calibratedOnDatesAlone();
+it('keys a calibration on publisher, script and kind', function (): void {
+    strataLabelledOn('date');
 
-    $calibration = app(ConformalCalibrator::class)
-        ->calibrateAdaptive(0.05)
-        ->get('supremecourt-bangladesh|en');
+    $calibrations = app(ConformalCalibrator::class)->calibrateAdaptive(0.05);
 
-    expect($calibration)->toBeInstanceOf(GroupCalibration::class)
-        ->and($calibration->calibratedKinds)->toBe(['date'])
-        ->and($calibration->covers('date'))->toBeTrue()
-        ->and($calibration->covers('statutory_reference'))->toBeFalse();
+    expect($calibrations->keys()->all())->toBe(['supremecourt-bangladesh|en|date']);
+
+    $stratum = $calibrations->get('supremecourt-bangladesh|en|date');
+
+    expect($stratum->fieldKey)->toBe('date')
+        ->and($stratum->groupKey())->toBe('supremecourt-bangladesh|en')
+        ->and($stratum->basis)->toBe('stratum')
+        ->and($stratum->conditional())->toBeTrue();
 });
 
-it('covers everything when no kinds were recorded', function (): void {
-    // An empty list means nothing was recorded, not that nothing was labelled.
-    $blank = new GroupCalibration('x', 'en', 0.05, 40, 19, 0.5, 0.0, 1.0, 0.0);
+it('borrows the group threshold for a kind too thin to fit its own', function (): void {
+    // Nineteen labels of dates and two of case numbers: the case-number stratum
+    // cannot certify at 0.05 alone, so it borrows the threshold fitted across
+    // every kind this publisher writes in this script — and says so, rather
+    // than presenting a pooled threshold as a claim about case numbers.
+    strataLabelledOn('date', 40);
+    strataLabelledOn('case_number', 2);
 
-    expect($blank->covers('anything'))->toBeTrue();
+    $stratum = app(ConformalCalibrator::class)
+        ->calibrateAdaptive(0.05)
+        ->get('supremecourt-bangladesh|en|case_number');
+
+    expect($stratum->basis)->toBe('group')
+        ->and($stratum->conditional())->toBeFalse()
+        ->and($stratum->threshold)->not->toBeNull();
 });

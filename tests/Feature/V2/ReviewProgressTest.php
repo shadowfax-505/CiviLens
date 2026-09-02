@@ -26,7 +26,7 @@ it('lists a group that certifies nothing, because that is the one worth judging'
     $response->assertOk();
 
     $levels = collect($response->viewData('progress')['levels']);
-    $group = $levels->firstWhere('key', 'cbad-bangladesh|bn');
+    $group = $levels->firstWhere('key', 'cbad-bangladesh|bn|tender_reference');
 
     expect($group)->not->toBeNull()
         ->and($group['size'])->toBe(0)
@@ -53,7 +53,7 @@ it('counts down to the target as labels arrive', function (): void {
     $this->actingAs(searchAdminUser());
 
     $levels = collect($this->get(route('admin.sources.review'))->viewData('progress')['levels']);
-    $group = $levels->firstWhere('key', 'cbad-bangladesh|bn');
+    $group = $levels->firstWhere('key', 'cbad-bangladesh|bn|tender_reference');
 
     expect($group['size'])->toBe(3)
         ->and($group['to_target'])->toBe(16);
@@ -76,7 +76,7 @@ it('stops counting down once the target is reached', function (): void {
 
     $levels = collect($this->get(route('admin.sources.review'))->viewData('progress')['levels']);
 
-    expect($levels->firstWhere('key', 'dgcivil-bangladesh|bn')['to_target'])->toBe(0);
+    expect($levels->firstWhere('key', 'dgcivil-bangladesh|bn|tender_reference')['to_target'])->toBe(0);
 });
 
 it('does not offer a finish line a group cannot reach', function (): void {
@@ -98,7 +98,7 @@ it('does not offer a finish line a group cannot reach', function (): void {
     $this->actingAs(searchAdminUser());
 
     $levels = collect($this->get(route('admin.sources.review'))->viewData('progress')['levels']);
-    $group = $levels->firstWhere('key', 'parliament-bangladesh|bn');
+    $group = $levels->firstWhere('key', 'parliament-bangladesh|bn|tender_reference');
 
     expect($group['waiting'])->toBe(4)
         ->and($group['to_target'])->toBe(19)
@@ -204,7 +204,7 @@ it('offers the group that can be finished soonest first', function (): void {
     $groups = collect($this->get(route('admin.sources.review'))->viewData('groups'));
 
     // parliament|bn can be exhausted in five; cbad|en needs nineteen.
-    expect($groups->first()['key'])->toBe('parliament-bangladesh|bn')
+    expect($groups->first()['key'])->toBe('parliament-bangladesh|bn|tender_reference')
         ->and($groups->first()['remaining_effort'])->toBe(5);
 });
 
@@ -232,8 +232,8 @@ it('sinks a group that has already reached the target', function (): void {
 
     $groups = collect($this->get(route('admin.sources.review'))->viewData('groups'));
 
-    expect($groups->first()['key'])->toBe('cbad-bangladesh|bn')
-        ->and($groups->last()['key'])->toBe('dgcivil-bangladesh|bn');
+    expect($groups->first()['key'])->toBe('cbad-bangladesh|bn|tender_reference')
+        ->and($groups->last()['key'])->toBe('dgcivil-bangladesh|bn|tender_reference');
 });
 
 it('shows what was judged beside what the calibration could use', function (): void {
@@ -272,7 +272,7 @@ it('shows what was judged beside what the calibration could use', function (): v
     $this->actingAs(searchAdminUser());
 
     $group = collect($this->get(route('admin.sources.review'))->viewData('groups'))
-        ->firstWhere('key', 'imed-bangladesh|en');
+        ->firstWhere('key', 'imed-bangladesh|en|tender_reference');
 
     expect($group['judged'])->toBe(11)
         ->and($group['size'])->toBe(4)
@@ -305,7 +305,7 @@ it('shows a group whose every judgement is unscorable and whose queue is empty',
     $this->actingAs(searchAdminUser());
 
     $group = collect($this->get(route('admin.sources.review'))->viewData('groups'))
-        ->firstWhere('key', 'parliament-bangladesh|bn');
+        ->firstWhere('key', 'parliament-bangladesh|bn|tender_reference');
 
     expect($group)->not->toBeNull()
         ->and($group['judged'])->toBe(3)

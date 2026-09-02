@@ -24,10 +24,22 @@ use Illuminate\Support\Collection;
  * loss is bounded and decomposable, so the standard conformal risk control
  * argument applies — and field correctness is also what governance depends on.
  *
- * WHY PER GROUP. A threshold fitted across all publishers and scripts at once
+ * WHY PER STRATUM. A threshold fitted across all publishers and scripts at once
  * can report a healthy pooled rate while a low-resource subset fails badly,
- * because the majority group dominates the average. Each publisher x script
- * group therefore gets its own threshold and its own honest verdict.
+ * because the majority group dominates the average.
+ *
+ * The stratum is publisher x script x KIND OF VALUE. Publisher and script alone
+ * held while every value was a figure, and court records broke it: a threshold
+ * fitted on 105 dates and 15 amounts was about to certify 2,308 case numbers
+ * and 972 statutory references. Reading a case number is not a harder date.
+ *
+ * The cost is deliberate and is the subject of ADR-018. Splitting by kind
+ * multiplies the strata and most of the pieces fall below the nineteen labels a
+ * 5% claim needs — so each stratum certifies at the level its own count
+ * supports, and borrows a coarser threshold, clearly labelled, where it cannot.
+ * The gain is that a claim is now conditional on the kind of value it is about,
+ * and that judging one kind on purpose is a uniform draw inside its own
+ * stratum rather than an enrichment of the group's calibration set.
  */
 class ConformalCalibrator
 {
@@ -68,10 +80,11 @@ class ConformalCalibrator
      * one asked for, and borrowing a coarser threshold where even that is out of
      * reach.
      *
-     * The ladder is publisher x script, then script across publishers, then
+     * The ladder is publisher x script x kind, then every kind this publisher
+     * writes in this script, then that script across publishers, then
      * everything. Each rung is a valid split-conformal calibration for the
      * population it was fitted on — a borrowed threshold is not a claim about the
-     * rare group, and is labelled as such rather than presented as one.
+     * rare stratum, and is labelled as such rather than presented as one.
      *
      * @return Collection<string, GroupCalibration>
      */
@@ -84,17 +97,18 @@ class ConformalCalibrator
             ->get(['publisher_group', 'script_class', 'field_key', 'nonconformity_score', 'is_correct']);
 
         $byScript = $fields->groupBy(fn (ExtractionField $field): string => (string) $field->script_class);
+        $byGroup = $fields->groupBy(fn (ExtractionField $field): string => $field->publisher_group.'|'.$field->script_class);
 
         return $fields
-            ->groupBy(fn (ExtractionField $field): string => $field->publisher_group.'|'.$field->script_class)
-            ->map(function (Collection $rows) use ($alpha, $ceiling, $byScript, $fields): GroupCalibration {
+            ->groupBy(fn (ExtractionField $field): string => $field->publisher_group.'|'.$field->script_class.'|'.$field->field_key)
+            ->map(function (Collection $rows) use ($alpha, $ceiling, $byScript, $byGroup, $fields): GroupCalibration {
                 $own = $this->calibrateGroup($rows, $alpha);
                 $attainable = $this->attainableAlpha($own->calibrationSize);
 
                 // Big enough for what was asked: nothing to relax, nothing to
-                // borrow, and the guarantee is conditional on this group.
+                // borrow, and the guarantee is conditional on this stratum.
                 if ($attainable <= $alpha) {
-                    return $this->reframe($own, $attainable, $alpha, 'group');
+                    return $this->reframe($own, $attainable, $alpha, 'stratum');
                 }
 
                 // Too small for that alpha but not too small to say anything.
@@ -103,14 +117,23 @@ class ConformalCalibrator
                         $this->calibrateGroup($rows, $attainable),
                         $attainable,
                         $attainable,
-                        'group',
+                        'stratum',
                     );
                 }
 
-                $script = $byScript->get($own->scriptClass) ?? collect();
-                $borrowed = $this->borrow($own, $script, $alpha, 'script');
+                // The rung immediately above: every kind this publisher writes
+                // in this script. Coarser than the stratum and finer than the
+                // script pool, and it is the rung most strata will land on
+                // while the kinds are young — which is exactly the case this
+                // ladder exists for.
+                $group = $byGroup->get($own->groupKey()) ?? collect();
+                $borrowed = $this->borrow($own, $group, $alpha, 'group');
 
-                return $borrowed ?? $this->borrow($own, $fields, $alpha, 'marginal')
+                $script = $byScript->get($own->scriptClass) ?? collect();
+
+                return $borrowed
+                    ?? $this->borrow($own, $script, $alpha, 'script')
+                    ?? $this->borrow($own, $fields, $alpha, 'marginal')
                     ?? $this->reframe($own, $attainable, $attainable, 'none');
             })
             ->keyBy(fn (GroupCalibration $calibration): string => $calibration->key());
@@ -137,6 +160,7 @@ class ConformalCalibrator
         return new GroupCalibration(
             $own->publisherGroup,
             $own->scriptClass,
+            $own->fieldKey,
             $alpha,
             $own->calibrationSize,
             $this->minimumCalibrationSize($alpha),
@@ -147,9 +171,6 @@ class ConformalCalibrator
             $this->attainableAlpha($own->calibrationSize),
             $alpha,
             $basis,
-            // The pool's kinds, not this group's: the threshold is the pool's,
-            // so what backs it is what the pool was labelled on.
-            $pooled->calibratedKinds,
         );
     }
 
@@ -158,6 +179,7 @@ class ConformalCalibrator
         return new GroupCalibration(
             $c->publisherGroup,
             $c->scriptClass,
+            $c->fieldKey,
             $c->alpha,
             $c->calibrationSize,
             $c->minimumCalibrationSize,
@@ -168,7 +190,6 @@ class ConformalCalibrator
             $attainable,
             $certified,
             $basis,
-            $c->calibratedKinds,
         );
     }
 
@@ -181,7 +202,7 @@ class ConformalCalibrator
             ->calibratable()
             ->where('calibration_split', $split)
             ->get(['publisher_group', 'script_class', 'field_key', 'nonconformity_score', 'is_correct'])
-            ->groupBy(fn (ExtractionField $field): string => $field->publisher_group.'|'.$field->script_class)
+            ->groupBy(fn (ExtractionField $field): string => $field->publisher_group.'|'.$field->script_class.'|'.$field->field_key)
             ->map(fn (Collection $rows): GroupCalibration => $this->calibrateGroup($rows, $alpha))
             ->keyBy(fn (GroupCalibration $calibration): string => $calibration->key());
     }
@@ -194,17 +215,15 @@ class ConformalCalibrator
         $first = $fields->firstOrFail();
         $group = (string) $first->publisher_group;
         $script = (string) $first->script_class;
+        $kind = (string) $first->field_key;
 
         $rows = [];
-        $kinds = [];
 
         foreach ($fields as $field) {
             $rows[] = [
                 'score' => (float) $field->nonconformity_score,
                 'wrong' => $field->is_correct === false,
             ];
-
-            $kinds[(string) $field->field_key] = true;
         }
 
         $n = count($rows);
@@ -243,6 +262,7 @@ class ConformalCalibrator
         return new GroupCalibration(
             $group,
             $script,
+            $kind,
             $alpha,
             $n,
             $minimum,
@@ -250,7 +270,6 @@ class ConformalCalibrator
             $n > 0 ? round($errorsAtThreshold / $n, 6) : 0.0,
             $n > 0 ? round($acceptedAtThreshold / $n, 6) : 0.0,
             $acceptedAtThreshold > 0 ? round($errorsAtThreshold / $acceptedAtThreshold, 6) : null,
-            calibratedKinds: array_keys($kinds),
         );
     }
 }

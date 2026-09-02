@@ -89,7 +89,14 @@ class FieldDecisionService
             ->orderBy('id')
             ->chunkById(500, function (Collection $fields) use ($calibrations, $alpha, &$counts): void {
                 foreach ($fields as $field) {
-                    $calibration = $calibrations->get($field->publisher_group.'|'.$field->script_class);
+                    // The stratum, which now includes the kind of value. A
+                    // field whose stratum has no calibration is deferred by the
+                    // deny-by-default rule below, which is what the explicit
+                    // kind check used to do before the kind became part of the
+                    // key: one mechanism instead of two saying the same thing.
+                    $calibration = $calibrations->get(
+                        $field->publisher_group.'|'.$field->script_class.'|'.$field->field_key,
+                    );
                     $decision = $this->decisionFor($field, $calibration);
 
                     $certified = $calibration instanceof GroupCalibration;
@@ -118,16 +125,6 @@ class FieldDecisionService
         }
 
         if ($field->nonconformity_score === null) {
-            return self::DEFERRED;
-        }
-
-        // A kind of value nobody has judged in this group is not covered by its
-        // threshold, however large the calibration set is. The court groups made
-        // this visible — 4,135 case numbers, statutory references and law report
-        // citations facing a threshold fitted on 105 dates — but it was already
-        // true of 389 accepted values elsewhere, among them 53 organisations
-        // certified in a group holding no labelled organisation at all.
-        if (! $calibration->covers((string) $field->field_key)) {
             return self::DEFERRED;
         }
 

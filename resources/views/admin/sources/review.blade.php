@@ -57,8 +57,9 @@
         @php($current = collect($groups)->firstWhere('key', $group))
         <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">
             Drawing only from <strong>{{ $group }}</strong>. Values are still picked at random within it, which is what
-            the guarantee requires; the guarantee itself is fitted per publisher and script, so judging one group at a
-            time is how a rare publisher reaches a level of its own.
+            the guarantee requires; the guarantee itself is fitted per publisher, script and kind of value, so judging
+            one stratum at a time is how a rare publisher &mdash; or a kind of value nobody has judged yet &mdash;
+            reaches a level of its own.
             @if ($current)
                 @if ($current['to_target'] === 0)
                     <strong>This group has reached &alpha; = 0.05.</strong> Further labels tighten the estimate rather
@@ -190,21 +191,6 @@
                                             {{ number_format($level['unscorable']) }} awaiting a re-score
                                         </span>
                                     @endif
-                                    {{-- A group can read "reached" and still certify none of
-                                         this. A threshold rests on the kinds of value it was
-                                         fitted on, so a kind nobody in this group has judged
-                                         is withheld however many labels the group has.
-
-                                         Shown, and not offered as a filter: the draw has to be
-                                         uniform inside the group, and judging by kind would
-                                         enrich the calibration set in that kind. What unlocks
-                                         these is calibrating per kind, which is a decision, not
-                                         a button. --}}
-                                    @foreach ($level['uncovered_kinds'] as $kind => $count)
-                                        <span class="block text-xs text-slate-500">
-                                            {{ number_format($count) }} {{ str_replace('_', ' ', $kind) }} withheld &mdash; none judged here
-                                        </span>
-                                    @endforeach
                                 </td>
                                 {{-- The finish line, not the size of the pile. A group showing
                                      3,353 waiting reads as endless work when it is sixteen

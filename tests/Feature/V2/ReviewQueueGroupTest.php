@@ -86,12 +86,14 @@ it('still draws at random inside the group', function (): void {
     expect(count(array_unique(array_filter($seen))))->toBeGreaterThan(1);
 });
 
-it('counts what is left to judge in each group, per script', function (): void {
-    // Keyed by publisher AND script now, because that is the unit a threshold
-    // is fitted on. Keyed by publisher alone, the chips offered a selection the
-    // calibration could not use: judging "cbad-bangladesh" drew across its bn,
-    // en and mixed pools at once, and the group needing nineteen labels was
-    // whichever of the three the draw happened to miss.
+it('counts what is left to judge in each stratum, per script and kind', function (): void {
+    // Keyed by publisher, script AND kind of value now, because that is the
+    // unit a threshold is fitted on. Keyed by publisher alone, the chips
+    // offered a selection the calibration could not use: judging
+    // "cbad-bangladesh" drew across its bn, en and mixed pools at once, and the
+    // group needing nineteen labels was whichever of the three the draw
+    // happened to miss. The kind is the same argument again — a threshold
+    // fitted on dates is not a claim about case numbers.
     crowdedQueue();
 
     $groups = collect(
@@ -101,9 +103,9 @@ it('counts what is left to judge in each group, per script', function (): void {
             ->viewData('groups')
     )->keyBy('key');
 
-    $script = ExtractionField::query()->where('publisher_group', 'cbad-bangladesh')->value('script_class');
+    $cbad = ExtractionField::query()->where('publisher_group', 'cbad-bangladesh')->firstOrFail();
 
-    expect($groups->get('cbad-bangladesh|'.$script)['waiting'])->toBe(1)
+    expect($groups->get('cbad-bangladesh|'.$cbad->script_class.'|'.$cbad->field_key)['waiting'])->toBe(1)
         ->and($groups->sum('waiting'))->toBe(31);
 });
 

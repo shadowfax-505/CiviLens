@@ -52,7 +52,7 @@ it('certifies a rare group at a looser level instead of certifying it for nothin
     labelled('rare-publisher', 'bn', array_fill(0, 9, true));
 
     $groups = app(ConformalCalibrator::class)->calibrateAdaptive(0.05);
-    $rare = $groups->get('rare-publisher|bn');
+    $rare = $groups->get('rare-publisher|bn|amount');
 
     expect($rare->certifiable())->toBeTrue()
         ->and($rare->certifiedAlpha)->toBe(0.1)
@@ -64,10 +64,10 @@ it('certifies a rare group at a looser level instead of certifying it for nothin
 it('leaves a group that is big enough exactly as it was', function (): void {
     labelled('busy-publisher', 'bn', array_fill(0, 40, true));
 
-    $group = app(ConformalCalibrator::class)->calibrateAdaptive(0.05)->get('busy-publisher|bn');
+    $group = app(ConformalCalibrator::class)->calibrateAdaptive(0.05)->get('busy-publisher|bn|amount');
 
     expect($group->certifiedAlpha)->toBe(0.05)
-        ->and($group->basis)->toBe('group')
+        ->and($group->basis)->toBe('stratum')
         ->and($group->threshold)->not->toBeNull();
 });
 
@@ -78,7 +78,7 @@ it('borrows a wider threshold for a group too small to say anything, and says so
     labelled('busy-publisher', 'bn', array_fill(0, 40, true));
     labelled('brand-new-publisher', 'bn', [true, true]);
 
-    $group = app(ConformalCalibrator::class)->calibrateAdaptive(0.05)->get('brand-new-publisher|bn');
+    $group = app(ConformalCalibrator::class)->calibrateAdaptive(0.05)->get('brand-new-publisher|bn|amount');
 
     expect($group->threshold)->not->toBeNull()
         ->and($group->basis)->toBe('script')
@@ -91,7 +91,7 @@ it('certifies nothing when even the wider population is too small', function ():
     // guarantee out of two populations that each lack one.
     labelled('brand-new-publisher', 'bn', [true, true]);
 
-    $group = app(ConformalCalibrator::class)->calibrateAdaptive(0.05)->get('brand-new-publisher|bn');
+    $group = app(ConformalCalibrator::class)->calibrateAdaptive(0.05)->get('brand-new-publisher|bn|amount');
 
     expect($group->threshold)->toBeNull()
         ->and($group->basis)->toBe('none');
@@ -105,7 +105,7 @@ it('reports which groups are certified conditionally and which borrowed', functi
     $report = app(CalibrationReport::class)->build(0.05);
 
     expect($report['groups'])->toHaveCount(3)
-        ->and($report['borrowed_groups'])->toBe(['brand-new-publisher|bn'])
-        ->and($report['relaxed_groups'])->toBe(['rare-publisher|en'])
+        ->and($report['borrowed_groups'])->toBe(['brand-new-publisher|bn|amount'])
+        ->and($report['relaxed_groups'])->toBe(['rare-publisher|en|amount'])
         ->and($report['uncertifiable_groups'])->toBe([]);
 });

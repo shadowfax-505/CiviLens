@@ -159,14 +159,17 @@ class CalibrationReport
         $rows = ExtractionField::query()
             ->calibratable()
             ->where('calibration_split', $split)
-            ->get(['publisher_group', 'script_class', 'nonconformity_score', 'is_correct']);
+            ->get(['publisher_group', 'script_class', 'field_key', 'nonconformity_score', 'is_correct']);
 
         if ($rows->isEmpty()) {
             return ['split' => $split, 'fields' => 0, 'groups' => [], 'overall' => null];
         }
 
+        // Keyed the way the calibrator keys a stratum — publisher, script and
+        // kind of value — or the realized rate is measured over one population
+        // and compared against a threshold fitted on another.
         $perGroup = $rows
-            ->groupBy(fn (ExtractionField $f): string => $f->publisher_group.'|'.$f->script_class)
+            ->groupBy(fn (ExtractionField $f): string => $f->publisher_group.'|'.$f->script_class.'|'.$f->field_key)
             ->map(function (Collection $groupRows, string $key) use ($groupwise, $pooled, $alpha): array {
                 $calibration = $groupwise->get($key);
                 $conditional = $this->rate($groupRows, $calibration?->certifiable() === true ? $calibration->threshold : null);

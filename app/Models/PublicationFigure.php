@@ -46,14 +46,21 @@ class PublicationFigure extends Model
     /**
      * Whether the guarantee behind this figure is conditional on its own group.
      *
-     * ADR-018: 'group' is the publisher-and-script conditional case. A threshold
-     * borrowed from a wider pool ('script', 'marginal') is valid for that pool
-     * and is not a statement about the rare group inside it. Anything reported
-     * as group-conditional must key on this rather than on the level alone.
+     * ADR-018: 'stratum' is the conditional case — this publisher, this script
+     * and this kind of value. A threshold borrowed from a wider pool ('group'
+     * across kinds, 'script' across publishers, 'marginal' everything) is valid
+     * for that pool and is not a statement about the rare stratum inside it.
+     * Anything reported as conditional must key on this rather than on the
+     * level alone.
+     *
+     * The conditional case was publisher and script until the stratum gained
+     * the kind of value; a figure certified before that carries the old label
+     * and its claim was about the coarser population, which is what a snapshot
+     * records and does not revise.
      */
     public function isConditional(): bool
     {
-        return $this->decision_basis === 'group';
+        return $this->decision_basis === 'stratum';
     }
 
     /** @return BelongsTo<PublicationDocument, $this> */
