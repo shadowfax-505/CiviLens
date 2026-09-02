@@ -121,6 +121,16 @@ class FieldDecisionService
             return self::DEFERRED;
         }
 
+        // A kind of value nobody has judged in this group is not covered by its
+        // threshold, however large the calibration set is. The court groups made
+        // this visible — 4,135 case numbers, statutory references and law report
+        // citations facing a threshold fitted on 105 dates — but it was already
+        // true of 389 accepted values elsewhere, among them 53 organisations
+        // certified in a group holding no labelled organisation at all.
+        if (! $calibration->covers((string) $field->field_key)) {
+            return self::DEFERRED;
+        }
+
         return (float) $field->nonconformity_score <= $calibration->threshold
             ? self::ACCEPTED
             : self::DEFERRED;

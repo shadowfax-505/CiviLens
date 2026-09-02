@@ -81,7 +81,7 @@ class ConformalCalibrator
         $fields = ExtractionField::query()
             ->calibratable()
             ->where('calibration_split', $split)
-            ->get(['publisher_group', 'script_class', 'nonconformity_score', 'is_correct']);
+            ->get(['publisher_group', 'script_class', 'field_key', 'nonconformity_score', 'is_correct']);
 
         $byScript = $fields->groupBy(fn (ExtractionField $field): string => (string) $field->script_class);
 
@@ -147,6 +147,9 @@ class ConformalCalibrator
             $this->attainableAlpha($own->calibrationSize),
             $alpha,
             $basis,
+            // The pool's kinds, not this group's: the threshold is the pool's,
+            // so what backs it is what the pool was labelled on.
+            $pooled->calibratedKinds,
         );
     }
 
@@ -165,6 +168,7 @@ class ConformalCalibrator
             $attainable,
             $certified,
             $basis,
+            $c->calibratedKinds,
         );
     }
 
@@ -176,7 +180,7 @@ class ConformalCalibrator
         return ExtractionField::query()
             ->calibratable()
             ->where('calibration_split', $split)
-            ->get(['publisher_group', 'script_class', 'nonconformity_score', 'is_correct'])
+            ->get(['publisher_group', 'script_class', 'field_key', 'nonconformity_score', 'is_correct'])
             ->groupBy(fn (ExtractionField $field): string => $field->publisher_group.'|'.$field->script_class)
             ->map(fn (Collection $rows): GroupCalibration => $this->calibrateGroup($rows, $alpha))
             ->keyBy(fn (GroupCalibration $calibration): string => $calibration->key());
@@ -192,12 +196,15 @@ class ConformalCalibrator
         $script = (string) $first->script_class;
 
         $rows = [];
+        $kinds = [];
 
         foreach ($fields as $field) {
             $rows[] = [
                 'score' => (float) $field->nonconformity_score,
                 'wrong' => $field->is_correct === false,
             ];
+
+            $kinds[(string) $field->field_key] = true;
         }
 
         $n = count($rows);
@@ -243,6 +250,7 @@ class ConformalCalibrator
             $n > 0 ? round($errorsAtThreshold / $n, 6) : 0.0,
             $n > 0 ? round($acceptedAtThreshold / $n, 6) : 0.0,
             $acceptedAtThreshold > 0 ? round($errorsAtThreshold / $acceptedAtThreshold, 6) : null,
+            calibratedKinds: array_keys($kinds),
         );
     }
 }

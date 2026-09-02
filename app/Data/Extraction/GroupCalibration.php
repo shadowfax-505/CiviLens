@@ -24,7 +24,40 @@ final readonly class GroupCalibration
          * this script, 'marginal' everything, 'none' nothing was certified.
          */
         public string $basis = 'group',
+        /**
+         * Which kinds of value the labels behind this threshold were.
+         *
+         * A threshold is fitted on labelled values and applied to unlabelled
+         * ones, and that is only sound while the two are alike. The group key
+         * is publisher and script, which was enough while every value was a
+         * figure: reading a Bengali amount and a Bengali date are close to the
+         * same task. Court records broke it. `supremecourt|en` was labelled
+         * 105 dates, 15 amounts and 3 references, and would have certified
+         * 2,308 case numbers, 972 statutory references and 855 law report
+         * citations against it — multi-word values with their own punctuation
+         * and their own way of going wrong, of which nobody has judged one.
+         *
+         * @var list<string>
+         */
+        public array $calibratedKinds = [],
     ) {}
+
+    /**
+     * Does this threshold rest on any label of this kind of value?
+     *
+     * Absence is the case worth refusing. A kind nobody has judged is not a
+     * harder case of a kind they have — it is a population the calibration set
+     * says nothing about, exactly as a group with no labels is, and this class
+     * already defers that one.
+     *
+     * An empty list means nothing was recorded rather than nothing was
+     * labelled — a calibration fitted on real fields always has at least one
+     * kind — so it covers everything and leaves older behaviour alone.
+     */
+    public function covers(string $fieldKey): bool
+    {
+        return $this->calibratedKinds === [] || in_array($fieldKey, $this->calibratedKinds, true);
+    }
 
     public function key(): string
     {
@@ -70,6 +103,7 @@ final readonly class GroupCalibration
             'certified_alpha' => round($this->certifiedAlpha, 6),
             'basis' => $this->basis,
             'conditional' => $this->conditional(),
+            'calibrated_kinds' => $this->calibratedKinds,
         ];
     }
 }
