@@ -324,3 +324,63 @@ quantity, informative per value and uninformative averaged.
 ADR-023 records the change. The lesson for this ADR is narrower and worth
 keeping: rejecting a statistic for one job does not remove it from the others,
 and the gate is a decision about a value's fate exactly as the score is.
+
+---
+
+## Addendum, 2026-09-02: a score can go stale because the page changed, not the reader
+
+`score_reader_version` answers one question: was this score taken by the reader
+we have now? It cannot answer the other one. A score is a claim about two
+readings of the same pixels, and it goes stale just as surely when the *page*
+changes under a reader that did not.
+
+That is what happened. Court pages were extracted and scored before they had any
+word geometry at all, so the locator had nothing to search and every value on
+them deferred `unlocatable` — correctly, at the time. The native-geometry
+backfill then gave 35,514 pages their word boxes. The reader was unchanged, the
+version matched, health was clean, and **81,707 values on 19,749 pages sat
+deferred by a rule that had stopped applying**. Sampled against the current
+locator, about 70% of them locate.
+
+This is the same shape as the stale-reader finding above and as nearly every
+defect this project has found: the bound was never breached, because an
+unlocatable value defers rather than over-accepts. The guarantee was simply true
+of a much smaller population than the corpus, and nothing said so.
+
+### Why the scores were invalidated by hand rather than by a version bump
+
+A bump would have been the mechanism this ADR prescribes, and it would have been
+wrong here. `READER_VERSION` means *every* score is suspect, and the corpus is
+42,664 pages. But the reader did not change for the corpus at large:
+
+- The one change to the locator was its span limit, four words to sixteen. A
+  value of one word — every amount and every date, which is most of the corpus —
+  provably examines the identical spans either way, because the search already
+  breaks as soon as the joined run outgrows the value. Re-reading those pages
+  would have spent hours to write down the same numbers.
+- What actually changed was which pages have geometry, and that is a property of
+  the page, not of the reader.
+
+So `score_reader_version` was nulled on exactly the scores whose outcome could
+differ: 81,707 deferred `unlocatable` on a page that now has word boxes, and
+14,822 of the three multi-word kinds, whose location could change with the span.
+Those pages then re-scored through the ordinary stale path.
+
+Recalibration follows the re-score as this ADR already requires. Of the first
+~17,500 values retaken, 27,934 carry a real second-read score against 2,733 that
+still cannot be located.
+
+### The hole this leaves open
+
+Staleness has two causes and the schema records one. Anything that changes a
+page after its values were scored — geometry arriving, a rotation applied, a
+re-read replacing the text — leaves scores that describe pixels or boxes that
+are no longer there, and no command reports it. This one was found by reading
+locate rates on a sample, not by a tripwire.
+
+A score should record what it was taken against, not only who took it. The
+obvious candidate is the page's own revision, so that health can report *scores
+older than the page they describe* alongside *scores older than the reader*.
+That is not built. Until it is, any backfill that writes to `extraction_pages`
+must be followed by invalidating the scores on the pages it touched, and that
+obligation lives only in this paragraph.
