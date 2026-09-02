@@ -57,9 +57,9 @@ canonical documents:
 | `supremecourt-bangladesh \| en \| date` | **32,148** | 0.05 | stratum | 26,865 |
 | `supremecourt-bangladesh \| en \| amount` | **9,103** | 0.10 | stratum | 13,450 |
 | `supremecourt-bangladesh \| en \| reference` | 203 | 0.05 | *group* | 661 |
-| `supremecourt-bangladesh \| en \| statutory_reference` | **0** | — | — | 7,780 |
+| `supremecourt-bangladesh \| en \| statutory_reference` | **0** | — | — | 7,732 |
 | `supremecourt-bangladesh \| en \| case_number` | **0** | — | — | 5,867 |
-| `supremecourt-bangladesh \| en \| law_report_citation` | **0** | — | — | 5,231 |
+| `supremecourt-bangladesh \| en \| law_report_citation` | **0** | — | — | 5,221 |
 | `supremecourt-bangladesh \| en \| organisation` | 0 | — | — | 537 |
 
 Three of the five kinds this corpus was read for certify nothing at all, and the three zeroes are
@@ -93,6 +93,14 @@ label, `basis = group`, a threshold fitted across every kind this publisher writ
 Those 203 values are the one part of the court corpus carrying a level that is not a conditional
 statement about the population it was applied to, and they are labelled as such in the snapshot
 because ADR-018 requires the basis to travel with the figure.
+
+Those three counts are the `en` stratum alone, and that is the correction this
+table needed: an earlier version of it read 7,780 statutory references and 5,231 law report
+citations, which are the totals across scripts. 48 statutory references, 13 law report citations and
+6 case numbers in these judgments were read as `mixed` script, and `mixed` is a different stratum
+with its own labels — none, in every case. Attributing them to `en` would have been a small instance
+of the exact error this section is about: a count standing for a narrower population than it belongs
+to.
 
 **Waiting does not close the three zeroes.** The uniform draw inside a stratum is what makes the
 calibration set exchangeable with what the stratum certifies, and case numbers are 5.80% of this
