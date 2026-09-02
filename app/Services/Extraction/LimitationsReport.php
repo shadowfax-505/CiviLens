@@ -9,6 +9,7 @@ use App\Models\ExtractionRun;
 use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
 use App\Services\Statistics\ClopperPearson;
+use Illuminate\Support\Facades\DB;
 
 /**
  * What this method cannot do, with the numbers that say so.
@@ -55,6 +56,7 @@ class LimitationsReport
             $this->certifiedOnAPoorRead(),
             $this->pooledThresholdWouldBreach($alpha),
             $this->unlocatable(),
+            $this->thinlyLabelledKind($alpha),
             $this->agreementNeverMeasured(),
         ]));
     }
@@ -310,6 +312,88 @@ class LimitationsReport
                 .'threshold can be wrong for the group inside it. The sample cannot establish the '
                 .'breach either — nineteen values and one error is an interval running to 26% — so '
                 .'this is a caution about a mechanism, not a measured failure.',
+        ];
+    }
+
+    /**
+     * @return array{limitation: string, evidence: array<string, mixed>, why_it_matters: string}|null
+     */
+    /**
+     * Kinds of value certified on very few labels of that kind.
+     *
+     * A kind absent from a group's labels no longer certifies at all. What this
+     * reports is the case the rule does not catch: a kind present, but present
+     * two or three times, carrying a threshold fitted mostly on something else.
+     *
+     * Refusing those outright was rejected. A per-kind minimum would split every
+     * group into a handful of strata, most of them below the count ADR-018 needs
+     * to certify anything, and the guarantee would shrink to almost nothing —
+     * which is why the minimum is enforced per group and this is written down
+     * instead.
+     *
+     * @return array{limitation: string, evidence: array<string, mixed>, why_it_matters: string}|null
+     */
+    private function thinlyLabelledKind(float $alpha): ?array
+    {
+        $minimum = (int) ceil(1 / $alpha) - 1;
+
+        // Counted in PHP rather than selected as an aggregate: the calibration
+        // set is small, and the scope that defines what counts as calibratable
+        // lives on the model, so borrowing it beats restating its conditions here.
+        $labels = ExtractionField::query()
+            ->calibratable()
+            ->where('calibration_split', 'calibration')
+            ->get(['publisher_group', 'script_class', 'field_key'])
+            ->countBy(fn (ExtractionField $row): string => $row->publisher_group.'|'.$row->script_class.'|'.$row->field_key);
+
+        $thin = [];
+        $total = 0;
+
+        // Aggregated in the database, because the accepted values are tens of
+        // thousands of rows and loading them to count them is the shape of bug
+        // this pipeline has already hit four times.
+        $accepted = DB::table('extraction_fields')
+            ->where('decision', 'accepted')
+            ->selectRaw('publisher_group, script_class, field_key, count(*) as n')
+            ->groupBy('publisher_group', 'script_class', 'field_key')
+            ->orderByDesc('n')
+            ->get();
+
+        foreach ($accepted as $row) {
+            $key = $row->publisher_group.'|'.$row->script_class.'|'.$row->field_key;
+            $labelled = (int) $labels->get($key, 0);
+
+            if ($labelled >= $minimum) {
+                continue;
+            }
+
+            $thin[] = [
+                'group' => (string) $row->publisher_group.'|'.(string) $row->script_class,
+                'kind' => (string) $row->field_key,
+                'accepted' => (int) $row->n,
+                'labelled_of_this_kind' => $labelled,
+            ];
+
+            $total += (int) $row->n;
+        }
+
+        if ($thin === []) {
+            return null;
+        }
+
+        return [
+            'limitation' => 'Some certified values are of a kind their group has judged only a handful of times.',
+            'evidence' => [
+                'labels_of_a_kind_needed_to_certify_it_alone' => $minimum,
+                'certified_on_fewer' => $total,
+                'strata' => array_slice($thin, 0, 20),
+            ],
+            'why_it_matters' => 'A threshold is fitted on labelled values and applied to unlabelled '
+                .'ones, which holds only while the two are alike. The group is a publisher and a '
+                .'script, not a kind of value, and reading a case number is not the same task as '
+                .'reading a date. A kind nobody has judged in its group is now deferred outright; '
+                .'a kind judged twice is not, and the guarantee over those values rests on the '
+                .'assumption that they read like the kinds that were judged.',
         ];
     }
 
