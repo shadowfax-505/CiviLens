@@ -279,6 +279,54 @@ publishes, so a citation stays resolvable after the pipeline moves on, and a new
 snapshot supersedes the old without deleting it. `civiclens:health` reports
 drift when what is published falls behind what is certified.
 
+## Exporting the corpus for training
+
+```bash
+php artisan civiclens:export-court-corpus [--out=] [--holdout=20] [--limit=50] [--publisher=supremecourt-bangladesh]
+```
+
+Writes `train.jsonl`, `holdout.jsonl` and `manifest.json` under
+`storage/app/corpus/court`, one JSON object per judgment: the sha256, the
+publisher group, the page count, the page text concatenated in page order, and
+every case number, date, statutory reference and law report citation read off
+it. Reads only — it writes nothing to the database and does not touch the
+published snapshot.
+
+**Certified and candidate values are separate keys.** `certified_values` are the
+ones with `decision = accepted`, and they are the only ones carrying a bound;
+`candidate_values` carry none. Both sides give `decision`, `decision_alpha` and
+`decision_basis` per value, and a `decision_basis` other than `stratum` means
+the threshold was borrowed from a wider pool and is not a conditional claim
+about that stratum (ADR-018). Today only `date` certifies at all: every case
+number, statutory reference and law report citation in the corpus is a
+candidate, so a consumer that concatenated the two keys would be handed roughly
+45,000 uncertified strings under a guarantee nobody made about them.
+
+**The split is derived, not stored.** The first eight hex digits of the sha256,
+modulo 100, below `--holdout`. So the same judgment lands in the same split on
+every machine and every re-export, and nothing has to remember the last one — a
+stored split can disagree with itself after a rebuild, and a model evaluated
+against a holdout it was trained on measures nothing. Changing `--holdout`
+reshuffles which documents are held out; it is not a knob to turn between
+training and evaluation.
+
+`--limit` stops after that many documents and is how to see the shape of the
+output without writing 55 MB. The whole corpus is about 2,500 documents,
+31,775 pages and 53 MB of text.
+
+**The manifest names the snapshot but does not read from it.** Values come from
+the live extraction tables, which is what "what do we believe now" means; the
+snapshot label records what the site was serving when the export ran, so a
+certified value can be matched against the site as it then stood. ADR-021 keeps
+those two apart and so does this.
+
+**These documents name people.** Petitioners, respondents, witnesses, counsel
+and judges, because the court published them that way. That is in scope for
+training and the manifest says so in as many words. What is not in scope, and is
+not built: any output asserting that a named person is corrupt, criminal or
+negligent on the strength of a model prediction. A certified value is a claim
+that a string was read correctly and nothing else.
+
 ## Answering people
 
 ```bash

@@ -14,6 +14,7 @@ use App\Models\SourceArtifactVersion;
 use App\Models\SourceCrawlRun;
 use App\Models\SourceEndpoint;
 use App\Models\SourcePublisher;
+use App\Services\Corpus\CourtCorpusExport;
 use App\Services\Extraction\AbstentionClassifier;
 use App\Services\Extraction\ArtifactWorkspace;
 use App\Services\Extraction\BenchmarkEvaluationService;
@@ -365,6 +366,40 @@ Artisan::command('civiclens:paper-report {--alpha=0.05} {--save}', function (Pap
 
     return 0;
 })->purpose('Regenerate every number a write-up needs, including the unflattering ones');
+
+Artisan::command('civiclens:export-court-corpus {--out= : Directory to write into, defaults to storage/app/corpus/court} {--holdout=20 : Percentage of documents held out, chosen from the sha256} {--limit=0 : Stop after this many documents, 0 for all} {--publisher=supremecourt-bangladesh : Publisher slug whose documents to export}', function (CourtCorpusExport $export): int {
+    $holdout = $this->option('holdout');
+    $limit = $this->option('limit');
+    $out = $this->option('out');
+    $publisher = $this->option('publisher');
+
+    if (! is_numeric($holdout) || (int) $holdout < 0 || (int) $holdout > 100) {
+        $this->error('The holdout must be a percentage between 0 and 100.');
+
+        return 1;
+    }
+
+    $directory = is_string($out) && $out !== '' ? $out : storage_path('app/corpus/court');
+
+    // Reads only. Another process owns the write lock on this database, and
+    // more to the point an export that wrote anything would be changing the
+    // corpus it is describing.
+    $manifest = $export->export(
+        $directory,
+        (int) $holdout,
+        is_string($publisher) && $publisher !== '' ? $publisher : CourtCorpusExport::DEFAULT_PUBLISHER,
+        is_numeric($limit) ? (int) $limit : 0,
+    );
+
+    // The manifest, not the corpus. 55 MB of JSONL through a terminal is not a
+    // report, and the counts are the part an operator has to read: a holdout
+    // that came out the wrong size, or a stratum whose certified count is zero,
+    // is visible here and nowhere else.
+    $this->line(json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+    $this->info('Wrote '.$directory.'/{train,holdout}.jsonl and manifest.json');
+
+    return 0;
+})->purpose('Export the court judgments as a training corpus, with certified and candidate values kept apart');
 
 Artisan::command('civiclens:decide-fields {--alpha=0.05}', function (FieldDecisionService $decisions): int {
     $alpha = $this->option('alpha');
