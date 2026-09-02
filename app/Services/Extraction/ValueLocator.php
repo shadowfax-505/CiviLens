@@ -20,8 +20,29 @@ use App\Models\ExtractionTableCell;
  */
 class ValueLocator
 {
-    /** Words joined either side of the value, in case it was split in reading. */
-    private const MAX_WORDS_PER_VALUE = 4;
+    /**
+     * How many words may be joined to make one value.
+     *
+     * Four was right while every value was a figure: an amount or a date is one
+     * word, and four covered a figure the recognizer had split. Court records
+     * are not figures. Measured over the corpus:
+     *
+     *   amount, date            1 word
+     *   law report citation     4 words   "54 DLR (AD) 111"
+     *   case number             6, up to 7   "Writ Petition No. 8951 of 2025"
+     *   statutory reference     7, up to 15  "Section 410 of the Code of Criminal Procedure"
+     *
+     * So case numbers located 0% of the time and statutory references 0%, not
+     * because the geometry was missing but because the search could never span
+     * them. Sixteen covers the ninety-fifth percentile of the longest kind with
+     * room to spare.
+     *
+     * Raising it is safe rather than merely tolerable: the inner loop already
+     * stops as soon as the joined run grows longer than the value it is looking
+     * for, so a short value still examines a short span, and a longer limit
+     * cannot make a run match a value it does not equal.
+     */
+    private const MAX_WORDS_PER_VALUE = 16;
 
     /**
      * What these documents print after a figure to mark it as money.
