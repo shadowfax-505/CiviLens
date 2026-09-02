@@ -472,7 +472,16 @@ class PaperReport
             // A value the locator cannot find is deferred and stays out of
             // calibration; the share of them is the ceiling on how much of the
             // corpus can be certified at all.
-            'values_not_locatable' => ExtractionField::query()->where('score_basis', 'unlocatable')->count(),
+            //
+            // Cited context is not part of that ceiling. A finding span is a
+            // whole sentence, kept past anything the locator can span on
+            // purpose so it can never certify, and counting it here would make
+            // the ceiling look lower every time another judgment was read
+            // correctly.
+            'values_not_locatable' => ExtractionField::query()
+                ->where('score_basis', 'unlocatable')
+                ->where('field_key', '!=', ReviewCandidateGenerator::CITED_CONTEXT_KIND)
+                ->count(),
             'values_scored' => ExtractionField::query()->where('score_basis', 'second-read')->count(),
         ];
     }

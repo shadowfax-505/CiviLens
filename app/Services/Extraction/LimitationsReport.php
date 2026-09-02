@@ -9,6 +9,7 @@ use App\Models\ExtractionRun;
 use App\Models\SourceArtifactVersion;
 use App\Models\SourceEndpoint;
 use App\Services\Statistics\ClopperPearson;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -570,14 +571,42 @@ class LimitationsReport
      */
     private function unlocatable(): array
     {
-        $unlocatable = ExtractionField::query()->where('score_basis', 'unlocatable')->count();
-        $scored = ExtractionField::query()->whereNotNull('score_basis')->count();
+        // Cited context excluded from both sides of the ratio.
+        //
+        // `unlocatable` was one thing — a value the locator failed to find,
+        // which is a backlog worth working down — until a kind arrived that is
+        // unlocatable by construction. A finding span is a whole sentence and
+        // `MIN_FINDING_SPAN_WORDS` keeps it past anything the locator can span,
+        // deliberately, so that it can never acquire a score and never certify.
+        // Counting some 3,600 of those as a shortfall would inflate the one
+        // number on this report that is supposed to say how much of the corpus
+        // is out of reach, and it would rise every time the pipeline read
+        // another judgment correctly.
+        $locatableKinds = fn (Builder $query): Builder => $query
+            ->where('field_key', '!=', ReviewCandidateGenerator::CITED_CONTEXT_KIND);
+
+        $unlocatable = ExtractionField::query()
+            ->where('score_basis', 'unlocatable')
+            ->tap($locatableKinds)
+            ->count();
+
+        $scored = ExtractionField::query()
+            ->whereNotNull('score_basis')
+            ->tap($locatableKinds)
+            ->count();
+
+        $citedContext = ExtractionField::query()
+            ->where('field_key', ReviewCandidateGenerator::CITED_CONTEXT_KIND)
+            ->count();
 
         return [
             'limitation' => 'A share of values cannot be found again on their own page, and defer by rule.',
             'evidence' => [
                 'unlocatable' => $unlocatable,
                 'scored' => $scored,
+                // Named, not merely subtracted, so the exclusion is visible to
+                // anyone checking the arithmetic against the corpus.
+                'cited_context_excluded' => $citedContext,
                 'share' => $scored > 0 ? round($unlocatable / $scored, 4) : null,
             ],
             'why_it_matters' => 'Such a value is never accepted, so it cannot breach the bound — and '

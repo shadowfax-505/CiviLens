@@ -384,3 +384,94 @@ older than the page they describe* alongside *scores older than the reader*.
 That is not built. Until it is, any backfill that writes to `extraction_pages`
 must be followed by invalidating the scores on the pages it touched, and that
 obligation lives only in this paragraph.
+
+---
+
+## Addendum, 2026-09-03: a kind that defers by construction, and why no labels was not enough
+
+Two kinds were added to the court corpus. `disposition` — "the Rule is made absolute.", "the
+appeal is dismissed", "above suit is remanded" — is an ordinary certifiable kind: 2,972 candidates on
+2,673 pages, three to seven words, and 1,419 of 1,430 located by the real locator on the pages that
+carry word geometry. `finding_span` is the sentence in which the court states its holding, and ADR-024 puts it
+on a different footing: it is carried as cited context, and it must never be certified. What follows
+is only about the second, because keeping a value out of the accepted set is a claim about deferral
+and that is this ADR's subject.
+
+**"It has no labels" is not a mechanism.** The first answer to "how is a holding kept out of the
+certified set" was that the stratum is publisher × script × kind, a new kind has no labels, and
+deny-by-default refuses it. That is true today and is not a guarantee. Under ADR-018's ladder a
+stratum with a handful of labels *borrows* a coarser threshold: one reviewer judging one finding
+span would give the stratum a rung to stand on, and every scored finding span in the corpus would
+then be accepted against a threshold fitted on one-word dates. The review queue draws by stratum
+and nothing stops a finding span appearing in an ordinary draw, so this is a plausible Tuesday
+rather than a hypothetical.
+
+**The mechanism is that the value cannot be located, and that is measured rather than asserted.**
+`ValueLocator` joins at most sixteen recognised words to make one value; a value it cannot locate
+scores `null` and defers by the rule this ADR opened with. Running the locator's own search against
+the stored word boxes of the 3,259 court pages that have them:
+
+| candidate span | located |
+| --- | --- |
+| 16 words or fewer | 702 of 716 (98%) |
+| 17 words or more | **0 of 2,912** |
+
+So `ReviewCandidateGenerator::MIN_FINDING_SPAN_WORDS` is 17 — the exact cut, not a guess with a
+margin added. The specific worry it answers is a recognizer that merges two words into one token and
+so covers seventeen words of text in sixteen boxes; that happens zero times in 2,912 on this corpus.
+With the rule in place, 0 of 3,230 finding spans located.
+
+Two halves are needed and both are in the generator. The span is longer than the locator can reach,
+so a scoring run writes `unlocatable`; and the candidate is *created* with `nonconformity_score`
+null rather than with the page's confidence, which every other kind starts with, so it defers from
+the moment it exists rather than from the moment a scoring job reaches it. Without the second half a
+finding span would be accepted before anything had read it twice.
+
+**The bound is untouched**, by the argument this ADR already makes for unlocatable values: a field
+that is never accepted cannot contribute to `P(accepted AND wrong)`.
+
+**`READER_VERSION` is not bumped.** Nothing here changes the locator's matching rules, the crop, the
+nonconformity formula or the deferral rules that existed. Verified rather than assumed: the
+generator's output was compared token by token against the previous version over all 31,995 pages of
+this publisher, and every amount, date, reference, case number, statutory reference, law report
+citation and organisation is identical — 0 changed of 103,811. No score on record describes a
+different reader than the one that took it.
+
+### What this does to the reports, which is the part that is not fixed
+
+`unlocatable` now means two different things. `LimitationsReport` and `PaperReport` count
+`score_basis = 'unlocatable'` as *values not locatable*, and this ADR's own "still outstanding"
+paragraph reads that count as the direct route to certifying more. About 3,600 finding spans will
+join it, and they are unlocatable **by design**: no amount of work on geometry, split tokens or
+merged cells will ever locate one, because a sentence is not a token. A number that used to be a
+backlog is now a backlog plus a constant, and nothing in those reports distinguishes them.
+
+This is the same shape as everything else recorded in this file — a figure stays true while the
+population it describes changes underneath it — and it is named here rather than repaired because
+those files were not this change's to edit. The fix is one clause: exclude
+`ReviewCandidateGenerator::CITED_CONTEXT_KIND` from the unlocatable counts, or report it as its own
+line.
+
+### One locator finding, recorded because it is this ADR's subject
+
+Dispositions located 542 of 1,430 times before the value carried the stop the page prints after it,
+and 1,419 of 1,430 after. The cause is exactly the one the first addendum above records for amounts
+and `৩,৯৮,৭৪৮/-`: the recognizer's last word is `discharged.` with the sentence's full stop
+attached, the extracted value stopped at the last letter, and `matches()` requires equality. For
+amounts the fix went into the locator, which tolerates a trailing currency terminator. Here it went
+into the pattern, which takes the punctuation when the page prints one, because the locator was not
+this change's file to edit — but `CURRENCY_TERMINATORS` is the better home for it and a sentence
+terminator belongs in that list.
+
+The third time this has been the answer. **A value that never carried a character the page prints
+after it is a value that cannot be found again**, and the visible symptom each time is not an error
+but a kind that quietly certifies nothing.
+
+### The coupling this leaves open
+
+`MIN_FINDING_SPAN_WORDS` is 17 because `ValueLocator::MAX_WORDS_PER_VALUE` is 16. Raising the
+locator's span without raising the generator's floor makes holdings certifiable, and — as with every
+staleness in this file — nothing would say so, because a value that stops deferring simply starts
+being accepted. `CourtHoldingsAndDispositionsTest` locates a generated finding span against a page
+whose recognised words are exactly that span's words, which is the most favourable page there could
+be, and fails if it is ever found. That test is the whole of the tripwire.

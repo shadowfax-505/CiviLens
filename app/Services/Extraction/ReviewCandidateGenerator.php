@@ -61,6 +61,126 @@ class ReviewCandidateGenerator
     private const NON_DOCUMENT_MEDIA_TYPES = ['text/html', 'application/json', 'text/plain'];
 
     /**
+     * The kind that is carried as context and never certified.
+     *
+     * ADR-024 settles why a holding is on this footing: a judgment states that
+     * a court **held** something, and that conclusion is the court's rather
+     * than this project's. The certification machinery has nothing to say about
+     * whether a court was right — what it bounds is whether a string was read
+     * off the page correctly. So the sentence is stored, shown and exported,
+     * and it carries no score and no level.
+     */
+    public const CITED_CONTEXT_KIND = 'finding_span';
+
+    /**
+     * Fewest words a finding span may hold.
+     *
+     * The rule that keeps a holding out of the certified set has to be
+     * mechanical, because "never certified" cannot rest on nobody having
+     * judged one yet: under ADR-018's ladder a stratum with a handful of
+     * labels borrows a coarser threshold, so one label on one finding span
+     * would let every scored finding span be accepted against a threshold
+     * fitted on one-word dates.
+     *
+     * What makes it mechanical is length. `ValueLocator` joins at most sixteen
+     * recognised words to make one value, and a value it cannot locate scores
+     * `null` and defers by rule (ADR-019). Measured over the 3,628 candidate
+     * spans on the 3,259 court pages that carry word geometry, by running the
+     * locator's own search against each page's stored word boxes:
+     *
+     *   16 words or fewer   702 of 716 located   (98%)
+     *   17 words or more    0 of 2,912 located
+     *
+     * So seventeen is a measured cut and not a guess with a margin bolted on.
+     * The concern it answers — that a recognizer which merges two words into
+     * one token covers seventeen words of text in sixteen boxes — happens zero
+     * times in 2,912 on this corpus.
+     *
+     * The 716 spans this discards are the short ones, "I find merit in the
+     * Rule.", and `disposition` already carries what they say in the form the
+     * court wrote it.
+     *
+     * **Raising `ValueLocator::MAX_WORDS_PER_VALUE` without raising this makes
+     * finding spans certifiable.** Nothing in the schema would say so, for the
+     * reason ADR-019's last addendum records: a value that stops deferring
+     * simply starts being accepted, and the bound stays true of a population
+     * that quietly grew. `CourtHoldingsAndDispositionsTest` is the tripwire.
+     */
+    public const MIN_FINDING_SPAN_WORDS = 17;
+
+    /**
+     * How far either side of a holding cue its sentence is looked for.
+     *
+     * Bytes, and bounded on purpose. A page whose recognizer dropped every
+     * full stop has no sentence to delimit, and a span that runs to the edge of
+     * the window is a page without punctuation rather than a holding — so it is
+     * discarded rather than stored at whatever length the window allows.
+     */
+    private const FINDING_SPAN_LOOKBACK = 900;
+
+    private const FINDING_SPAN_LOOKAHEAD = 1500;
+
+    /**
+     * Words whose full stop does not end a sentence.
+     *
+     * Lower case, matched against the ASCII letters immediately before the
+     * stop. Without them a holding was cut off at the judge's name: "the
+     * sentence passed by the courts below is modified as under; the
+     * convict-petitioner Md." ended a span, because `Md.` is a full stop
+     * followed by a space and a capital letter, which is exactly the shape of a
+     * sentence boundary.
+     */
+    private const SENTENCE_ABBREVIATIONS = [
+        'no', 'nos', 'md', 'mr', 'mrs', 'ms', 'dr', 'vs', 'ltd', 'co', 'govt',
+        'hon', 'smt', 'prof', 'sl', 'art', 'viz', 'etc', 'rs', 'tk', 'ed', 'jr', 'st',
+    ];
+
+    /**
+     * Conjunctions that make a disposition a hypothesis rather than an act.
+     *
+     * 101 of the 3,098 disposition-shaped spans in the court corpus sit behind
+     * one of these, and every one read is counsel's submission or the court
+     * weighing an option: "the complainant has no objection if the Rule is made
+     * absolute", "they would produce above additional evidence if the suit is
+     * remanded". The characters are on the page and the matter was not disposed
+     * of that way, which is the same class of error as a figure read out of the
+     * middle of a longer number.
+     */
+    private const HYPOTHETICAL_CONJUNCTIONS = [
+        'if', 'unless', 'whether', 'until', 'till', 'lest', 'when', 'where', 'once',
+        'though', 'although',
+    ];
+
+    /**
+     * Participles that make the matter somebody else's object.
+     *
+     * "the judgment and decree passed by the learned Senior Assistant Judge in
+     * Title Suit No. 94 of 2004 **dismissing the suit is hereby upheld**" is
+     * the trial court's decree being upheld, not the suit. Anchored on the
+     * matter noun the span reads as the opposite of what the page says, and
+     * unlike a misreading there is nothing wrong with the characters — the span
+     * is a fragment of a longer noun phrase.
+     *
+     * A closed list of adjudicative verbs rather than any `-ing` word, because
+     * `connecting` and `impugned` qualify the matter instead of governing it:
+     * "the connecting Rule is disposed of" is a real disposition and a blanket
+     * participle rule would drop it. 25 spans in the corpus are dropped here.
+     *
+     * The two guards together take 126 of 3,098, and nothing else does: the
+     * 2,972 that survive them are exactly what this kind contributes, so no
+     * disposition is lost to an overlap with another kind.
+     */
+    private const ADJUDICATIVE_PARTICIPLES = [
+        'dismissing', 'decreeing', 'allowing', 'rejecting', 'discharging', 'disposing',
+        'remanding', 'upholding', 'affirming', 'setting', 'granting', 'refusing',
+        'quashing', 'staying', 'condoning', 'directing', 'modifying', 'confirming',
+        'maintaining',
+    ];
+
+    /** Determiners the disposition pattern takes as part of the span itself. */
+    private const DISPOSITION_DETERMINERS = ['a', 'an', 'the', 'this', 'that', 'these', 'those'];
+
+    /**
      * The amount pattern, so a caller can ask what this class would produce
      * without duplicating the expression and drifting from it.
      */
@@ -150,6 +270,80 @@ class ReviewCandidateGenerator
         // exception: a citation stops being a string and becomes resolvable.
         'statutory_reference' => '/\b(?:Article|Section|Rule|Order)\s+\d+[A-Za-z]?(?:\([^)\n]{1,12}\))*\s+of\s+the\s+[A-Z][A-Za-z0-9\s,\.\-]{3,60}?(?=[,;\.]|\s+(?:and|which|as|is|are|was|were)\b)/u',
 
+        // What the court did with the matter, as the court writes it: "the Rule
+        // is made absolute", "the appeal is dismissed", "the Rule is
+        // discharged", "the Rule is disposed of", "above suit is remanded".
+        // 2,972 of them on 2,673 of this publisher's 31,995 pages, three to
+        // seven words each, which is inside the sixteen the locator can span —
+        // so unlike a holding this is an ordinary certifiable kind.
+        //
+        // Present tense and no auxiliary, which is what separates the court's
+        // own act from everything else on the page that has the same words in
+        // it. "should be made absolute" and "may be made absolute" are
+        // counsel's prayer; "was made absolute" and "the Rule issued in the
+        // writ petition was made absolute" are the history of another case;
+        // "is liable to be discharged" is the court reasoning towards a
+        // disposition it has not yet pronounced; "are being disposed of by this
+        // single judgment" is the procedural fact that matters were heard
+        // together. Requiring `is` or `are` immediately before the verb, with
+        // only an adverb between, excludes all five without naming any of them.
+        //
+        // Three optional slots before the matter noun — determiner, then
+        // adjective, then which kind of matter — because "the connecting Rule
+        // is disposed of" needs all three and a single alternation captured
+        // only the last word before the noun, leaving the value starting at
+        // `connecting`. It reads as a fragment of a phrase, which is the shape
+        // of error this file guards against everywhere else.
+        //
+        // The comma after `is` is real: "The criminal appeal is, therefore,
+        // dismissed".
+        //
+        // The trailing stop or comma is taken when the page prints one, and
+        // this is not cosmetic. The locator matches a run of recognised words
+        // against the value and requires them to be equal; the recognizer's
+        // last word is `discharged.` with the sentence's full stop attached,
+        // so a value that stopped at the last letter could never equal it.
+        // Measured against the real locator over the pages that carry word
+        // geometry, dispositions located 542 of 1,430 times (37.9%) without the
+        // punctuation and 1,419 of 1,430 (99.2%) with it — and an unlocatable
+        // value scores null and defers by rule (ADR-019), so the difference is
+        // between a kind that can be certified once somebody judges it and one
+        // that defers forever while looking fine.
+        //
+        // This is the same defect ADR-019's first addendum records for
+        // amounts, where the figure never carried the `/-` the recognized word
+        // always did. That one was fixed in the locator, which tolerates a
+        // trailing currency terminator; a sentence terminator is not in that
+        // list, and adding it there would be the better fix and is not this
+        // file's to make.
+        //
+        // Zero matches across all 11,750 pages of the audit, gazette and
+        // evaluation corpus, so this cannot put court furniture into another
+        // publisher's queue.
+        'disposition' => '/\b(?:the|this|these|those|both|all)?\s*(?:instant|present|connected|connecting|impugned|aforesaid|said|above|two)?\s*(?:writ|criminal|civil|jail|death|first|second|contempt|miscellaneous|review|leave)?\s*(?:Rules?|appeals?|petitions?|applications?|revisions?|references?|judgments?|orders?|decrees?|convictions?|sentences?|suits?)\s+(?:is|are),?\s+(?:hereby\s+|therefore,?\s+|thus\s+|accordingly,?\s+|also\s+|however,?\s+)*(?:made\s+absolute|discharged|dismissed|disposed\s+of|allowed|rejected|set\s+aside|remanded|upheld)\b[.,;:]?/iu',
+
+        // The cue a holding is stated with, not the holding itself.
+        //
+        // The stored value is the whole sentence the cue sits in, and the
+        // sentence is found by `findingSpans()` rather than by this expression.
+        // A regex that matched from one sentence boundary to the next needed an
+        // unbounded run of "any character that is not a sentence break", and on
+        // pages whose recognizer left no full stops at all — Bengali audit
+        // tables — PCRE returned false with "JIT stack limit exhausted". A
+        // pattern that fails on some pages and not others narrows the corpus
+        // silently, which is the failure mode this project keeps finding, so
+        // the expression stays small enough to be safe on any page and the
+        // sentence is delimited by a scan.
+        //
+        // First person, because that is how this court states a holding: "we
+        // hold that", "we find no merit in the Rule", "I find substance in this
+        // civil revisional application", "we are of the view that", "I am of
+        // the opinion that". 3,608 spans on 2,903 pages. `it is held that` is
+        // deliberately absent — in this corpus it almost always introduces a
+        // quotation from another judgment, so the holding it names is somebody
+        // else's.
+        'finding_span' => '/\b(?:[Ww]e|I)\s+(?:hold|find|do\s+not\s+find|am\s+of\s+the\s+(?:view|opinion)|are\s+of\s+the\s+(?:view|opinion))\b/u',
+
         'organisation' => '/(?:মেসার্স|মেসাস|M\/S\.?|M\/s\.?)\s+(?:(?!(?:এর|কে|হতে|থেকে|এবং|নং|নামে|নামীয়|at|DT|কর্তৃক|প্রকৃত|বরাবর)\s)[\x{0980}-\x{09FF}A-Za-z][\x{0980}-\x{09FF}A-Za-z0-9.\x{0027}&-]*\s+){0,3}(?!(?:এর|কে|হতে|থেকে|এবং|নং|at|DT)\s)[\x{0980}-\x{09FF}A-Za-z][\x{0980}-\x{09FF}A-Za-z0-9.\x{0027}&-]*/u',
     ];
 
@@ -205,15 +399,11 @@ class ReviewCandidateGenerator
                     'field_key' => $token['kind'],
                     'field_type' => 'string',
                     'extracted_value' => $token['value'],
-                    'normalized_value' => $token['kind'] === 'amount'
-                        ? $this->normalisedAmount($token['value'])
-                        : Str::of($token['value'])->replace(',', '')->trim()->value(),
+                    'normalized_value' => $this->normalisedValue($token['kind'], $token['value']),
                     'script_class' => $page->script_class ?? 'unknown',
                     'publisher_group' => $this->publisherGroup($page),
                     'confidence' => $page->confidence,
-                    'nonconformity_score' => $page->confidence === null
-                        ? 1.0
-                        : round(max(0.0, min(1.0, 1.0 - ((float) $page->confidence / 100))), 8),
+                    'nonconformity_score' => $this->initialScore($page, $token['kind']),
                     'decision' => 'pending',
                     'evidence_page_number' => $page->page_number,
                     // Offsets are within the cell, not the page: the cell is the
@@ -338,17 +528,11 @@ class ReviewCandidateGenerator
                         'field_key' => $token['kind'],
                         'field_type' => 'string',
                         'extracted_value' => $token['value'],
-                        'normalized_value' => $token['kind'] === 'amount'
-                            ? $this->normalisedAmount($token['value'])
-                            : Str::of($token['value'])->replace(',', '')->trim()->value(),
+                        'normalized_value' => $this->normalisedValue($token['kind'], $token['value']),
                         'script_class' => $page->script_class ?? 'unknown',
                         'publisher_group' => $this->publisherGroup($page),
                         'confidence' => $page->confidence,
-                        // Lower is more conforming, matching the benchmark path so a
-                        // reviewer-labelled field and a benchmark one are comparable.
-                        'nonconformity_score' => $page->confidence === null
-                            ? 1.0
-                            : round(max(0.0, min(1.0, 1.0 - ((float) $page->confidence / 100))), 8),
+                        'nonconformity_score' => $this->initialScore($page, $token['kind']),
                         'decision' => 'pending',
                         'evidence_page_number' => $page->page_number,
                         'evidence_offset_start' => $token['start'],
@@ -387,7 +571,11 @@ class ReviewCandidateGenerator
         // Case number before the generic reference pattern: "No. 8951 of 2025"
         // would otherwise be harvested as a bare reference and the case would
         // be identified by a fragment of itself.
-        foreach (['case_number', 'law_report_citation', 'statutory_reference', 'date', 'reference', 'organisation', 'amount'] as $kind) {
+        // Disposition before the digit kinds and after the identifier ones: it
+        // holds no digits, so nothing it claims was ever going to be a figure,
+        // and putting it ahead of them keeps the claim order a statement about
+        // which kind wins a contested span rather than an accident of listing.
+        foreach (['case_number', 'law_report_citation', 'statutory_reference', 'disposition', 'date', 'reference', 'organisation', 'amount'] as $kind) {
             if (preg_match_all(self::PATTERNS[$kind], $text, $matches, PREG_OFFSET_CAPTURE) === false) {
                 continue;
             }
@@ -410,6 +598,13 @@ class ReviewCandidateGenerator
                     continue;
                 }
 
+                // The same words appear on these pages as counsel's prayer and
+                // as the record of another court's order, and only one of the
+                // three is the disposition of this matter.
+                if ($kind === 'disposition' && ! $this->isCourtDisposing($text, $match[1])) {
+                    continue;
+                }
+
                 $value = $match[0];
 
                 // A court citation runs across a line break more often than
@@ -421,7 +616,12 @@ class ReviewCandidateGenerator
                 // Only the two long kinds. The short ones do not span lines,
                 // and normalising them would change candidates the existing
                 // labels were drawn from.
-                if (in_array($kind, ['case_number', 'statutory_reference', 'law_report_citation'], true)) {
+                //
+                // A disposition joins them: "the Rule is / made absolute" is
+                // how a five-word span lands when it straddles a line, and it
+                // is a new kind, so there are no labels for the change to move
+                // underneath.
+                if (in_array($kind, ['case_number', 'statutory_reference', 'law_report_citation', 'disposition'], true)) {
                     $value = trim((string) preg_replace('/\s+/u', ' ', $value));
                 }
 
@@ -439,7 +639,251 @@ class ReviewCandidateGenerator
             }
         }
 
+        // Finding spans last, and outside the claim entirely.
+        //
+        // Every other kind competes for characters, because two kinds reading
+        // the same characters two ways is a mislabelled item a reviewer has to
+        // argue with. A finding span is not a competitor: it is the sentence
+        // the values sit in, and it contains dates, amounts, case numbers and
+        // citations by construction. Made to respect the claim it would be
+        // dropped by the first date inside it; allowed to claim first it would
+        // suppress every value in the sentence. Either way the corpus loses
+        // what it already reads, so the span neither consults nor extends the
+        // claim.
+        foreach ($this->findingSpans($text) as $span) {
+            $found[] = $span;
+        }
+
         return $found;
+    }
+
+    /**
+     * The sentences in which this page states a holding.
+     *
+     * Cue first, then the sentence around it, because the sentence cannot be
+     * delimited by a regex that is safe to run on every page in the corpus —
+     * see the note on the `finding_span` pattern.
+     *
+     * @return list<array{kind: string, value: string, start: int}>
+     */
+    private function findingSpans(string $text): array
+    {
+        $count = preg_match_all(self::PATTERNS[self::CITED_CONTEXT_KIND], $text, $matches, PREG_OFFSET_CAPTURE);
+
+        if ($count === false || $count === 0) {
+            return [];
+        }
+
+        // The last byte that is not trailing whitespace, so the full stop that
+        // closes the last sentence on a page can be recognised as one. It is
+        // followed by nothing rather than by a capital letter, which is the
+        // only shape of boundary the forward scan would otherwise see.
+        $lastMeaningful = strlen(rtrim($text)) - 1;
+
+        $found = [];
+        $consumedTo = 0;
+
+        foreach ($matches[0] as $match) {
+            [$cue, $offset] = [(string) $match[0], (int) $match[1]];
+
+            // A sentence stating its holding twice — "we find merit in the
+            // Rule and we hold that the memo suffers from illegality" — is one
+            // holding, not two.
+            if ($offset < $consumedTo) {
+                continue;
+            }
+
+            $sentence = $this->sentenceAround($text, $offset, strlen($cue), $lastMeaningful);
+
+            if ($sentence === null) {
+                continue;
+            }
+
+            $value = trim((string) preg_replace('/\s+/u', ' ', substr($text, $sentence['start'], $sentence['length'])));
+            $words = preg_split('/\s+/u', $value);
+
+            if ($value === '' || ! is_array($words) || count($words) < self::MIN_FINDING_SPAN_WORDS) {
+                continue;
+            }
+
+            $consumedTo = $sentence['start'] + $sentence['length'];
+
+            $found[] = [
+                'kind' => self::CITED_CONTEXT_KIND,
+                'value' => $value,
+                'start' => mb_strlen(substr($text, 0, $sentence['start'])),
+            ];
+        }
+
+        return $found;
+    }
+
+    /**
+     * Where the sentence holding this cue begins and ends, in bytes.
+     *
+     * Null when either end is not found inside the window. A holding whose
+     * sentence cannot be delimited is not stored: the alternative is a value
+     * that begins or ends wherever the window happened to fall, and a citation
+     * to a fragment of a sentence misrepresents the court as surely as a figure
+     * read out of the middle of a longer number.
+     *
+     * @return array{start: int, length: int}|null
+     */
+    private function sentenceAround(string $text, int $cueOffset, int $cueLength, int $lastMeaningful): ?array
+    {
+        $windowStart = max(0, $cueOffset - self::FINDING_SPAN_LOOKBACK);
+        $start = null;
+
+        for ($position = $cueOffset - 1; $position >= $windowStart; $position--) {
+            if ($this->endsSentence($text, $position, $lastMeaningful) || $this->endsParagraph($text, $position)) {
+                $start = $position + 1;
+
+                break;
+            }
+        }
+
+        // A page begins mid-document but a sentence can still begin with it,
+        // and the first holding on a page is often in the first sentence.
+        if ($start === null && $windowStart === 0) {
+            $start = 0;
+        }
+
+        if ($start === null) {
+            return null;
+        }
+
+        // The boundary is the punctuation, so the sentence starts after
+        // whatever whitespace follows it.
+        while ($start < $cueOffset && ($text[$start] === ' ' || $text[$start] === "\n" || $text[$start] === "\r" || $text[$start] === "\t")) {
+            $start++;
+        }
+
+        $limit = min(strlen($text), $cueOffset + $cueLength + self::FINDING_SPAN_LOOKAHEAD);
+
+        // Punctuation only on the way forward, where a paragraph break will not
+        // do. A paragraph break certainly begins a sentence, which is why the
+        // backward scan accepts one; it does not certainly end one. Judgments
+        // break a line and leave a page mid-sentence — "we are of the view that
+        // the Appeal and" is where page 6 of one of them stops — and a span
+        // closed at that break is half a holding presented as a whole one. A
+        // terminal stop is the page's own statement that the sentence finished.
+        for ($position = $cueOffset + $cueLength; $position < $limit; $position++) {
+            if ($this->endsSentence($text, $position, $lastMeaningful)) {
+                return ['start' => $start, 'length' => $position + 1 - $start];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether the byte at this position is the last character of a sentence.
+     *
+     * A full stop, question mark or exclamation followed by whitespace and then
+     * something a sentence starts with — a capital, an opening quote, a bracket
+     * — or the same punctuation at the end of the page, where nothing follows
+     * it to say so.
+     *
+     * Byte positions rather than characters throughout. Every character this
+     * examines is ASCII, and an ASCII byte cannot occur inside a UTF-8
+     * multi-byte sequence, so scanning bytes cannot land in the middle of a
+     * Bengali character and cannot be fooled by one.
+     */
+    private function endsSentence(string $text, int $position, int $lastMeaningful): bool
+    {
+        $character = $text[$position];
+
+        if ($character !== '.' && $character !== '?' && $character !== '!') {
+            return false;
+        }
+
+        if ($position !== $lastMeaningful
+            && preg_match('/^\s+[\p{Lu}\x{201C}\x{201D}"(]/u', substr($text, $position + 1, 8)) !== 1) {
+            return false;
+        }
+
+        // The letters immediately before the stop, at most as many as the
+        // longest abbreviation, so `Md.` and `No.` do not end a sentence.
+        $letters = '';
+
+        for ($back = $position - 1; $back >= 0 && strlen($letters) < 4; $back--) {
+            $byte = $text[$back];
+
+            if (($byte >= 'a' && $byte <= 'z') || ($byte >= 'A' && $byte <= 'Z')) {
+                $letters = $byte.$letters;
+
+                continue;
+            }
+
+            break;
+        }
+
+        return ! in_array(strtolower($letters), self::SENTENCE_ABBREVIATIONS, true);
+    }
+
+    /**
+     * Whether the byte at this position closes a blank line.
+     *
+     * Used only to find where a sentence starts. The recognizer drops a full
+     * stop often enough that a paragraph break is the more reliable mark of
+     * where one begins, and a span that began at the previous full stop would
+     * otherwise swallow the paragraph before it.
+     */
+    private function endsParagraph(string $text, int $position): bool
+    {
+        if ($text[$position] !== "\n") {
+            return false;
+        }
+
+        $back = $position - 1;
+
+        while ($back >= 0 && ($text[$back] === ' ' || $text[$back] === "\t" || $text[$back] === "\r")) {
+            $back--;
+        }
+
+        return $back >= 0 && $text[$back] === "\n";
+    }
+
+    /**
+     * Whether a disposition-shaped span is this court disposing of this matter.
+     *
+     * Read off the two words before the span, which is as far as the two
+     * failures found in the corpus reach. `if the said appeal is disposed of`
+     * puts the pattern's own determiner between the conjunction and the matter,
+     * so one word back is not far enough; nothing observed needs three.
+     *
+     * ASCII splitting and ASCII lowercasing on purpose, without the `u`
+     * modifier. The window is taken by byte offset and may begin inside a
+     * Bengali character, which makes a `/u` pattern fail outright — and a guard
+     * that silently stops guarding is worse than one that is not there, because
+     * the tokens it should have dropped are then indistinguishable from the
+     * ones it approved. Whitespace and the words being matched are all ASCII,
+     * and an ASCII byte cannot occur inside a multi-byte sequence.
+     */
+    private function isCourtDisposing(string $text, int $byteOffset): bool
+    {
+        $before = substr($text, max(0, $byteOffset - 80), min(80, $byteOffset));
+        $words = preg_split('/\s+/', $before, -1, PREG_SPLIT_NO_EMPTY);
+
+        if (! is_array($words)) {
+            return true;
+        }
+
+        $words = array_values(array_filter(array_map(
+            static fn (string $word): string => strtolower(trim($word, ",;:.()[]'\"")),
+            $words,
+        ), static fn (string $word): bool => $word !== ''));
+
+        $last = $words === [] ? '' : $words[count($words) - 1];
+        $previous = count($words) >= 2 ? $words[count($words) - 2] : '';
+
+        if (in_array($last, self::HYPOTHETICAL_CONJUNCTIONS, true)
+            || in_array($last, self::ADJUDICATIVE_PARTICIPLES, true)) {
+            return false;
+        }
+
+        return ! (in_array($previous, self::HYPOTHETICAL_CONJUNCTIONS, true)
+            && in_array($last, self::DISPOSITION_DETERMINERS, true));
     }
 
     /**
@@ -548,6 +992,59 @@ class ReviewCandidateGenerator
         }
 
         return false;
+    }
+
+    /**
+     * The score a candidate carries before anything has read it twice.
+     *
+     * The page's own confidence, which is the statistic ADR-019 replaced as a
+     * score and which `civiclens:score-fields` overwrites with a second read.
+     * Lower is more conforming, matching the benchmark path so a
+     * reviewer-labelled field and a benchmark one are comparable.
+     *
+     * A finding span starts at `null` and is the one kind that does. A null
+     * score is deferred by rule in `FieldDecisionService::decisionFor`, which
+     * is how a holding stays out of the certified set from the moment it is
+     * created rather than from the moment somebody notices. It stays null
+     * because the span cannot be located — see `MIN_FINDING_SPAN_WORDS` — so
+     * the second read has nothing to score and writes `unlocatable`.
+     *
+     * Both halves are needed. Without the null it would carry a page-confidence
+     * score the instant it was created, and a stratum that borrows a threshold
+     * under ADR-018's ladder would accept it before any scoring job ran.
+     */
+    private function initialScore(ExtractionPage $page, string $kind): ?float
+    {
+        if ($kind === self::CITED_CONTEXT_KIND) {
+            return null;
+        }
+
+        return $page->confidence === null
+            ? 1.0
+            : round(max(0.0, min(1.0, 1.0 - ((float) $page->confidence / 100))), 8);
+    }
+
+    /**
+     * The value as later analysis would add it up or search for it.
+     *
+     * Commas are stripped from a figure because there they group thousands.
+     * They are left alone in prose, where they are punctuation: stripping them
+     * stored "the Rule is therefore discharged" for a page that says "the Rule
+     * is, therefore, discharged", and a normalised value that differs from the
+     * page in a way the page did not is the thing this column is least allowed
+     * to be — it is what the public evidence search matches against.
+     */
+    private function normalisedValue(string $kind, string $value): ?string
+    {
+        if ($kind === 'amount') {
+            return $this->normalisedAmount($value);
+        }
+
+        if ($kind === self::CITED_CONTEXT_KIND || $kind === 'disposition') {
+            return trim((string) preg_replace('/\s+/u', ' ', $value));
+        }
+
+        return Str::of($value)->replace(',', '')->trim()->value();
     }
 
     private function normalisedAmount(string $value): ?string
