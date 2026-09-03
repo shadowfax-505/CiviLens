@@ -457,6 +457,28 @@ were retried into a worker still holding the broken class and died a second
 time for the reason that had just been fixed. `launchctl unload` then `load`,
 then retry.
 
+**Killing the worker orphans its Python child.** Table detection runs
+`tools/table-structure/detect_tables.py` as a subprocess, and the timeouts
+around it are correctly ordered — 840s for the subprocess, 900s for the job,
+1800s for the worker, 2100s before a reservation is reclaimed — but every one
+of those is enforced by the PHP process. `launchctl unload` kills that process,
+and the Python child is reparented to init and blocks for ever writing to a
+pipe nobody reads. One was found at 37 hours, 0% CPU, still holding its raster
+directory; that is where the leaked `civiclens-raster-*` directories come from.
+
+Pausing the worker is routine here — a bulk write needs the SQLite lock to
+itself — so check for these after every unload:
+
+```bash
+ps -eo pid,ppid,args | awk '$2==1' | grep detect_tables   # orphans
+kill -KILL <pid>                                          # SIGTERM is ignored
+rm -rf /private/var/folders/*/*/T/civiclens-raster-*       # only with no worker running
+```
+
+They cost almost nothing in CPU, so this is housekeeping rather than an
+incident. No PHP-side timeout can fix it: the process that would enforce one is
+the process being killed.
+
 **A job class is a serialization format.** Adding a constructor parameter
 changes it, and every payload already queued lacks the new property. A promoted
 constructor property has no declared default, and `unserialize` never calls the
