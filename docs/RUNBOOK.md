@@ -457,6 +457,28 @@ were retried into a worker still holding the broken class and died a second
 time for the reason that had just been fixed. `launchctl unload` then `load`,
 then retry.
 
+**Table detection needs 2.2 GB and this machine has 8 GB.** The PaddlePaddle
+detector holds about 2.2 GB resident per page. On 2026-09-04 the machine was at
+65 MB free with 7.7 GB of 9.2 GB swap in use and 625 million compressions, and
+the detector sat in uninterruptible I/O wait: a 327 KB page had used 61 seconds
+of CPU across 13 minutes of wall clock. Detections fell from about 15 an hour
+to **none for seven and a half hours**, and the "disk" that appeared to vanish
+was the swap file growing.
+
+The symptom reads like a hang and is not one. Check before diagnosing:
+
+```bash
+ps -o pid,state,rss -p <detector pid>   # U = uninterruptible wait, RSS ~2.2 GB
+sysctl vm.swapusage                     # near-full swap is the tell
+vm_stat | grep -E 'Pages free|compressor'
+```
+
+A run measured in days needs the memory to itself. Either close what else is
+resident before starting the table queue, or leave the queue paused — it is
+better to have no table detection than a worker that thrashes the machine and
+completes nothing. The timeout will eventually fail each page at 840s, so a
+starved queue drains by failing rather than by working.
+
 **Killing the worker orphans its Python child.** Table detection runs
 `tools/table-structure/detect_tables.py` as a subprocess, and the timeouts
 around it are correctly ordered — 840s for the subprocess, 900s for the job,
