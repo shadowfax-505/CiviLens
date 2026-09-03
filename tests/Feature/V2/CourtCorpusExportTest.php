@@ -315,3 +315,53 @@ it('never fetches the page or field table whole', function (): void {
         }
     }
 });
+
+it('carries the court\'s own sentence apart from the values', function (): void {
+    // A case number is uncertified today and certifiable tomorrow: judge
+    // nineteen and its stratum gets a threshold. A finding span never can be —
+    // it is a whole sentence, kept past anything the locator can span by a
+    // 17-word floor, so it can never acquire a score to threshold. One bucket
+    // would say the same thing about both, and the difference is what a
+    // consumer needs.
+    $endpoint = courtEndpoint();
+    ['run' => $run] = judgment($endpoint, str_repeat('7', 64));
+
+    courtValue($run, 'date', '01.01.2025', 'accepted');
+    courtValue($run, 'case_number', 'Writ Petition No. 1 of 2025', 'deferred');
+
+    $span = courtValue($run, 'finding_span', 'we hold that the impugned order cannot be sustained in law', 'deferred');
+    $span->forceFill(['nonconformity_score' => null])->save();
+
+    [$directory, $manifest] = exportInto(holdout: 0);
+
+    $record = exportedRecords($directory, CourtCorpusExport::TRAIN)[0];
+
+    expect($record['cited_context'])->toHaveCount(1)
+        ->and($record['cited_context'][0]['text'])->toContain('cannot be sustained')
+        // No decision, no alpha, no basis, no stratum: there is no decision and
+        // there never will be one.
+        ->and($record['cited_context'][0])->not->toHaveKeys(['decision', 'decision_alpha', 'decision_basis', 'stratum'])
+        ->and(array_column($record['candidate_values'], 'kind'))->toBe(['case_number']);
+
+    // And counted beside the values rather than inside them, or the corpus
+    // would look less certified every time a holding was read.
+    expect($manifest['values']['cited_context'])->toBe(1)
+        ->and($manifest['values']['total'])->toBe(2);
+});
+
+it('exports a disposition as a value, because it can be judged', function (): void {
+    expect(CourtCorpusExport::FIELD_KINDS)->toContain('disposition')
+        ->and(CourtCorpusExport::FIELD_KINDS)->not->toContain(CourtCorpusExport::CITED_CONTEXT_KIND);
+
+    $endpoint = courtEndpoint();
+    ['run' => $run] = judgment($endpoint, str_repeat('8', 64));
+
+    courtValue($run, 'disposition', 'the Rule is made absolute', 'deferred');
+
+    [$directory] = exportInto(holdout: 0);
+
+    $record = exportedRecords($directory, CourtCorpusExport::TRAIN)[0];
+
+    expect(array_column($record['candidate_values'], 'kind'))->toBe(['disposition'])
+        ->and($record['cited_context'])->toBeEmpty();
+});

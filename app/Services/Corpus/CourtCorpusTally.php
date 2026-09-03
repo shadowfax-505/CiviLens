@@ -22,10 +22,17 @@ class CourtCorpusTally
     /** @var array<string, int> */
     private array $pages = [CourtCorpusExport::TRAIN => 0, CourtCorpusExport::HOLDOUT => 0];
 
-    /** @var array<string, array{certified: int, candidate: int}> */
+    /**
+     * Both splits pre-populated, so a manifest reports a zero rather than
+     * omitting the split — and every key present, because the counters are
+     * incremented rather than assigned. Adding `cited_context` to the increment
+     * without adding it here made every export fail on a missing key.
+     *
+     * @var array<string, array{certified: int, candidate: int, cited_context: int}>
+     */
     private array $values = [
-        CourtCorpusExport::TRAIN => ['certified' => 0, 'candidate' => 0],
-        CourtCorpusExport::HOLDOUT => ['certified' => 0, 'candidate' => 0],
+        CourtCorpusExport::TRAIN => ['certified' => 0, 'candidate' => 0, 'cited_context' => 0],
+        CourtCorpusExport::HOLDOUT => ['certified' => 0, 'candidate' => 0, 'cited_context' => 0],
     ];
 
     /** @var array<string, int> */
@@ -54,6 +61,7 @@ class CourtCorpusTally
      * @param  array{
      *     certified: list<array<string, mixed>>,
      *     candidates: list<array<string, mixed>>,
+     *     context: list<array<string, mixed>>,
      *     kinds: array<string, array{certified: int, candidate: int}>,
      *     strata: array<string, array{certified: int, candidate: int}>,
      * }  $values
@@ -63,9 +71,22 @@ class CourtCorpusTally
         $this->documents[$split] = ($this->documents[$split] ?? 0) + 1;
         $this->pages[$split] = ($this->pages[$split] ?? 0) + count($pages['pages']);
 
-        $this->values[$split] ??= ['certified' => 0, 'candidate' => 0];
-        $this->values[$split]['certified'] += count($values['certified']);
-        $this->values[$split]['candidate'] += count($values['candidates']);
+        // Cited context counted apart from the values, not folded into the
+        // candidate total: 3,600 sentences the court wrote are not 3,600 more
+        // values awaiting certification, and adding them to that number would
+        // make the corpus look less certified every time a holding was read.
+        // Assigned in one go rather than incremented key by key. Three
+        // successive `+=` statements leave the array partially shaped between
+        // them, so the type is `array{certified: int}` by the second line and
+        // level 8 rejects the third — correctly, since a row half-built is a
+        // row that can be read half-built.
+        $counted = $this->values[$split];
+
+        $this->values[$split] = [
+            'certified' => $counted['certified'] + count($values['certified']),
+            'candidate' => $counted['candidate'] + count($values['candidates']),
+            'cited_context' => $counted['cited_context'] + count($values['context']),
+        ];
 
         foreach ($pages['scripts'] as $script => $count) {
             $this->pagesByScript[$script] = ($this->pagesByScript[$script] ?? 0) + $count;
@@ -124,13 +145,21 @@ class CourtCorpusTally
             + ($this->values[CourtCorpusExport::HOLDOUT]['certified'] ?? 0);
         $candidate = ($this->values[CourtCorpusExport::TRAIN]['candidate'] ?? 0)
             + ($this->values[CourtCorpusExport::HOLDOUT]['candidate'] ?? 0);
+        $context = ($this->values[CourtCorpusExport::TRAIN]['cited_context'] ?? 0)
+            + ($this->values[CourtCorpusExport::HOLDOUT]['cited_context'] ?? 0);
+
+        $empty = ['certified' => 0, 'candidate' => 0, 'cited_context' => 0];
 
         return [
             'certified' => $certified,
             'candidate' => $candidate,
+            'cited_context' => $context,
+            // The values, which is what `certified` and `candidate` are shares
+            // of. Cited context is reported beside them and deliberately not
+            // added in: it is neither certified nor awaiting certification.
             'total' => $certified + $candidate,
-            CourtCorpusExport::TRAIN => $this->values[CourtCorpusExport::TRAIN] ?? ['certified' => 0, 'candidate' => 0],
-            CourtCorpusExport::HOLDOUT => $this->values[CourtCorpusExport::HOLDOUT] ?? ['certified' => 0, 'candidate' => 0],
+            CourtCorpusExport::TRAIN => $this->values[CourtCorpusExport::TRAIN] ?? $empty,
+            CourtCorpusExport::HOLDOUT => $this->values[CourtCorpusExport::HOLDOUT] ?? $empty,
         ];
     }
 

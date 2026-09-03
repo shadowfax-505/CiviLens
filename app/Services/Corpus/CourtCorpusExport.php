@@ -81,7 +81,27 @@ class CourtCorpusExport
      * counts both rather than dropping them silently, which is the discipline
      * ADR-020 set.
      */
-    public const FIELD_KINDS = ['case_number', 'date', 'statutory_reference', 'law_report_citation', 'amount'];
+    public const FIELD_KINDS = [
+        'case_number', 'date', 'statutory_reference', 'law_report_citation', 'amount', 'disposition',
+    ];
+
+    /**
+     * The kind that is context rather than a value, and can never be certified.
+     *
+     * A case number is uncertified today and certifiable tomorrow: judge
+     * nineteen of them and its stratum gets a threshold. A finding span cannot
+     * ever be, and not because nobody has judged one — it is a whole sentence,
+     * kept past anything `ValueLocator` can span by a 17-word floor, so it can
+     * never acquire a score to threshold. Both are true of it permanently and
+     * by construction.
+     *
+     * Putting the two in one bucket would say the same thing about both, and
+     * the difference is exactly what a consumer needs: a candidate is a value
+     * awaiting a guarantee, and this is the court's own words carried for
+     * reading. It gets its own key and no decision fields, because there is no
+     * decision and never will be.
+     */
+    public const CITED_CONTEXT_KIND = 'finding_span';
 
     /** Judgments are one publisher's, and the slug is what scopes the export. */
     public const DEFAULT_PUBLISHER = 'supremecourt-bangladesh';
@@ -370,6 +390,8 @@ class CourtCorpusExport
             // list would be four fifths uncertified.
             'certified_values' => $values['certified'],
             'candidate_values' => $values['candidates'],
+            // Neither certified nor awaiting certification. See CITED_CONTEXT_KIND.
+            'cited_context' => $values['context'],
         ];
 
         $line = json_encode($record, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
@@ -467,6 +489,7 @@ class CourtCorpusExport
      * @return array{
      *     certified: list<array<string, mixed>>,
      *     candidates: list<array<string, mixed>>,
+     *     context: list<array<string, mixed>>,
      *     kinds: array<string, array{certified: int, candidate: int}>,
      *     strata: array<string, array{certified: int, candidate: int}>,
      * }
@@ -475,24 +498,42 @@ class CourtCorpusExport
     {
         $certified = [];
         $candidates = [];
+        $context = [];
         $kinds = [];
         $strata = [];
 
         ExtractionField::query()
             ->where('extraction_run_id', $runId)
-            ->whereIn('field_key', self::FIELD_KINDS)
+            ->whereIn('field_key', [...self::FIELD_KINDS, self::CITED_CONTEXT_KIND])
             ->select([
                 'id', 'field_key', 'extracted_value', 'normalized_value', 'evidence_page_number',
                 'script_class', 'publisher_group', 'decision', 'decision_alpha', 'decision_basis',
                 'nonconformity_score', 'score_basis',
             ])
-            ->chunkById(self::ROWS_PER_CHUNK, function (Collection $rows) use (&$certified, &$candidates, &$kinds, &$strata): void {
+            ->chunkById(self::ROWS_PER_CHUNK, function (Collection $rows) use (&$certified, &$candidates, &$context, &$kinds, &$strata): void {
                 foreach ($rows as $field) {
                     $decision = $field->decision === null ? null : (string) $field->decision;
                     $kind = $field->field_key === null ? 'unknown' : (string) $field->field_key;
                     $script = $field->script_class === null ? null : (string) $field->script_class;
                     $group = $field->publisher_group === null ? null : (string) $field->publisher_group;
                     $stratum = self::stratumOf($group, $script, $kind);
+
+                    // Carried whole, with no decision fields and no stratum: it
+                    // is the court's sentence, not a value with a guarantee
+                    // pending. Counted apart from the values for the same
+                    // reason — folded into the candidate total it would read as
+                    // 3,600 more values awaiting certification.
+                    if ($kind === self::CITED_CONTEXT_KIND) {
+                        $context[] = [
+                            'kind' => $kind,
+                            'text' => $field->extracted_value,
+                            'page_number' => $field->evidence_page_number,
+                            'script_class' => $field->script_class,
+                        ];
+
+                        continue;
+                    }
+
                     $isCertified = self::isCertified($decision);
                     $bucket = $isCertified ? 'certified' : 'candidate';
 
@@ -533,7 +574,13 @@ class CourtCorpusExport
                 }
             });
 
-        return ['certified' => $certified, 'candidates' => $candidates, 'kinds' => $kinds, 'strata' => $strata];
+        return [
+            'certified' => $certified,
+            'candidates' => $candidates,
+            'context' => $context,
+            'kinds' => $kinds,
+            'strata' => $strata,
+        ];
     }
 
     /**
