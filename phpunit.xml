@@ -31,6 +31,20 @@
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
+        <!--
+            The log channel belongs in this list and was the one side effect
+            missing from it. Broadcasting, cache, mail, session and the database
+            are all pointed at no-ops here; logging was not, so every test run
+            appended to storage/logs/laravel.log. It reached 184 MB, 180,024 of
+            its lines were `testing.INFO: domain.event` written by the suite,
+            and it was among the files that filled the disk and stopped SQLite
+            from writing at all.
+
+            `discard` rather than `null`: env() converts the string "null" to
+            PHP null, which leaves the default channel undefined and makes the
+            first log call throw instead of discarding.
+        -->
+        <env name="LOG_CHANNEL" value="discard"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

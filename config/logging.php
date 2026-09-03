@@ -135,6 +135,20 @@ return [
             'handler' => NullHandler::class,
         ],
 
+        /*
+         * The same null handler under a name env() will not swallow.
+         *
+         * `LOG_CHANNEL=null` cannot select the channel above it: Laravel's
+         * env() maps the string "null" to PHP null, so the default channel
+         * becomes undefined and the first log call throws "Log [] is not
+         * defined" rather than discarding anything. This name survives the
+         * conversion, which is why the test suite points at it.
+         */
+        'discard' => [
+            'driver' => 'monolog',
+            'handler' => NullHandler::class,
+        ],
+
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
