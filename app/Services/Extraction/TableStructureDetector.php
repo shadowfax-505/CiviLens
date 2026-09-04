@@ -35,8 +35,25 @@ class TableStructureDetector
             throw new ExtractionFailed('Table structure detection is not available on this machine.');
         }
 
-        $process = new Process([$python, $script, $imagePath]);
-        $process->setTimeout((float) config('civiclens.extraction.tables.timeout_seconds', 300));
+        $budget = (float) config('civiclens.extraction.tables.timeout_seconds', 300);
+
+        // The budget is passed down as well as set here, because this end of it
+        // cannot always be enforced. Symfony's timeout is a check made while
+        // PHP waits on the process's output; a worker blocked in that read on a
+        // machine that is paging never gets to make it. One page ran 3h 14m
+        // against an 840-second budget, past the job's own 900 and the worker's
+        // 1800, and the worker did not recycle at its --max-time either.
+        //
+        // detect_tables.py sets a SIGALRM for the same number, which the kernel
+        // delivers whatever this process manages to do, so the ceiling holds
+        // from the inside. Both are kept: this one is the tidy path that
+        // reports a timeout properly, and that one is the floor under it.
+        $process = new Process(
+            [$python, $script, $imagePath],
+            null,
+            ['CIVICLENS_TABLE_BUDGET_SECONDS' => (string) (int) $budget],
+        );
+        $process->setTimeout($budget);
 
         try {
             $process->run();
