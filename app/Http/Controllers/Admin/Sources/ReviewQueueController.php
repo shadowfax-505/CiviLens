@@ -11,6 +11,7 @@ use App\Models\ExtractionTableCell;
 use App\Models\SourceArtifactVersion;
 use App\Models\SourcePublisher;
 use App\Services\Extraction\AmountGrouping;
+use App\Services\Extraction\ReviewCandidateGenerator;
 use App\Services\Extraction\ValueLocator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -152,6 +153,18 @@ class ReviewQueueController extends Controller
             // numbers are 5.6% of supremecourt|en, so reaching nineteen of them
             // through a group-wide draw cost on the order of 340 judgements.
             ->when($kind !== null, fn ($query) => $query->where('field_key', $kind))
+            // Never the court's own sentences.
+            //
+            // A finding span carries no score and cannot acquire one — it is
+            // kept past anything ValueLocator can span by a 17-word floor — so
+            // no number of judgements will ever certify one. 3,067 of them sit
+            // in the unlabelled pool, 1.63% of it, and a reviewer's attention
+            // is the scarcest thing this project spends. Worse than the wasted
+            // draws was the progress table: it keys a row per publisher,
+            // script and kind, so `supremecourt-bangladesh|en|finding_span`
+            // appeared with "19 more" beside it, inviting someone to finish a
+            // stratum that cannot exist.
+            ->where('field_key', '!=', ReviewCandidateGenerator::CITED_CONTEXT_KIND)
             ->inRandomOrder()
             ->first();
 
@@ -363,6 +376,7 @@ class ReviewQueueController extends Controller
         $groups = ExtractionField::query()
             ->calibratable()
             ->where('calibration_split', 'calibration')
+            ->where('field_key', '!=', ReviewCandidateGenerator::CITED_CONTEXT_KIND)
             ->get(['publisher_group', 'script_class', 'field_key'])
             // Grouped in PHP rather than by a raw aggregate, so the key is built
             // the same way the calibrator builds it and the two cannot drift.
@@ -392,6 +406,7 @@ class ReviewQueueController extends Controller
         // nothing on the page to explain the other 605. That is a screen
         // moving the goalposts, and it was mine.
         $judged = ExtractionField::query()
+            ->where('field_key', '!=', ReviewCandidateGenerator::CITED_CONTEXT_KIND)
             ->whereNotNull('is_correct')
             ->selectRaw('publisher_group, script_class, field_key, count(*) as aggregate')
             ->groupBy('publisher_group', 'script_class', 'field_key')
@@ -403,6 +418,7 @@ class ReviewQueueController extends Controller
             ->all();
 
         $unscorable = ExtractionField::query()
+            ->where('field_key', '!=', ReviewCandidateGenerator::CITED_CONTEXT_KIND)
             ->whereNotNull('is_correct')
             ->whereNull('nonconformity_score')
             ->selectRaw('publisher_group, script_class, field_key, count(*) as aggregate')
@@ -414,7 +430,10 @@ class ReviewQueueController extends Controller
             ])
             ->all();
 
+        // Cited context excluded here too, or the chip reappears carrying a
+        // count of values nobody can usefully judge.
         $unlabelled = ExtractionField::query()
+            ->where('field_key', '!=', ReviewCandidateGenerator::CITED_CONTEXT_KIND)
             ->whereNull('gold_source')
             ->whereNull('is_correct')
             ->toBase()
