@@ -473,6 +473,19 @@ sysctl vm.swapusage                     # near-full swap is the tell
 vm_stat | grep -E 'Pages free|compressor'
 ```
 
+**And the queue was never the whole job.** 41,570 eligible pages have no table
+detection; the queue holds 3,297 jobs, which is 8% of them. Draining it
+finishes nothing. At the degraded rate of about five pages an hour that queue
+alone is 27 days, and every eligible page is roughly a year; at the healthy
+fifteen an hour it is still 115 days. An estimate quoted in days came from
+counting jobs instead of pages, twice — the queue depth is not the work.
+
+The tranches exist for this. `tables` and `tables-candidates` (1,551 jobs) go
+to pages holding values that could not be located, where a cell is what lets a
+value be found; `tables-later` (1,746) is bulk fill. Dropping `tables-later`
+from the worker's `--queue` list is the difference between a targeted run and
+one that cannot finish.
+
 A run measured in days needs the memory to itself. Either close what else is
 resident before starting the table queue, or leave the queue paused — it is
 better to have no table detection than a worker that thrashes the machine and
