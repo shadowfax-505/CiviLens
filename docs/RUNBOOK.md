@@ -432,6 +432,22 @@ is not there. Do not add a skip heuristic without checking it against the
 examined pages first — a false negative loses a table silently, and cell-derived
 values are the ones that certify best.
 
+**Harvest the cells after detection, and on a cadence rather than continuously.**
+Detecting a table and harvesting its cells are separate steps, and the second
+is easy to forget: 268 pages sat with detected cells and no cell-derived
+candidate until somebody looked, which was 1,187 candidates and 795 published
+figures waiting on one command. Cell-derived values are worth the trouble —
+they locate at 97%, against 66% for the corpus as a whole, because a cell says
+where the value is.
+
+`generate-review-candidates --from-cells` is a bulk write, so it needs the
+worker paused, and the tail is long: passes fell from 129 new candidates to 1
+while still scanning 2,000 pages each. Stop when a pass yields single figures
+rather than chasing the last few. At the four or five pages an hour this
+machine detects, roughly a hundred pages of new cells accumulate in a day, so
+once a day is the right rhythm — hourly would spend more time pausing the
+worker than harvesting.
+
 **`resolve-citations` parses; it does not match, yet.** The corpus holds 7,954
 statutory references and 84% of them parse into an instrument key, a provision
 type and a provision number — `Section 410 of the Code of Criminal Procedure`
