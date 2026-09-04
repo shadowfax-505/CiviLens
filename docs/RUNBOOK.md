@@ -154,6 +154,7 @@ php artisan civiclens:backfill-word-geometry
 php artisan civiclens:backfill-token-confidence [--limit=1000]
 php artisan civiclens:backfill-native-geometry [--limit=500] [--dpi=150]
 php artisan civiclens:reread-abstained [--limit=100] [--path=abstained]
+php artisan civiclens:resolve-citations [--kind=] [--chunk=500] [--apply]
 php artisan civiclens:prune-candidates [--apply]
 ```
 
@@ -430,6 +431,23 @@ loosest setting it skips 35 pages, and **19 of those hold a table**. The signal
 is not there. Do not add a skip heuristic without checking it against the
 examined pages first — a false negative loses a table silently, and cell-derived
 values are the ones that certify best.
+
+**`resolve-citations` parses; it does not match, yet.** The corpus holds 7,954
+statutory references and 84% of them parse into an instrument key, a provision
+type and a provision number — `Section 410 of the Code of Criminal Procedure`
+becomes `code-of-criminal-procedure` / section / 410. Every one of them then
+comes back `unmatched`, because no statute text has been fetched: the
+`statutes` table is empty until a publisher for bdlaws.minlaw.gov.bd is
+registered with a recorded robots and terms decision, which is a separate step
+with its own governance. Run it today to see what the parser makes of the
+corpus; it cannot yet tell you what a citation points at.
+
+The 16% it refuses are refused with a reason rather than guessed: 930
+`anaphoric_instrument` where the citation says "the Code" and the corpus holds
+1,431 citations of one Code and 425 of another, and 329 `unnamed_instrument`
+where the extractor's own pattern truncated the title (`State Acquisition`,
+`Cr.P`) or OCR damaged it. A resolution is a match and never a certification —
+the table has no decision, alpha or basis column, and cannot acquire one.
 
 **The one lever that works is not competing.** Inference is CPU-bound; running
 the test suite alongside it roughly doubles the wall time per page. A page timed

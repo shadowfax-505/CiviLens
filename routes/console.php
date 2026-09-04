@@ -55,6 +55,7 @@ use App\Services\Publication\PublicationSnapshotBuilder;
 use App\Services\Screening\CorpusScreeningReport;
 use App\Services\Screening\EntityScreener;
 use App\Services\Screening\ScreeningEntityLoader;
+use App\Services\Statutes\CitationResolver;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -419,6 +420,37 @@ Artisan::command('civiclens:decide-fields {--alpha=0.05}', function (FieldDecisi
 
     return 0;
 })->purpose('Apply the certified thresholds to extracted values, deferring anything uncertified');
+
+Artisan::command('civiclens:resolve-citations {--kind=statutory_reference} {--chunk=500} {--apply : Write the resolutions; without this it only reports}', function (CitationResolver $resolver): int {
+    $kind = $this->option('kind');
+    $kind = is_string($kind) && $kind !== '' ? $kind : 'statutory_reference';
+
+    $chunk = $this->option('chunk');
+    $chunk = is_numeric($chunk) ? max(1, (int) $chunk) : 500;
+
+    // Reports by default and writes only when asked, as reroute-pages does.
+    // The distinction matters more here than usual: 84% of these citations
+    // parse and none of them can be matched to anything yet, because no statute
+    // text has been fetched — that needs a publisher registered with a recorded
+    // robots and terms decision, which is a separate step. Running this today
+    // tells you what the parser makes of the corpus; it cannot tell you what
+    // the citations point at.
+    $counts = $this->option('apply')
+        ? $resolver->resolveKind($kind, $chunk)
+        : $resolver->previewKind($kind, $chunk);
+
+    $this->line(json_encode($counts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+
+    // A resolution is a match, never a certification. Nothing this command
+    // touches carries a decision, an alpha or a basis, and the table it writes
+    // has no column for one — see ADR-024 on why a court citation in this
+    // corpus is a candidate and stays one.
+    $this->info($this->option('apply')
+        ? 'Resolutions written. None of them certifies anything.'
+        : 'Nothing written. Pass --apply to store these resolutions.');
+
+    return 0;
+})->purpose('Parse statutory citations into structured references, and match them to statute text held');
 
 Artisan::command('civiclens:reroute-pages {--apply : Re-read them; without this it only reports}', function (BengaliTextPlausibility $plausibility, SelectiveOcrService $ocr): int {
     // A page read before the mojibake check existed kept its text layer and the
