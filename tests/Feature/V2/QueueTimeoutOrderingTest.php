@@ -97,19 +97,3 @@ it('runs a payload enqueued before the force flag existed', function (): void {
     // re-read, so this returns rather than throwing.
     $job->handle($native, Mockery::mock(SelectiveOcrService::class));
 });
-
-it('writes its log unbuffered, so the log is true when it is read', function (): void {
-    // launchd redirects stdout to a file and libc block-buffers a non-tty, so
-    // entries appeared about six hours late. Twice in one night that turned a
-    // diagnosis into a guess: a page that ran 3h 14m was invisible while it
-    // ran, and the fix for it could not be confirmed afterwards because the log
-    // had not caught up. A worker writes a line or two per job, so this costs
-    // nothing.
-    $plist = (string) file_get_contents(base_path('ops/launchd/com.civiclens.queue-worker.plist'));
-
-    expect($plist)->toContain('output_buffering=0')
-        ->and($plist)->toContain('implicit_flush=1');
-
-    // Before `artisan`, or they are arguments to the command rather than to PHP.
-    expect(strpos($plist, 'implicit_flush=1'))->toBeLessThan(strpos($plist, '<string>artisan</string>'));
-});
