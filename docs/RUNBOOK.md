@@ -526,6 +526,27 @@ better to have no table detection than a worker that thrashes the machine and
 completes nothing. The timeout will eventually fail each page at 840s, so a
 starved queue drains by failing rather than by working.
 
+**The logs are in UTC and this machine is not.** `config('app.timezone')` is
+UTC and the machine runs at +06, so every timestamp Laravel writes — the queue
+worker's log above all — reads six hours behind `date`. Compare the two and the
+log looks stale by exactly that much.
+
+It is convincing, and it cost a whole false diagnosis: the worker's log was
+read as "six hours behind", blamed on libc block-buffering a non-tty, and
+"fixed" with `php -d output_buffering=0 -d implicit_flush=1` — which are
+already the CLI defaults, so the change was a pair of no-ops with a test
+asserting them and a commit message stating a cause that did not exist. It was
+reverted. Two ways to have caught it in seconds:
+
+```bash
+stat -f '%Sm' storage/logs/launchd-queue-worker.log   # written a minute ago
+php artisan tinker --execute='echo now();'            # and six hours behind
+```
+
+The mtime is the honest answer to "is this log current?". Durations in the log
+are unaffected — a 3h 14m job really did run 3h 14m — so only the wall-clock
+column is offset.
+
 **Killing the worker orphans its Python child.** Table detection runs
 `tools/table-structure/detect_tables.py` as a subprocess, and the timeouts
 around it are correctly ordered — 840s for the subprocess, 900s for the job,
