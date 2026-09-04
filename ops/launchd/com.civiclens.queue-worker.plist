@@ -50,6 +50,23 @@
     <key>ProgramArguments</key>
     <array>
         <string>/opt/homebrew/bin/php</string>
+        <!--
+            Unbuffered, because this log is the only account of a run measured
+            in days.
+
+            launchd redirects stdout to a file, and libc block-buffers a
+            non-tty in 4 KB chunks, so entries appeared roughly six hours late.
+            Twice in one night that turned a diagnosis into a guess: a page that
+            had run 3h 14m was invisible while it ran, and the fix for it could
+            not be confirmed afterwards because the log had not caught up.
+
+            A queue worker writes a line or two per job, so line-buffering costs
+            nothing and buys an account that is true when read.
+        -->
+        <string>-d</string>
+        <string>output_buffering=0</string>
+        <string>-d</string>
+        <string>implicit_flush=1</string>
         <string>artisan</string>
         <string>queue:work</string>
         <string>--queue=ingestion,tables,tables-candidates</string>
