@@ -25,6 +25,20 @@
     value that could not be located are examined first, since cells are what
     let such a value be found.
 
+    `tables-later` is deliberately absent, and this is the change that makes
+    table detection finishable at all. 41,570 eligible pages have no detection
+    and the queue holds a fraction of them, so draining everything was never on
+    the table: at the rate this machine manages — about five to eight pages an
+    hour once the 2.2 GB detector starts paging an 8 GB machine — the full set
+    is roughly a year, and even a healthy fifteen an hour is 115 days.
+
+    The two tranches kept are 1,551 jobs against pages holding values the
+    locator could not find, which is where a cell actually buys something: the
+    value becomes locatable, and a locatable value can be scored and certified.
+    `tables-later` is bulk fill over pages that already read well, and its 1,746
+    jobs stay queued and unworked rather than being deleted, so the decision can
+    be reversed by putting the tranche back in this list.
+
     `court` is absent: judgment fetching is paced by its own agent, not by this
     queue.
 -->
@@ -38,7 +52,7 @@
         <string>/opt/homebrew/bin/php</string>
         <string>artisan</string>
         <string>queue:work</string>
-        <string>--queue=ingestion,tables,tables-candidates,tables-later</string>
+        <string>--queue=ingestion,tables,tables-candidates</string>
         <!--
             Recycled hourly rather than run for ever. A long-lived PHP worker
             accumulates memory, and this pipeline has already met three
