@@ -365,3 +365,21 @@ it('exports a disposition as a value, because it can be judged', function (): vo
     expect(array_column($record['candidate_values'], 'kind'))->toBe(['disposition'])
         ->and($record['cited_context'])->toBeEmpty();
 });
+
+it('does not report a kind as left out while exporting it', function (): void {
+    // The manifest listed finding_span among the kinds "present but not
+    // exported" while exporting all 3,116 of them under `cited_context`. A
+    // manifest that contradicts the files beside it is worse than a terse one.
+    $endpoint = courtEndpoint();
+    ['run' => $run] = judgment($endpoint, str_repeat('6', 64));
+
+    $span = courtValue($run, 'finding_span', 'we hold that the order below cannot be sustained', 'deferred');
+    $span->forceFill(['nonconformity_score' => null])->save();
+
+    courtValue($run, 'organisation', 'Some Ministry', 'deferred');
+
+    [$directory, $manifest] = exportInto(holdout: 0);
+
+    expect($manifest['field_kinds_present_but_not_exported'])->toBe(['organisation' => 1])
+        ->and(exportedRecords($directory, CourtCorpusExport::TRAIN)[0]['cited_context'])->toHaveCount(1);
+});

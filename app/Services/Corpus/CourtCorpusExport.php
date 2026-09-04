@@ -659,7 +659,10 @@ class CourtCorpusExport
         return ExtractionField::query()
             ->where('publisher_group', $publisher->slug)
             ->whereIn('extraction_run_id', ExtractionRun::currentIds())
-            ->whereNotIn('field_key', self::FIELD_KINDS)
+            // Cited context is exported, under its own key, so it is not one
+            // of the kinds left behind. Listing it here said the manifest held
+            // none of something it held 3,116 of.
+            ->whereNotIn('field_key', [...self::FIELD_KINDS, self::CITED_CONTEXT_KIND])
             ->selectRaw('field_key, count(*) as aggregate')
             ->groupBy('field_key')
             ->pluck('aggregate', 'field_key')

@@ -276,3 +276,39 @@ see), ADR-020 (record-only sources, and stating what a corpus holds nothing of),
 and a basis travel with every published figure), ADR-023 (a population widened by recovery is a
 population the old labels do not cover). The constitution's non-goals on accusation and human
 review are amended by the output rule above rather than restated by it.
+
+
+---
+
+## Correction, 2026-09-04: statutory references had been judged, and one now certifies
+
+The section above says `supremecourt-bangladesh | en` had "been judged 105
+times on dates, 15 times on amounts and 3 times on bare references, and never
+once on a case number, a statutory reference or a law report citation." The
+last clause was false when it was written.
+
+Thirty-three statutory references had been adjudicated on 2026-09-02, before
+this ADR was committed at 00:15 on 2026-09-03. A hundred and thirty-eight more
+were judged during 2026-09-03, so the count is 171 today — 122 in `en` and 48
+in `mixed`, every one from a reviewer and every one marked correct.
+
+The mistake was a substitution, and it is worth naming because the same
+substitution would be easy to make again. What was measured was the number of
+**scorable calibration labels**, which was genuinely zero: those thirty-three
+judgements sat on values that had no nonconformity score, because the geometry
+that would let the locator find them had not been backfilled yet. "No labels
+this stratum can calibrate on" was written down as "never judged". The first is
+a statement about scores and the second about people, and only the second was
+put in the ADR.
+
+The consequence is already visible. `supremecourt-bangladesh | mixed |
+statutory_reference` has 48 labels of which 9 are scorable, and it now
+certifies **one** value at α = 0.20 with `basis = stratum` — a conditional
+claim at a loose level, which is exactly what ADR-018's adaptive alpha exists
+to permit. The three zeroes in the table above are becoming two.
+
+Nothing in the reasoning changes: a threshold fitted on dates still says
+nothing about case numbers, and the kinds with no labels of their own still
+certify nothing. What changes is that the sentence describing the labels was
+not true, and a reader checking it against the database would have found that
+out before we did.
