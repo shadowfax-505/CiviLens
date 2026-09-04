@@ -605,7 +605,7 @@ Artisan::command('civiclens:prune-candidates {--apply : Delete them; without thi
     return 0;
 })->purpose('Remove review candidates the current amount pattern would not produce');
 
-Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Score in this process instead of queueing}', function (SecondReadScorer $scorer): int {
+Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--all : Re-score pages whose scores are already current} {--sync : Score in this process instead of queueing}', function (SecondReadScorer $scorer): int {
     $limit = $this->option('limit');
     $limit = is_numeric($limit) ? (int) $limit : 500;
 
@@ -665,8 +665,20 @@ Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Sc
     }
 
     // Then the rest, in id order as before, so a full re-score after an
-    // extraction change still walks the corpus the way it always did.
-    if ($pages->count() < $limit) {
+    // extraction change still walks the corpus the way it always did — but
+    // only when asked for.
+    //
+    // It used to be the default, and the default was expensive. A page whose
+    // score is already current re-rasterises, re-reads every crop on it and
+    // writes back the identical answer. Twice in one day a run reached zero
+    // unscored and zero stale and then kept going: the second time it had
+    // 23,866 such pages left, about four hours of CPU for no change to any
+    // row. Nothing reported it, because from the outside a scorer walking
+    // pages looks exactly like a scorer doing work.
+    //
+    // `--all` still forces the full walk, which is what an extraction change
+    // needs; the difference is that it is now a thing you ask for.
+    if ($this->option('all') && $pages->count() < $limit) {
         $pages = $pages->concat(
             (clone $query)
                 ->whereNotIn('id', $pages->all())
@@ -674,6 +686,12 @@ Artisan::command('civiclens:score-fields {--limit=500} {--labelled} {--sync : Sc
                 ->limit(max(1, $limit - $pages->count()))
                 ->pluck('id')
         );
+    }
+
+    if ($pages->isEmpty()) {
+        $this->info('Every candidate carries a current score. Pass --all to score them again anyway.');
+
+        return 0;
     }
 
     // Scoring shares one queue with the crawlers, and a crawler rate-limited to
