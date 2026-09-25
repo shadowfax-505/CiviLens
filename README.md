@@ -61,4 +61,4 @@ Version 1 is intentionally structured so v2 can be added without rewriting the p
 
 1. Read [docs/ENGINEERING_DIRECTIVE.md](docs/ENGINEERING_DIRECTIVE.md).
 2. Read [docs/MASTER_INDEX.md](docs/MASTER_INDEX.md).
-5. Run `composer quality`, `npm run build`, and applicable browser tests before claiming a change is complete.
+3. Run `composer quality`, `npm run build`, and applicable browser tests before claiming a change is complete.

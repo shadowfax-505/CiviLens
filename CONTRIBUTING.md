@@ -5,9 +5,9 @@ Contributions should preserve the project handbook and version strategy.
 ## Workflow
 
 1. Read `docs/MASTER_INDEX.md`.
-3. Create a focused branch.
-4. Update tests and documentation with every feature.
-5. Record architecture changes in `docs/adr/`.
+2. Create a focused branch.
+3. Update tests and documentation with every feature.
+4. Record architecture changes in `docs/adr/`.
 
 ## Local Quality Gate
 
