@@ -1,2 +1,6 @@
 numpy>=2.0
 scipy>=1.14
+# encoding_debt/: MIT-licensed; poppler and tesseract are called as programs, not linked
+pillow>=11.0
+bijoy2unicode==0.1.1
+matplotlib>=3.9
